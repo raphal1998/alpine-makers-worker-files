@@ -1,0 +1,23 @@
+{
+  "repo": "Lykon/NeverEnding-Dream",
+  "sha256": "ecefb796ffcb7e4099df12f6419dffad671caa88780ff84fac9d680947173a0f",
+  "retrievedAt": "2026-10-03T14:26:12.318Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/ecefb796ffcb7e4099df12f6419dffad671caa88780ff84fac9d680947173a0f",
+  "versionId": 64094,
+  "versionName": "v1.22 baked vae",
+  "modelId": 10028,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/10028",
+  "modelName": "NeverEnding Dream (NED)",
+  "publisher": "Lykon",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "NeverEnding Dream (a.k.a. NED) This is a dream that you will never want to wake up from Add a ❤️ to receive future updates. This took much time and effort, please be supportive 🫂 Do you like what I do? Consider supporting me on Patreon 🅿️ or feel free to buy me a coffee ☕ V1.22 update: thanks to Bokus for some of the preview images and the tests. Available on the following websites with GPU acceleration: Mage.space Sinkin.ai RandomSeed It has been a while since I made a model. I've been making LoRA's non stop for the last month, but I felt like I needed something. A big problem with DreamShaper is that it wasn't much compatibles with the LoRA's I was making. So I wanted to create a model that was \"artistic\" like DreamShaper but also able to use my LoRA's and booru tags for generating images. Plus I wanted this to be able to make good anime stuff out of the box, without needing an additional LoRA. After a lot of tests and also fine tuning (plus LoRA merges) here is my newest model. It came out a bit more realistic then I wanted, but I won't complain. What is this model great at? Generating cosplay images Generating anime pictures Work accurately with character LoRA Generating good looking people Generating realistic animals Generating images using booru-like tags What is this model not too good at? Generating pictures from complex sentences Making fantasy/sci-fi paintings So this basically complements DreamShaper , and it also doesn't include Dreamlike in the mix. I hope you'll enjoy it! Some tips: Use CLIP skip 2. Select \"auto\" as vae if you're using the baked vae version. Use highres fix or img2img to upscale the images after you get a preview. See the examples generation data for settings suggestions, I've tested various techniques. If you're making images where the subject is far, remember you can inpaint eyes and faces selecting \"only masked\". Stable Diffusion is great, have fun with it!",
+  "publicUrl": "https://civitai.com/models/10028?modelVersionId=64094"
+}

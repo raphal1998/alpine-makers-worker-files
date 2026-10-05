@@ -1,0 +1,28 @@
+Alpine Makers — notice documentaire : open3d-lab
+Auteur/éditeur : Tencent / auteurs des moteurs 3D
+Attribution : Tencent / auteurs des moteurs 3D
+Licence : Tencent Hunyuan3D Community + licences des dépendances
+Source officielle : voir catalogue
+État : pinned_upstream_code_license
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+VAST-AI-Research/TripoSG--fc5c40990181--LICENSE
+https://raw.githubusercontent.com/VAST-AI-Research/TripoSG/fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c/LICENSE
+SHA-256 0fc2acd0176b345d3da59f466861ad09b78698de4200739aeaa2ffc9ae7a6842
+Copie : legal_sources/VAST-AI-Research--TripoSG--fc5c40990181--LICENSE.txt
+wgsxm/PartCrafter--3d773bf02fad--LICENSE
+https://raw.githubusercontent.com/wgsxm/PartCrafter/3d773bf02fad51c7ab31a5615573fec93b287b30/LICENSE
+SHA-256 ae8c80719a5c916e5fd99fd3da99f8cf74be1589e9e4a11d5754898967a54e1f
+Copie : legal_sources/wgsxm--PartCrafter--3d773bf02fad--LICENSE.txt
+VAST-AI-Research/TripoSR--107cefdc244c--LICENSE
+https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/107cefdc244c39106fa830359024f6a2f1c78871/LICENSE
+SHA-256 ade0a66629bdd7e01e46b3296b3851cff0fd27989bca53da470ad6e96ed620fb
+Copie : legal_sources/VAST-AI-Research--TripoSR--107cefdc244c--LICENSE.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

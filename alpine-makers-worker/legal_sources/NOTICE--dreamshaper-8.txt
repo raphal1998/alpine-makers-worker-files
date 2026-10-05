@@ -1,0 +1,33 @@
+Alpine Makers — notice documentaire : dreamshaper-8
+Auteur/éditeur : Lykon
+Attribution : Lykon
+Licence : Conditions auteur Civitai + conditions du modèle de base
+Source officielle : https://huggingface.co/Lykon/DreamShaper
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Lykon--DreamShaper--228d79cb2081--README.md
+https://huggingface.co/Lykon/DreamShaper/raw/228d79cb20811466f5c5710aa91f05dabd0b8a14/README.md
+SHA-256 f5c22e0633a94e47b88b54537615936a811809df28cdb40a373b83edbe1bd5c6
+Copie : legal_sources/Lykon--DreamShaper--228d79cb2081--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--4384--128713--author-permissions
+https://civitai.com/api/v1/models/4384
+SHA-256 9857d522d304b1607d0eac57c60722faf1046b3b890a58d58dee3a6cd1dca79f
+Copie : legal_sources/Civitai--4384--128713--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

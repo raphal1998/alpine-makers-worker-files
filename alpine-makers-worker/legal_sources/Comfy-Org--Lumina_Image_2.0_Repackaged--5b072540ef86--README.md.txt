@@ -1,0 +1,34 @@
+---
+license: apache-2.0
+tags:
+- comfyui
+- diffusion-single-file
+base_model:
+- Alpha-VLLM/Lumina-Image-2.0
+---
+
+# Lumina Image 2.0
+
+Repackaged model files for ComfyUI.
+
+Original model repository: https://github.com/Alpha-VLLM/Lumina-Image-2.0
+
+Place the files in the following folders:
+
+```
+📂 ComfyUI/
+├── 📂 models/
+│   ├── 📂 checkpoints/
+│   │   └── lumina_2.safetensors
+│   ├── 📂 diffusion_models/
+│   │   └── lumina_2_model_bf16.safetensors
+│   ├── 📂 text_encoders/
+│   │   └── gemma_2_2b_fp16.safetensors
+│   ├── 📂 vae/
+│   │   └── ae.safetensors
+```
+
+---
+[Lumina Image 2.0](https://github.com/Alpha-VLLM/Lumina-Image-2.0) checkpoint repackaged for ComfyUI use.
+
+For examples how to use it in ComfyUI see: https://comfyanonymous.github.io/ComfyUI_examples/lumina2/

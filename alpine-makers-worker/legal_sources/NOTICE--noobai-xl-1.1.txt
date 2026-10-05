@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : noobai-xl-1.1
+Auteur/éditeur : Laxhar
+Attribution : NoobAI XL 1.1
+Licence : fair-ai-public-license-1.0-sd
+Source officielle : https://huggingface.co/Laxhar/noobai-XL-1.1
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+FAIPL : fournir la source préférée de modification (poids inclus) et licence aux destinataires ; accès aux sources des versions modifiées accessibles en réseau.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Laxhar--noobai-XL-1.1--814a274af2b8--README.md
+https://huggingface.co/Laxhar/noobai-XL-1.1/raw/814a274af2b8097c0828819d561ec74c7d0c6cea/README.md
+SHA-256 cf21e79ff853c46efa1dcfd809940caf7d21db0c45eefc05d67ddb8a891a9635
+Copie : legal_sources/Laxhar--noobai-XL-1.1--814a274af2b8--README.md.txt
+FAIPL-1.0-SD-full-official-page
+https://freedevproject.org/faipl-1.0-sd/
+SHA-256 430e926fd41937bb6ec02716534ceadc0386f54efec48e77b2ee4e1aaa0f53c0
+Copie : legal_sources/FAIPL-1.0-SD-full-official-page.txt
+Civitai--833294--1116447--author-permissions
+https://civitai.com/api/v1/models/833294
+SHA-256 f953d494c3e0d4d1f81304ec45aef6bec702815b2650a8bfca2e11f1b7db6f17
+Copie : legal_sources/Civitai--833294--1116447--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

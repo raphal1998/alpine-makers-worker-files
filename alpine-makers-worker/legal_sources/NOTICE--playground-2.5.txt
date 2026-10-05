@@ -1,0 +1,25 @@
+Alpine Makers — notice documentaire : playground-2.5
+Auteur/éditeur : playgroundai
+Attribution : Playground v2.5
+Licence : playground-v2dot5-community
+Source officielle : https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic
+État : license_text_and_publisher_declaration
+
+Playground v2.5 is licensed under the Playground v2.5 Community License.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--LICENSE.md
+https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/raw/1e032f13f2fe6db2dc49947dbdbd196e753de573/LICENSE.md
+SHA-256 482775f827dd925031e7bc828ca78a7f10a2d7d21999792240e55442d1fbdfa7
+Copie : legal_sources/playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--LICENSE.md.txt
+playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--README.md
+https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/raw/1e032f13f2fe6db2dc49947dbdbd196e753de573/README.md
+SHA-256 c6660ae40bb2bd3a3c932072f16de46efff8ac95e22048c5f90f41540a7a85c0
+Copie : legal_sources/playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--README.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

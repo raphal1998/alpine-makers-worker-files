@@ -1,0 +1,24 @@
+# "Atelier 3D ouvert" backend: TripoSG, TripoSG-scribble, PartCrafter,
+# PartCrafter-Scene (VAST-AI / wgsxm, diffusers-style) and TripoSR (Stability AI).
+# PyTorch comes from the Worker GPU profile. Compiled upstream extras (diso,
+# torchmcubes, moderngl texture baking) are replaced by pure-Python shims
+# shipped by the agent, so nothing here needs a C++/CUDA compiler.
+diffusers
+transformers
+accelerate
+einops
+huggingface_hub
+safetensors
+opencv-python
+trimesh
+omegaconf
+scikit-image
+scipy
+numpy
+pillow
+peft
+jaxtyping
+typeguard
+pymeshlab
+rembg
+onnxruntime

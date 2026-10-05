@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : model-studio
+Auteur/éditeur : OrcaSlicer / Alpine Makers (bridge)
+Attribution : OrcaSlicer / Alpine Makers (bridge)
+Licence : AGPL-3.0 pour OrcaSlicer ; bridge à qualifier
+Source officielle : voir catalogue
+État : license_text_unpinned_runtime
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+OrcaSlicer-AGPL-3.0-current-license
+https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/main/LICENSE.txt
+SHA-256 57c8ff33c9c0cfc3ef00e650a1cc910d7ee479a8bc509f6c9209a7c2a11399d6
+Copie : legal_sources/OrcaSlicer-AGPL-3.0-current-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

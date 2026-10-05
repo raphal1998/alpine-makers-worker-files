@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : lab-depth-anything-3-small
+Auteur/éditeur : Auteurs de Depth Anything 3 ; conversion safetensors par Comfy-Org
+Attribution : Depth Anything 3 (variante Small)
+Licence : Apache-2.0 (déclarée par la fiche du dépôt)
+Source officielle : https://huggingface.co/Comfy-Org/Depth-Anything-3
+État : standard_license_text_publisher_card_not_collected
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Apache-2.0-full-license
+https://www.apache.org/licenses/LICENSE-2.0.txt
+SHA-256 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+Copie : legal_sources/Apache-2.0-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

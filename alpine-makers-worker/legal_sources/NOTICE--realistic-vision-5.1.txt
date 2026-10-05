@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : realistic-vision-5.1
+Auteur/éditeur : SG161222
+Attribution : Realistic Vision 5.1
+Licence : CreativeML OpenRAIL / OpenRAIL++ (version exacte à consulter)
+Source officielle : https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+SG161222--Realistic_Vision_V5.1_noVAE--1e9f017a7b1e--README.md
+https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE/raw/1e9f017a7b1eaefb63a1900ea6c5953d2739fd21/README.md
+SHA-256 8570fe3da7bdc73bbd98b3ed7e6e9cb207cc4c6a5d50c73faa004fbbd2ed012c
+Copie : legal_sources/SG161222--Realistic_Vision_V5.1_noVAE--1e9f017a7b1e--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

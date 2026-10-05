@@ -1,0 +1,26 @@
+# Hunyuan3D 2.1 shape backend (hy3dshape) — curated from the upstream
+# hy3dshape/requirements.txt without the demo web stack (gradio/fastapi/uvicorn)
+# and without PyTorch, which the Worker installs from the GPU profile.
+# The PBR paint extras (realesrgan/basicsr/cupy/open3d…) are installed only when
+# the "hunyuan3d-21-paint-pbr" model is installed, never for shape-only users.
+ninja
+pybind11
+diffusers
+transformers
+accelerate
+einops
+opencv-python
+numpy
+omegaconf
+pyyaml
+tqdm
+trimesh
+pymeshlab
+pygltflib
+xatlas
+scikit-image
+rembg
+onnxruntime
+safetensors
+huggingface_hub
+timm

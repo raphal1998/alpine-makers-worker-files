@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : lab-birefnet
+Auteur/éditeur : Peng Zheng et contributeurs BiRefNet ; fichier publié par Comfy-Org
+Attribution : BiRefNet (Peng Zheng et coll.)
+Licence : MIT (déclarée par la fiche du dépôt ; même empreinte que le fichier de l'auteur)
+Source officielle : https://huggingface.co/Comfy-Org/BiRefNet
+État : standard_license_text_publisher_card_not_collected
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+MIT-full-license-template
+https://raw.githubusercontent.com/spdx/license-list-data/main/text/MIT.txt
+SHA-256 b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5
+Copie : legal_sources/MIT-full-license-template.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

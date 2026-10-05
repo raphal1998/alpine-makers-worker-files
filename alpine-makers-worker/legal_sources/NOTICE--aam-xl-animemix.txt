@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : aam-xl-animemix
+Auteur/éditeur : Lykon
+Attribution : AAM XL AnimeMix
+Licence : Fair AI Public License 1.0-SD
+Source officielle : https://huggingface.co/Lykon/AAM_XL_AnimeMix
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+FAIPL : fournir la source préférée de modification (poids inclus) et licence aux destinataires ; accès aux sources des versions modifiées accessibles en réseau.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Lykon--AAM_XL_AnimeMix--693a8d0f4dde--README.md
+https://huggingface.co/Lykon/AAM_XL_AnimeMix/raw/693a8d0f4dde950c6ae9897000fe31be9eb93f6e/README.md
+SHA-256 326fb455dac62cae7ed0e3d260e2a085df7e0bc1978137198a3ddb651beb11f0
+Copie : legal_sources/Lykon--AAM_XL_AnimeMix--693a8d0f4dde--README.md.txt
+FAIPL-1.0-SD-full-official-page
+https://freedevproject.org/faipl-1.0-sd/
+SHA-256 430e926fd41937bb6ec02716534ceadc0386f54efec48e77b2ee4e1aaa0f53c0
+Copie : legal_sources/FAIPL-1.0-SD-full-official-page.txt
+Civitai--269232--303526--author-permissions
+https://civitai.com/api/v1/models/269232
+SHA-256 e23017e8a85a4abfb20738d5080590aa2034e8ed99716eaad568f2c86211e899
+Copie : legal_sources/Civitai--269232--303526--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

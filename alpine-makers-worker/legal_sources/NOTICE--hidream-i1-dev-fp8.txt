@@ -1,0 +1,34 @@
+Alpine Makers — notice documentaire : hidream-i1-dev-fp8
+Auteur/éditeur : Comfy-Org
+Attribution : HiDream-AI / auteurs du modèle ; Meta pour l'encodeur Llama 3.1 — Built with Llama
+Licence : mit
+Source officielle : https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI
+État : publisher_declaration
+
+Built with Llama
+Llama 3.1 is licensed under the Llama 3.1 Community License, Copyright © Meta Platforms, Inc. All Rights Reserved.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Comfy-Org--HiDream-I1_ComfyUI--0703a0bd5983--README.md
+https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/raw/0703a0bd5983e85e5f5b007577263164938de251/README.md
+SHA-256 8115c9b4815e6af32d8d981c8ed079f78378a6773641b552ea3abb13bfbac853
+Copie : legal_sources/Comfy-Org--HiDream-I1_ComfyUI--0703a0bd5983--README.md.txt
+MIT-full-license-template
+https://raw.githubusercontent.com/spdx/license-list-data/main/text/MIT.txt
+SHA-256 b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5
+Copie : legal_sources/MIT-full-license-template.txt
+Llama-3.1-full-license
+https://raw.githubusercontent.com/meta-llama/llama-models/0e0b8c519242d5833d8c11bffc1232b77ad7f301/models/llama3_1/LICENSE
+SHA-256 bf2eac60b81e5c5f779fc3b4849d3bfacfd63f97f3eb68b44e9c6868c5801712
+Copie : legal_sources/Llama-3.1-full-license.txt
+Llama-3.1-AUP
+https://raw.githubusercontent.com/meta-llama/llama-models/0e0b8c519242d5833d8c11bffc1232b77ad7f301/models/llama3_1/USE_POLICY.md
+SHA-256 f456a3f5b15ab588c84d06cf095a245bfee0bbc1620b48ed00af2cca4a711735
+Copie : legal_sources/Llama-3.1-AUP.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

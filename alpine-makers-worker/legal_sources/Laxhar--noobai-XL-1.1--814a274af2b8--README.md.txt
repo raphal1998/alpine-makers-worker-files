@@ -1,0 +1,173 @@
+---
+license: other
+license_name: fair-ai-public-license-1.0-sd
+license_link: https://freedevproject.org/faipl-1.0-sd/
+language:
+- en
+base_model:
+- Laxhar/noobai-XL-1.0
+pipeline_tag: text-to-image
+tags:
+- Diffusers
+- Safetensors
+- not-for-all-audiences
+---
+
+<h1 align="center"><strong style="font-size: 48px;">NoobAI XL 1.1</strong></h1>
+
+
+# New Image Generation Model
+
+This is an image generation model based on training from Illustrious-xl. 
+
+It utilizes the latest full Danbooru and e621 datasets for training, with native tags caption.
+
+# Model Introduction
+
+## Model Details
+- **Developed by**: [Laxhar Lab](https://huggingface.co/Laxhar)
+  
+- **Model Type**: Diffusion-based text-to-image generative model
+
+- **Fine-tuned from**: Laxhar/noobai-XL-1.0 
+   
+- **Sponsored by from**: [Lanyun Cloud](https://cloud.lanyun.net)
+
+# Recommended Settings
+
+## Parameters
+- CFG: 5 ~ 6
+- Steps: 25 ~ 30
+- Sampling Method:Euler a
+- Resolution: Total area around 1024x1024. Best to choose from: 768x1344, **832x1216**, 896x1152, 1024x1024, 1152x896, 1216x832, 1344x768
+
+  
+## Prompts
+
+- Prompt Prefix:
+
+```
+masterpiece, best quality, newest, absurdres, highres, safe,
+```
+
+- Negative Prompt:
+
+```
+nsfw, worst quality, old, early, low quality, lowres, signature, username, logo, bad hands, mutated hands, mammal, anthro, furry, ambiguous form, feral, semi-anthro
+```
+
+# Usage Guidelines
+
+## Caption
+
+```
+<1girl/1boy/1other/...>, <character>, <series>, <artists>, <special tags>, <general tags>, <other tags>
+```
+
+## Quality Tags
+
+For quality tags, we evaluated image popularity through the following process:
+
+- Data normalization based on various sources and ratings.
+- Application of time-based decay coefficients according to date recency.
+- Ranking of images within the entire dataset based on this processing.
+
+Our ultimate goal is to ensure that quality tags effectively track user preferences in recent years.
+
+| Percentile Range | Quality Tags   |
+| :--------------- | :------------- |
+| > 95th           | masterpiece    |
+| > 85th, <= 95th  | best quality   |
+| > 60th, <= 85th  | good quality   |
+| > 30th, <= 60th  | normal quality |
+| <= 30th          | worst quality  |
+
+
+## Date tags
+| Year Range | Period |
+|:-----------------|:------------------|
+| 2005-2010   | old       |
+| 2011-2014   | early     |
+| 2014-2017   | mid       |
+| 2018-2020   | recent    |
+| 2021-2024   | newest    |
+
+## Datasets
+- Latest Danbooru images up to the training date(for v1.0,it mean approximately before 2024-10-23)
+- E621 images [e621-2024-webp-4Mpixel](https://huggingface.co/datasets/NebulaeWis/e621-2024-webp-4Mpixel) dataset on Hugging Face
+- 
+**Communication**
+
+- **QQ Groups:**
+
+  - 427280545
+  - 677964513
+  - 852429527
+  - 914818692
+  - 635772191
+  - 870086562
+
+- **Discord:** [Laxhar Dream Lab SDXL NOOB](https://discord.com/invite/DKnFjKEEvH)
+
+**Utility Tool**
+
+Laxhar Lab is training a dedicated ControlNet model for NoobXL, and the models are being released progressively. So far, the normal, depth, and canny have been released.
+
+Model link: https://civitai.com/models/929685
+
+# Model License
+
+This model's license inherits from https://huggingface.co/OnomaAIResearch/Illustrious-xl-early-release-v0 fair-ai-public-license-1.0-sd and adds the following terms. Any use of this model and its variants is bound by this license.
+
+## I. Usage Restrictions
+
+- Prohibited use for harmful, malicious, or illegal activities, including but not limited to harassment, threats, and spreading misinformation.
+- Prohibited generation of unethical or offensive content.
+- Prohibited violation of laws and regulations in the user's jurisdiction.
+
+## II. Commercial Prohibition
+
+We prohibit any form of commercialization, including but not limited to monetization or commercial use of the model, derivative models, or model-generated products.
+
+## III. Open Source Community
+
+To foster a thriving open-source community,users MUST comply with the following requirements:
+
+- Open source derivative models, merged models, LoRAs, and products based on the above models.
+- Share work details such as synthesis formulas, prompts, and workflows.
+- Follow the fair-ai-public-license to ensure derivative works remain open source.
+
+## IV. Disclaimer
+
+Generated models may produce unexpected or harmful outputs. Users must assume all risks and potential consequences of usage.
+
+# Participants and Contributors
+
+## Participants
+
+- **L_A_X:** [Civitai](https://civitai.com/user/L_A_X) | [Liblib.art](https://www.liblib.art/userpage/9e1b16538b9657f2a737e9c2c6ebfa69) | [Huggingface](https://huggingface.co/LAXMAYDAY)
+- **li_li:** [Civitai](https://civitai.com/user/li_li) | [Huggingface](https://huggingface.co/heziiiii)
+- **nebulae:** [Civitai](https://civitai.com/user/kitarz) | [Huggingface](https://huggingface.co/NebulaeWis)
+- **Chenkin:** [Civitai](https://civitai.com/user/Chenkin) | [Huggingface](https://huggingface.co/windsingai)
+- **Euge:** [Civitai](https://civitai.com/user/Euge_) | [Huggingface](https://huggingface.co/Eugeoter) | [Github](https://github.com/Eugeoter)
+
+## Contributors
+
+- **Narugo1992**: Thanks to [narugo1992](https://github.com/narugo1992) and the [deepghs](https://huggingface.co/deepghs) team for open-sourcing various training sets, image processing tools, and models.
+
+- **Mikubill**: Thanks to [Mikubill](https://github.com/Mikubill) for the [Naifu](https://github.com/Mikubill/naifu) trainer.
+
+- **Onommai**: Thanks to [OnommAI](https://onomaai.com/) for open-sourcing a powerful base model.
+
+- **V-Prediction**: Thanks to the following individuals for their detailed instructions and experiments.
+
+  - adsfssdf
+  - [bluvoll](https://civitai.com/user/bluvoll)
+  - [bvhari](https://github.com/bvhari)
+  - [catboxanon](https://github.com/catboxanon)
+  - [parsee-mizuhashi](https://huggingface.co/parsee-mizuhashi)
+  - [very-aesthetic](https://github.com/very-aesthetic)
+  - [momoura](https://civitai.com/user/momoura)
+  - madmanfourohfour
+
+- **Community**: [aria1th261](https://civitai.com/user/aria1th261), [neggles](https://github.com/neggles/neurosis), [sdtana](https://huggingface.co/sdtana), [chewing](https://huggingface.co/chewing), [irldoggo](https://github.com/irldoggo), [reoe](https://huggingface.co/reoe), [kblueleaf](https://civitai.com/user/kblueleaf), [Yidhar](https://github.com/Yidhar), ageless, 白玲可, Creeper, KaerMorh, 吟游诗人, SeASnAkE, [zwh20081](https://civitai.com/user/zwh20081), Wenaka⁧~喵, 稀里哗啦, 幸运二副, 昨日の約, 445, [EBIX](https://civitai.com/user/EBIX), [Sopp](https://huggingface.co/goyishsoyish), [Y_X](https://civitai.com/user/Y_X), [Minthybasis](https://civitai.com/user/Minthybasis), [Rakosz](https://civitai.com/user/Rakosz)

@@ -1,0 +1,33 @@
+Alpine Makers — notice documentaire : protogen-x5.8
+Auteur/éditeur : darkstorm2150
+Attribution : ProtoGen x5.8
+Licence : creativeml-openrail-m
+Source officielle : https://huggingface.co/darkstorm2150/Protogen_x5.8_Official_Release
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+darkstorm2150--Protogen_x5.8_Official_Release--9e9ff27a0b5b--README.md
+https://huggingface.co/darkstorm2150/Protogen_x5.8_Official_Release/raw/9e9ff27a0b5bbbaaa6aa911532d8cc3624587824/README.md
+SHA-256 92e5218b708bb1493c14468b8262dd524d22fac7dfe6e7967f1745a560623e99
+Copie : legal_sources/darkstorm2150--Protogen_x5.8_Official_Release--9e9ff27a0b5b--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--3867--4298--author-permissions
+https://civitai.com/api/v1/models/3867
+SHA-256 75bf8ef7dc5842e9eef67ed878c76fa16d29ec49816d82d32718b23fc525047c
+Copie : legal_sources/Civitai--3867--4298--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,24 @@
+Alpine Makers — notice documentaire : stable-cascade
+Auteur/éditeur : Stability AI
+Attribution : Stability AI — Stable Cascade
+Licence : Stability AI Non-Commercial Research Community License
+Source officielle : https://huggingface.co/stabilityai/stable-cascade
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-cascade--a89f66d459ae--README.md
+https://huggingface.co/stabilityai/stable-cascade/raw/a89f66d459ae653e3b4d4f992a7c3789d0dc4d16/README.md
+SHA-256 fac1ea38330cb92617d4e46f2ddc8e117fb4db45b74786d89da40a34c91c0569
+Copie : legal_sources/stabilityai--stable-cascade--a89f66d459ae--README.md.txt
+stabilityai--stable-cascade--a89f66d459ae--LICENSE
+https://huggingface.co/stabilityai/stable-cascade/raw/a89f66d459ae653e3b4d4f992a7c3789d0dc4d16/LICENSE
+SHA-256 d1aca0f2c1a212c45a3a55bdb9d35fc07b450697ab0fbd5acf4c4e062874038d
+Copie : legal_sources/stabilityai--stable-cascade--a89f66d459ae--LICENSE.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

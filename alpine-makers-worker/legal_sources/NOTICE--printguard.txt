@@ -1,0 +1,40 @@
+Alpine Makers — notice documentaire : printguard
+Auteur/éditeur : Oliver Bravery / contributeurs PrintGuard
+Attribution : PrintGuard 2.4.0 — conserver les mentions des auteurs contenues dans le paquet ; aucune attribution Alpine exclusive.
+Licence : GPL-2.0-only + licences des dépendances
+Source officielle : https://github.com/oliverbravery/PrintGuard
+État : official_release_and_source_identified
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Téléchargement direct chez l’éditeur. Code, modèles du dépôt et scripts de construction référencés à la révision 2.4.0 ; cette voie Alpine ne redistribue plus le binaire.
+GPL-2.0 vérifiée ; pas de contrat commercial distinct exigé par cette licence. Pas de certification de toutes les dépendances ou d’une future redistribution Alpine.
+
+PrintGuard-2.4.0-METADATA.txt
+local-package:PrintGuard-windows-x64.zip
+SHA-256 e13e4957113d127d95a33e7e48f9d0c391edae8d731a21f063745ebb4b357a69
+Copie : legal_sources/PrintGuard-2.4.0-METADATA.txt.txt
+PrintGuard-2.4.0-licenses-LICENSE.md.txt
+local-package:PrintGuard-windows-x64.zip
+SHA-256 5ac905d7a79817e44361177caa050a386a9773d37e1635a97f77dc23516f1fe9
+Copie : legal_sources/PrintGuard-2.4.0-licenses-LICENSE.md.txt.txt
+PrintGuard-v2.4.0-LICENSE.md.txt
+https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/LICENSE.md
+SHA-256 287d1f9af994fa7bade423cc4fcbff58eb0c3a3732252e0ec128bd3dc276b62c
+Copie : legal_sources/PrintGuard-v2.4.0-LICENSE.md.txt
+PrintGuard-v2.4.0-THIRD_PARTY_NOTICES.md.txt
+https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/THIRD_PARTY_NOTICES.md
+SHA-256 df87abeec3a0e5de1f0d39f7500a5f9f09e490083f0b513ffc2e4052f85f3b5b
+Copie : legal_sources/PrintGuard-v2.4.0-THIRD_PARTY_NOTICES.md.txt
+PrintGuard-v2.4.0-models-metadata.json.txt
+https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/models/metadata.json
+SHA-256 d0f49498774afe81138c0f8207c5440732691a1c38fcb2805b7bd2bbc2963c8a
+Copie : legal_sources/PrintGuard-v2.4.0-models-metadata.json.txt
+PrintGuard-v2.4.0-pyproject.toml.txt
+https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/pyproject.toml
+SHA-256 97a04537b7f36f0ca3a5ffd8b9f6c8a553176d2517ce6a92d179726abc826297
+Copie : legal_sources/PrintGuard-v2.4.0-pyproject.toml.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,9 @@
+# -*- coding: utf-8 -*-
+# Runtime d'analyse CPU du composant « fire-watch » (Worker sans GPU NVIDIA compatible).
+# Identique à catalog.RUNTIME_CPU_PACKAGES (testé le 2026-10-01, Python 3.12, Windows).
+onnxruntime==1.30.0
+numpy==2.5.3
+opencv-python-headless==4.14.0.94
+flatbuffers==25.12.19
+packaging==26.3
+protobuf==7.36.2

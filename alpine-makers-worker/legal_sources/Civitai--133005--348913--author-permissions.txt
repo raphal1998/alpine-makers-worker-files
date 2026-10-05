@@ -1,0 +1,22 @@
+{
+  "repo": "RunDiffusion/Juggernaut-XL-v9",
+  "sha256": "c9e3e68f89b8e38689e1097d4be4573cf308de4e3fd044c64ca697bdb4aa8bca",
+  "retrievedAt": "2026-10-03T14:26:12.509Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/c9e3e68f89b8e38689e1097d4be4573cf308de4e3fd044c64ca697bdb4aa8bca",
+  "versionId": 348913,
+  "versionName": "V9 + RunDiffusionPhoto 2",
+  "modelId": 133005,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/133005",
+  "modelName": "Juggernaut XL",
+  "publisher": "KandooAI",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Updated the Prompting Guide For business inquires, commercial licensing, custom models, and consultation contact me under KandooAI@web.de Join Juggernaut now on X/Twitter Prompting Guide for Juggernaut Ragnarok by Adam Juggernaut on HuggingFace Hey everyone, It’s been 8 months since the last version was released here on CivitAI. Of course, I haven’t been idle during that time . I completed several projects to ensure I’d have the financial means to keep exploring new architectures and possibly do full finetunes on them in the future. Juggernaut Flux (and its many sub-variants) was a ton of work, but ultimately, I’ve wrapped that chapter up. The training process gave me way too many headaches. To keep my sanity, I spent my spare time working on Juggernaut SDXL with the hope of maybe releasing one final version for you all. And that day has finally come. :) Juggernaut Ragnarok has improved in many areas: photorealism, digital painting, poses, hands, feet , and much more. That said, it’s still an SDXL model , and I don’t recommend comparing it to models like Flux, Reve, or Sora. For example, it still has limitations when it comes to text rendering or faces at a distance. I recommend using it as part of a pipeline for your projects. Example setup: FluxDev / Pixelwave / Jug Flux Pro → Juggernaut Ragnarok A quick personal note about Juggernaut: Honestly, I don’t know what comes next. After the release of Sora and similar tools, the open-source image generation space feels a bit dull in comparison. Nothing has really excited me enough to dive back into training (yes, I’m talking about HiDream too). So I’m seeing Juggernaut Ragnarok as a kind of farewell , especially since it’s unclear where things are headed with CivitAI in general. (You can download all Juggernaut versions from HuggingFace, by the way.) Last but not least: Have fun with the model, share your creations, and good luck with your projects! And in case you’re wondering: Yes, you can do anything you want with Juggernaut : merge it, train it, sell the image outputs, etc. Just a simple shoutout is all I ask. :) And now, here are the recommended settings: Recommended Settings(VAE is baked in): Res: 832*1216 (For Portrait, but any SDXL Res will work fine) Sampler: DPM++ 2M SDE Steps: 30-40 CFG: 3-6 (less is a bit more realistic) Negative: Start with no negative, and add afterwards the Stuff you don´t wanna see in that image. VAE is already Baked In HiRes: 4xNMKD-Siax_200k with 15 Steps and 0.3 Denoise + 1.5 Upscale And now, have fun trying it out. As always, I'm eagerly waiting for your pictures in the Gallery :) If you liked the model, please leave a Like. In the end, that's what helps me the most as a creator on CivitAI. :) Last but not least, I'd like to thank a few people without whom Juggernaut XL probably wouldn't have come to fruition: Dreamlook.AI (Trained 3 Side Sets) Chillpixel SilasAI6609 Adam",
+  "publicUrl": "https://civitai.com/models/133005?modelVersionId=348913"
+}

@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : fire-watch
+Auteur/éditeur : Ultralytics / auteurs des checkpoints / Alpine Makers
+Attribution : Ultralytics / auteurs des checkpoints / Alpine Makers
+Licence : AGPL-3.0 ou contrat adapté
+Source officielle : voir catalogue
+État : license_text_unpinned_runtime
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Ultralytics-8.4.170-AGPL-license
+https://raw.githubusercontent.com/ultralytics/ultralytics/v8.4.170/LICENSE
+SHA-256 0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0
+Copie : legal_sources/Ultralytics-8.4.170-AGPL-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

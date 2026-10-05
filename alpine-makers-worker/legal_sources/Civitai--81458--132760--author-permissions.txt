@@ -1,0 +1,23 @@
+{
+  "repo": "Lykon/AbsoluteReality",
+  "sha256": "463d6a9fe8a4b56a4d69ef3692074c0617428dfd8e8f12f9efe3b1e9a71717ce",
+  "retrievedAt": "2026-10-03T14:26:11.726Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/463d6a9fe8a4b56a4d69ef3692074c0617428dfd8e8f12f9efe3b1e9a71717ce",
+  "versionId": 132760,
+  "versionName": "v1.8.1",
+  "modelId": 81458,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/81458",
+  "modelName": "AbsoluteReality",
+  "publisher": "Lykon",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "AbsoluteReality That feeling after you wake up from a dream Add a ❤️ to receive future updates. This took much time and effort, please be supportive 🫂 Do you like what I do? Consider supporting me on Patreon 🅿️ or feel free to buy me a coffee ☕ For LCM read the version description. Additional ecamples for V1.6: https://civitai.com/posts/353121 Additional examples for V1 : https://civitai.com/posts/259634 Amazing gallery by qf22: https://civitai.com/posts/260939 Quick face alteration examples using celebrity names and mixing them: https://civitai.com/posts/274268 Available on sinkin.ai , Mage.space and many other services Suggestions Use between 4.5 and 10 CFG Scale and between 25 and 30 Steps with DPM++ SDE Karras. Worse samplers might need more steps. To reproduce my results you MIGHT have to change these settings: Set \"Do not make DPM++ SDE deterministic across different batch sizes.\" (mostly for v1 examples) Set the ETA Noise Seed Delta (ENSD) to 31337 Set CLIP Skip to 2 DISABLE face restore. It's terrible, never use it Use simple prompts . Complex prompts might make less realistic pictures because of CLIP bleeding. More complex prompts does not mean better results. Keep it simple. Use ADetailer to enhance faces. Basically every solo portrait I made uses it. You can get my settings by clicking on \"copy generation data\". I suggest you use denoising under 0.3 to avoid getting always the same face. Use BadDream and UnrealisticDream negative embeddings ( BadDream, (UnrealisticDream:1.2) ). Add weight to UnrealisticDream between 1.2 and 1.5. Do not use FastNegative or EasyNegative if you aim at realism . However, they're good for artworks. Use Highres.fix with the following settings: Denoising strength: 0.45, Hires steps: 20, Hires upscaler: 8x_NMKD-Superscale_150000_G and as much upscale as you can (my gpu only handles up to x1.8 at 512x768 base resolution, but you can go higher). If you don't have 8x_NMKD-Superscale_150000_G you can probably use another GAN, but it should be easy to find on Google. You can also try Latent with a denoise higher than 0.6, but the result will be harder to control. Try to condition faces by prompting for eye colors, hairstyles, hair color, ethnicity and so on. Even celebrity names do work. This model is pretty good at not making a single face if you play with the context. If the pic is too clean, try to add some ISO noise. Even as a post processing with external tools it will trick the brain enough to make you think \"damn, this is a real photo. If you feel the grounded nature of this model is limiting your imagination, try generating on DS6 and then do img2img with this one to bump up the realism. Pruned vs full comparison (not highres fixed) Brief story of this model While working on DreamShaper 6 I made many other models and a crap ton of tests. Some of them were strange mixes with photorealistic models I had previously made, plus new ones and some ISO noise LoRA I made. When I tested the various release candidates of DS6 for photography prompts, this came out on top. While mostly on the losing side with regards to range, flexibility and LoRA compatibility compared to what became DS6, I noticed this was pretty good at recreating photos with very simple and minimalistic prompts. So, why not, I gave it some love and kept working on it, just in time for its initial release. Difference with DreamShaper Long story short, DS aims at art, this aims at realism. They might overlap a bit, but they have different objectives and different things they're good at. DreamShaper is total freedom and can basically do everything at a high level. This does about one thing and does it extremely well. This still uses DreamShaper as base, so it's capable of doing art to a lesser degree.",
+  "publicUrl": "https://civitai.com/models/81458?modelVersionId=132760"
+}

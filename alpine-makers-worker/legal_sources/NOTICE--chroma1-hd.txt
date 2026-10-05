@@ -1,0 +1,32 @@
+Alpine Makers — notice documentaire : chroma1-hd
+Auteur/éditeur : lodestones
+Attribution : Chroma1-HD (Lodestone Rock)
+Licence : Apache-2.0 (modèle ; dépendances distinctes)
+Source officielle : https://huggingface.co/lodestones/Chroma1-HD
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+lodestones--Chroma1-HD--0e0c60ece1e8--README.md
+https://huggingface.co/lodestones/Chroma1-HD/raw/0e0c60ece1e82b17cb7f77342d765ba5024c40c0/README.md
+SHA-256 7fb4b45c76fd5e2028d540dd76b59491eb547edd6271f88769a513c4ac1336be
+Copie : legal_sources/lodestones--Chroma1-HD--0e0c60ece1e8--README.md.txt
+comfyanonymous--flux_text_encoders--6af2a98e3f61--README.md
+https://huggingface.co/comfyanonymous/flux_text_encoders/raw/6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5/README.md
+SHA-256 a7574aa7a1f033923bd1374587892e5f3f761f5e30edfad92521842cd0f75d3a
+Copie : legal_sources/comfyanonymous--flux_text_encoders--6af2a98e3f61--README.md.txt
+Comfy-Org--z_image_turbo--6fc90a3b1b65--README.md
+https://huggingface.co/Comfy-Org/z_image_turbo/raw/6fc90a3b1b653e935a0d175e260736de25b84df5/README.md
+SHA-256 66b7c7b238a00ecba3488434c6e95473ad44c07ad9eade19da368ab5b1f747d5
+Copie : legal_sources/Comfy-Org--z_image_turbo--6fc90a3b1b65--README.md.txt
+Apache-2.0-full-license
+https://www.apache.org/licenses/LICENSE-2.0.txt
+SHA-256 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+Copie : legal_sources/Apache-2.0-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

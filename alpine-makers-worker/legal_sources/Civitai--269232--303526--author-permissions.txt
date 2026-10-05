@@ -1,0 +1,23 @@
+{
+  "repo": "Lykon/AAM_XL_AnimeMix",
+  "sha256": "d48c2391e04f7dbc83d8538b71be8a30991f3e4e2ff1a8a757b849381f769a8b",
+  "retrievedAt": "2026-10-03T14:26:11.650Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/d48c2391e04f7dbc83d8538b71be8a30991f3e4e2ff1a8a757b849381f769a8b",
+  "versionId": 303526,
+  "versionName": "v1.0",
+  "modelId": 269232,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/269232",
+  "modelName": "AAM XL (Anime Mix)",
+  "publisher": "Lykon",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "AAM XL Anime Mix Anime Screencap Style Model Do you like what I do? Consider supporting me on Patreon 🅿️ or feel free to buy me a coffee ☕. A ❤️, a kind comment or a review is greatly appreciated. Join my Discord Server This is essentially derived from AAM AnyLoRA Anime Mix , but it's based on SDXL. It won't work with loras and embeddings for SD1.5 even if they're trained on the original AAM or AnyLoRA. \"Mix\" as in mix of anime styles. I suggest you use CFG 5-7 (not higher than 8), 20-30 steps with Euler a . Upscalers suggestions are None (bicubic upscaling in comfyui), any good GAN for anime or Latent (only if you know what you're doing). For Turbo I suggest you use CFG 3-4 and 8 steps Euler a or 15 steps LCM. Unlike with DreamShaper Turbo, I think base AAM XL is better than AAM XL Turbo most of the time. However the latter is MUCH faster. Purpose of this model Make amazing anime style artworks on its own. Train character loras. Use anime styles. Generate anime art and stylized art. It can generate hentai on its own, but you might need loras and embeddings for specific stuff. ComfyUI Workflow: https://pastebin.com/BHCEzc6T Finetuned over \"DreamShaper Anime\", which is a mix of Anime Art Diffusion, Hassaku and DreamShaper XL. Finetuned using the AAM dataset. Fair AI Public License 1.0-SD",
+  "publicUrl": "https://civitai.com/models/269232?modelVersionId=303526"
+}

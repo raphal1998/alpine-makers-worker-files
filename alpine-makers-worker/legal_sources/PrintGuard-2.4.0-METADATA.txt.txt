@@ -1,0 +1,38 @@
+Metadata-Version: 2.5
+Name: printguard
+Version: 2.4.0
+Summary: Real-time 3D print failure detection
+License-Expression: GPL-2.0-only
+License-File: LICENSE.md
+Requires-Python: >=3.12
+Requires-Dist: ai-edge-litert>=2.1.5
+Requires-Dist: aiomqtt>=2.5.1
+Requires-Dist: av>=14.0
+Requires-Dist: fastapi>=0.136.3
+Requires-Dist: fastmcp>=3.4.2
+Requires-Dist: httpx>=0.28
+Requires-Dist: ml-dtypes>=0.5.1
+Requires-Dist: numpy>=2.1
+Requires-Dist: onnxruntime-ep-openvino>=1.5.2; sys_platform == 'linux' and platform_machine == 'x86_64'
+Requires-Dist: onnxruntime-windowsml>=1.24.1; sys_platform == 'win32'
+Requires-Dist: onnxruntime>=1.24.1; sys_platform != 'win32'
+Requires-Dist: packaging>=24.0
+Requires-Dist: paho-mqtt>=2.1
+Requires-Dist: pycentauri>=0.7.0
+Requires-Dist: pydantic-settings>=2.14.2
+Requires-Dist: pyprusalink>=3.0
+Requires-Dist: pywin32>=312; sys_platform == 'win32'
+Requires-Dist: starlette>=1.3.1
+Requires-Dist: uvicorn[standard]>=0.49.0
+Requires-Dist: wasdk-microsoft-windows-ai-machinelearning>=2.1.3; sys_platform == 'win32'
+Requires-Dist: wasdk-microsoft-windows-applicationmodel-dynamicdependency-bootstrap; sys_platform == 'win32'
+Requires-Dist: wasmtime>=47.0
+Provides-Extra: desktop
+Requires-Dist: desktop-notifier>=6.1; extra == 'desktop'
+Requires-Dist: pillow>=10; extra == 'desktop'
+Requires-Dist: platformdirs>=4; extra == 'desktop'
+Requires-Dist: pystray>=0.19.5; extra == 'desktop'
+Requires-Dist: pywebview>=6.2; extra == 'desktop'
+Provides-Extra: nvidia
+Requires-Dist: nvidia-cuda-runtime-cu12>=12.9; (sys_platform == 'linux' and platform_machine == 'x86_64') and extra == 'nvidia'
+Requires-Dist: onnxruntime-ep-nv-tensorrt-rtx-cu12>=0.3.0; (sys_platform == 'linux' and platform_machine == 'x86_64') and extra == 'nvidia'

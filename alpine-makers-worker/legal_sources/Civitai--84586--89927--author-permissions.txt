@@ -1,0 +1,23 @@
+{
+  "repo": "Lykon/AAM_Anylora_AnimeMix",
+  "sha256": "354b8c571d3abe963e1520d3b4e0647be519841f4376fc5d16f7f5e7859f7d49",
+  "retrievedAt": "2026-10-03T14:26:11.217Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/354b8c571d3abe963e1520d3b4e0647be519841f4376fc5d16f7f5e7859f7d49",
+  "versionId": 89927,
+  "versionName": "v1",
+  "modelId": 84586,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/84586",
+  "modelName": "AAM - AnyLoRA Anime Mix - Anime Screencap Style Model",
+  "publisher": "Lykon",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "AnyLoRA Anime Mix (AAM) Anime Screencap Style Model Do you like what I do? Consider supporting me on Patreon 🅿️ or feel free to buy me a coffee ☕. A ❤️, a kind comment or a review is greatly appreciated. Please check out AAM XL too Purpose of this model Make amazing anime style artworks on its own. Train character loras where the dataset is mostly made of anime screencaps, allowing less anime style transfer and less overfitting. Use anime styles if the lora is \"weak\" and doesn't give enough flat coloring. It's also pretty good at generating hentai stuff. Suggested settings Set the ETA Noise Seed Delta (ENSD) to 31337 Set CLIP Skip to 2 DISABLE face restore. It's terrible, never use it Use negative prompts and embeddings that don't ruin the style Use AnimeVideo or Foolhardy as upscalers. If you know what to do, Latent makes an interesting effect (see the first example and the Miku one) (optional to reproduce some results) Set \"Do not make DPM++ SDE deterministic across different batch sizes.\" Only my old images use that. (this setting is not actually good, so I'm gonna disable it, but might be the reason some results are different) LCM version Use it with 5-15 steps, ~2 cfg. LCM VERSION WORKS ONLY WITH LCM SAMPLER (to get it on Auto1111 you currently need a plugin). Being a distilled model it has lower quality compared to the base one. However it's MUCH faster and perfect for video and real time applications. Brief history Chatting on Discord, I noticed my Mushoku Tensei style LoRA, while trained on AnyLoRA, was performing a bit better on CyberAlchemist's AnimeMix base model. I read on his HF that the model was a supermerge of AnythingElse, his AnimeMix lora and various other style loras. Since AnimeMix was already including many of my old anime style loras, I wanted to experiment and try to make a model that could maximize the result of my Mushoku Tensei style, going beyond what AnyLoRA and AnimeMix could do. After testing many different versions, adjusting the settings and receiving feedback from the Discord channel, I ended up with a version that works very well on anime loras trained on AnyLoRA (base). Especially my Mushoku Tensei one which felt very weak on AnyLoRA. I don't advise using this for anime style training (limit to generation after training it on AnyLoRA or NAI), but it might actually be fairly good for character loras where your dataset is made mostly of anime screencaps. It should technically reduce the anime style impact making the character lora less overfitted. I'll definitely experiment with it in the following weeks.",
+  "publicUrl": "https://civitai.com/models/84586?modelVersionId=89927"
+}

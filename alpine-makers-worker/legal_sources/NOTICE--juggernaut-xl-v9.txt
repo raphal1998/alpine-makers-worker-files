@@ -1,0 +1,33 @@
+Alpine Makers — notice documentaire : juggernaut-xl-v9
+Auteur/éditeur : RunDiffusion
+Attribution : Juggernaut XL v9
+Licence : creativeml-openrail-m
+Source officielle : https://huggingface.co/RunDiffusion/Juggernaut-XL-v9
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+RunDiffusion--Juggernaut-XL-v9--cf419233522d--README.md
+https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/raw/cf419233522daa0b9ea36c3aff98fa2cab1fb0fb/README.md
+SHA-256 4c6b45288fcc4b08739d7a2eb12e930e1d91ad1ed485c841007c98b83d01c803
+Copie : legal_sources/RunDiffusion--Juggernaut-XL-v9--cf419233522d--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--133005--348913--author-permissions
+https://civitai.com/api/v1/models/133005
+SHA-256 9f37efff28167c29aff754a9498ff7c37f1e5a34aaed266c42e7385f70bfad36
+Copie : legal_sources/Civitai--133005--348913--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

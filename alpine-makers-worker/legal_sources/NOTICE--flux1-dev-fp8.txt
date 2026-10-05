@@ -1,0 +1,26 @@
+Alpine Makers — notice documentaire : flux1-dev-fp8
+Auteur/éditeur : Comfy-Org
+Attribution : Black Forest Labs / Comfy-Org
+Licence : FLUX.1 dev Non-Commercial
+Source officielle : https://huggingface.co/Comfy-Org/flux1-dev
+État : publisher_declaration
+
+The FLUX.1 [dev] Model is licensed by Black Forest Labs Inc. under the FLUX.1 [dev] Non-Commercial License. Copyright Black Forest Labs Inc.
+IN NO EVENT SHALL BLACK FOREST LABS INC. BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH USE OF THIS MODEL.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Comfy-Org--flux1-dev--83c446ef27a6--README.md
+https://huggingface.co/Comfy-Org/flux1-dev/raw/83c446ef27a6ac1e9e36ecf13257283aa12cf22a/README.md
+SHA-256 99d86fdd0244f89ed02d3a30e64048bad5366b9c0fccc6ff89f4d43a55128358
+Copie : legal_sources/Comfy-Org--flux1-dev--83c446ef27a6--README.md.txt
+FLUX-dev-full-license
+https://raw.githubusercontent.com/black-forest-labs/flux/802fb4713906133fcbd0d8dc5351620ca4773036/model_licenses/LICENSE-FLUX1-dev
+SHA-256 6f7b3d94ddd94380a4dc2d1211ed57883d320dea96f4393b34d4a454041029e1
+Copie : legal_sources/FLUX-dev-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

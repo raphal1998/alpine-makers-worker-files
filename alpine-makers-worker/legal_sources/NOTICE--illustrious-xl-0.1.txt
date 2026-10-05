@@ -1,0 +1,25 @@
+Alpine Makers — notice documentaire : illustrious-xl-0.1
+Auteur/éditeur : OnomaAIResearch
+Attribution : Illustrious XL 0.1
+Licence : fair-ai-public-license-1.0-sd
+Source officielle : https://huggingface.co/OnomaAIResearch/Illustrious-xl-early-release-v0
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+FAIPL : fournir la source préférée de modification (poids inclus) et licence aux destinataires ; accès aux sources des versions modifiées accessibles en réseau.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+OnomaAIResearch--Illustrious-xl-early-release-v0--dca0dac303e6--README.md
+https://huggingface.co/OnomaAIResearch/Illustrious-xl-early-release-v0/raw/dca0dac303e6dc4b0c31d8001bc685b89b5d0204/README.md
+SHA-256 0205e7c1d93c5c4fd6a2045ebf9ae3cd333684074385130d5b9e5aef3e051b45
+Copie : legal_sources/OnomaAIResearch--Illustrious-xl-early-release-v0--dca0dac303e6--README.md.txt
+FAIPL-1.0-SD-full-official-page
+https://freedevproject.org/faipl-1.0-sd/
+SHA-256 430e926fd41937bb6ec02716534ceadc0386f54efec48e77b2ee4e1aaa0f53c0
+Copie : legal_sources/FAIPL-1.0-SD-full-official-page.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,26 @@
+Alpine Makers — notice documentaire : sd35-large-fp8
+Auteur/éditeur : Comfy-Org
+Attribution : Stability AI — Powered by Stability AI
+Licence : Stability AI Community
+Source officielle : https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8
+État : publisher_declaration
+
+Powered by Stability AI
+This Stability AI Model is licensed under the Stability AI Community License, Copyright ©  Stability AI Ltd. All Rights Reserved
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Comfy-Org--stable-diffusion-3.5-fp8--934251d1e616--README.md
+https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/raw/934251d1e6168bcb45a069abc5bd5cdd5f8fea00/README.md
+SHA-256 3af62e29af1de7a990376da4550a8dcf2df90b89169cf0113abcf79f5937a949
+Copie : legal_sources/Comfy-Org--stable-diffusion-3.5-fp8--934251d1e616--README.md.txt
+stabilityai--sd-turbo--b261bac6fd2c--LICENSE.md
+https://huggingface.co/stabilityai/sd-turbo/raw/b261bac6fd2cf515557d5d0707481eafa0485ec2/LICENSE.md
+SHA-256 d6f6b1a4dce5c852bd6d7d9482d002baf0ccdb71e662250b73be9eec8764ee8d
+Copie : legal_sources/stabilityai--sd-turbo--b261bac6fd2c--LICENSE.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

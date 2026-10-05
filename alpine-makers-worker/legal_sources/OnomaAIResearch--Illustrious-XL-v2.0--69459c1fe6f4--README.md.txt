@@ -1,0 +1,28 @@
+---
+license: creativeml-openrail-m
+---
+# Illustrious XL v2.0-STABLE
+
+---
+Before we dive into the details of 'Illustrious XL v2.0-STABLE', we’re excited to share that you can now generate images directly with our Illustrious XL models on our official site: [illustrious-xl.ai](http://illustrious-xl.ai/).
+
+We’ve launched a full image generation platform featuring high-res outputs, natural language prompting, and custom presets — plus, several exclusive models you won’t find on any other hub.
+
+Explore our updated model tiers and naming here: [Model Series](https://www.illustrious-xl.ai/updates/20).
+
+Need help getting started? Check out our generation user guide: [ILXL Image Generation User Guide](https://www.illustrious-xl.ai/updates/21).
+
+---
+## Illustrious XL v2.0-STABLE Model
+Since Illustrious XL v2 utilized the cosine annealing learning rate schedule - the more stable checkpoint is in "last annealing phase."
+
+Here, we upload slightly more stabilized checkpoint, which shows slightly different behavior, but generally more stable in generation phase.
+
+
+![image/png](https://cdn-uploads.huggingface.co/production/uploads/63398de08f27255b6b50081a/knyLuPlgUHm1ylRQaxrnx.png)
+
+The differences in the models are usually subtle - however should perform better in STABLE.
+
+<Left - previous, Right - stable>
+
+We plan to release separate optimized / derived checkpoint based on own research. 

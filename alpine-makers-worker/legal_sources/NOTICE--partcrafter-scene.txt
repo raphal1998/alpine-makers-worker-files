@@ -1,0 +1,24 @@
+Alpine Makers — notice documentaire : partcrafter-scene
+Auteur/éditeur : Auteurs PartCrafter (wgsxm)
+Attribution : Auteurs PartCrafter (wgsxm)
+Licence : MIT pour ce modèle ; dépendances d'intégration distinctes
+Source officielle : https://huggingface.co/wgsxm/PartCrafter-Scene
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+wgsxm/PartCrafter-Scene--0454bb8e595a--README.md
+https://huggingface.co/wgsxm/PartCrafter-Scene/raw/0454bb8e595a2765e8cb1f17ffacad9ba159777a/README.md
+SHA-256 ff00df14a5e54521336764daee1fbcaf9eea6c6d279db6de920ea91677d41b08
+Copie : legal_sources/wgsxm--PartCrafter-Scene--0454bb8e595a--README.md.txt
+wgsxm/PartCrafter--3d773bf02fad--LICENSE
+https://raw.githubusercontent.com/wgsxm/PartCrafter/3d773bf02fad51c7ab31a5615573fec93b287b30/LICENSE
+SHA-256 ae8c80719a5c916e5fd99fd3da99f8cf74be1589e9e4a11d5754898967a54e1f
+Copie : legal_sources/wgsxm--PartCrafter--3d773bf02fad--LICENSE.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

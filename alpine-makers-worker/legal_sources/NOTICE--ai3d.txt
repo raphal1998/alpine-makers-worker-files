@@ -1,0 +1,22 @@
+Alpine Makers — notice documentaire : ai3d
+Auteur/éditeur : Tencent / auteurs des moteurs 3D
+Attribution : Tencent / auteurs des moteurs 3D
+Licence : Tencent Hunyuan3D Community + licences des dépendances
+Source officielle : voir catalogue
+État : pinned_upstream_code_license
+
+Tencent Hunyuan 3D 2.0 is licensed under the Tencent Hunyuan 3D 2.0 Community License Agreement, Copyright © 2025 Tencent. All Rights Reserved. The trademark rights of “Tencent Hunyuan” are owned by Tencent or its affiliate.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Identifier l'entité juridique réelle exploitant Alpine Makers ; préciser que Tencent n'est ni affilié, ni sponsor, ni garant du service.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Tencent-Hunyuan/Hunyuan3D-2--f8db63096c82--LICENSE
+https://raw.githubusercontent.com/Tencent-Hunyuan/Hunyuan3D-2/f8db63096c8282cb27354314d896feba5ba6ff8a/LICENSE
+SHA-256 94259df223918a5733677965c1bfe1774a2dba25042d9c3b47a3418ea6c1f324
+Copie : legal_sources/Tencent-Hunyuan--Hunyuan3D-2--f8db63096c82--LICENSE.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

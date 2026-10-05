@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : image_generation
+Auteur/éditeur : Comfy-Org
+Attribution : Comfy-Org
+Licence : GPL-3.0
+Source officielle : voir catalogue
+État : pinned_upstream_code_license
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Comfy-Org/ComfyUI--9c90340bc26e--LICENSE
+https://raw.githubusercontent.com/Comfy-Org/ComfyUI/9c90340bc26ea69c2029ee6e882acbbb06e157b4/LICENSE
+SHA-256 3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986
+Copie : legal_sources/Comfy-Org--ComfyUI--9c90340bc26e--LICENSE.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

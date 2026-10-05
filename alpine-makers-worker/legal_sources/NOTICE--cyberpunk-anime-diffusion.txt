@@ -1,0 +1,33 @@
+Alpine Makers — notice documentaire : cyberpunk-anime-diffusion
+Auteur/éditeur : DGSpitzer
+Attribution : Cyberpunk Anime Diffusion
+Licence : CreativeML OpenRAIL / OpenRAIL++ (version exacte à consulter)
+Source officielle : https://huggingface.co/DGSpitzer/Cyberpunk-Anime-Diffusion
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--LICENSE
+https://huggingface.co/DGSpitzer/Cyberpunk-Anime-Diffusion/raw/2b6407002b73374e6864d3647f4eb9659bca36a9/LICENSE
+SHA-256 76e48c919858d4d8ed688345f66b2580a1053465f8e31f83788d2d1f2ec54846
+Copie : legal_sources/DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--LICENSE.txt
+DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--README.md
+https://huggingface.co/DGSpitzer/Cyberpunk-Anime-Diffusion/raw/2b6407002b73374e6864d3647f4eb9659bca36a9/README.md
+SHA-256 bc4901338333657474e0c690c4b5c88e2dc79ecb0ba037fae09389dad1fc718d
+Copie : legal_sources/DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : animagine-xl-4.0
+Auteur/éditeur : cagliostrolab
+Attribution : Animagine XL 4.0
+Licence : CreativeML OpenRAIL / OpenRAIL++ (version exacte à consulter)
+Source officielle : https://huggingface.co/cagliostrolab/animagine-xl-4.0
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+cagliostrolab--animagine-xl-4.0--2b7c1b397761--README.md
+https://huggingface.co/cagliostrolab/animagine-xl-4.0/raw/2b7c1b397761bf5bd3cc42e5b39ec99314a75a96/README.md
+SHA-256 33c0532ffd945653223eea317756976a9af52faa2d6122b860dc56fe62e4cdc9
+Copie : legal_sources/cagliostrolab--animagine-xl-4.0--2b7c1b397761--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

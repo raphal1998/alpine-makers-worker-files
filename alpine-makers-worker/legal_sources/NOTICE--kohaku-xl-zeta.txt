@@ -1,0 +1,25 @@
+Alpine Makers — notice documentaire : kohaku-xl-zeta
+Auteur/éditeur : KBlueLeaf
+Attribution : Kohaku XL Zeta
+Licence : Fair AI Public License 1.0-SD
+Source officielle : https://huggingface.co/KBlueLeaf/Kohaku-XL-Zeta
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+FAIPL : fournir la source préférée de modification (poids inclus) et licence aux destinataires ; accès aux sources des versions modifiées accessibles en réseau.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+KBlueLeaf--Kohaku-XL-Zeta--c14affd9483a--README.md
+https://huggingface.co/KBlueLeaf/Kohaku-XL-Zeta/raw/c14affd9483ac7603cfff3f06b05da22a06deaa6/README.md
+SHA-256 920f79387f0cadd01ab883c8979cfb1f142da912bb7fceade8b4bdec315759dc
+Copie : legal_sources/KBlueLeaf--Kohaku-XL-Zeta--c14affd9483a--README.md.txt
+FAIPL-1.0-SD-full-official-page
+https://freedevproject.org/faipl-1.0-sd/
+SHA-256 430e926fd41937bb6ec02716534ceadc0386f54efec48e77b2ee4e1aaa0f53c0
+Copie : legal_sources/FAIPL-1.0-SD-full-official-page.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,33 @@
+Alpine Makers — notice documentaire : segmind-vega
+Auteur/éditeur : segmind
+Attribution : Segmind
+Licence : Apache-2.0 déclarée ; provenance des modèles enseignants à clarifier
+Source officielle : https://huggingface.co/segmind/Segmind-Vega
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Apache-2.0 déclarée par Segmind ; clarification demandée sur les droits amont, pas achat systématique d’une licence Apache. Aucune réponse écrite reçue.
+
+segmind--Segmind-Vega--7714c4363e58--README.md
+https://huggingface.co/segmind/Segmind-Vega/raw/7714c4363e5856ff974a4f4b068e8691f26d0b40/README.md
+SHA-256 38acfbddf96c6ee26e645d584407e428baf28338502507689cec7516ec9ec7ef
+Copie : legal_sources/segmind--Segmind-Vega--7714c4363e58--README.md.txt
+Apache-2.0-full-license
+https://www.apache.org/licenses/LICENSE-2.0.txt
+SHA-256 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+Copie : legal_sources/Apache-2.0-full-license.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

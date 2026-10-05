@@ -1,0 +1,26 @@
+Alpine Makers — notice documentaire : sdxl-turbo
+Auteur/éditeur : stabilityai
+Attribution : Stability AI — Powered by Stability AI
+Licence : Stability AI Community
+Source officielle : https://huggingface.co/stabilityai/sdxl-turbo
+État : license_text_and_publisher_declaration
+
+Powered by Stability AI
+This Stability AI Model is licensed under the Stability AI Community License, Copyright ©  Stability AI Ltd. All Rights Reserved
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--sdxl-turbo--71153311d3db--LICENSE.md
+https://huggingface.co/stabilityai/sdxl-turbo/raw/71153311d3dbb46851df1931d3ca6e939de83304/LICENSE.md
+SHA-256 d6f6b1a4dce5c852bd6d7d9482d002baf0ccdb71e662250b73be9eec8764ee8d
+Copie : legal_sources/stabilityai--sdxl-turbo--71153311d3db--LICENSE.md.txt
+stabilityai--sdxl-turbo--71153311d3db--README.md
+https://huggingface.co/stabilityai/sdxl-turbo/raw/71153311d3dbb46851df1931d3ca6e939de83304/README.md
+SHA-256 98dabafc7a0c2981bac309d83ae7012e3f2fe276947ba1cdc5f3ebfc977f8d8b
+Copie : legal_sources/stabilityai--sdxl-turbo--71153311d3db--README.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

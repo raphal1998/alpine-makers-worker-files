@@ -1,0 +1,25 @@
+Alpine Makers — notice documentaire : stable-diffusion-2.1-base
+Auteur/éditeur : sd2-community (archive du modèle de Stability AI)
+Attribution : Stable Diffusion 2.1 (Stability AI ; dépôt d'archive sd2-community)
+Licence : CreativeML Open RAIL++-M
+Source officielle : https://huggingface.co/sd2-community/stable-diffusion-2-1-base
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence CreativeML Open RAIL++-M applicable au modèle ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+sd2-community--stable-diffusion-2-1-base--4e63672c0310--README.md
+https://huggingface.co/sd2-community/stable-diffusion-2-1-base/raw/4e63672c03103b6c636b8fb4119ba982469b2955/README.md
+SHA-256 28d20df20b26b5bd476370e4bf51832442db701b21a9fa90a62cc4a272d18581
+Copie : legal_sources/sd2-community--stable-diffusion-2-1-base--4e63672c0310--README.md.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

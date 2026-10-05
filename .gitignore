@@ -1,4 +1,4 @@
-# Donnees locales d un Worker installe : jamais dans ce depot.
+# Données locales d'un Worker installé : jamais dans ce dépôt.
 config.json
 storage.json
 *.log
@@ -9,3 +9,11 @@ storage.json
 *.p12
 *.sqlite3
 __pycache__/
+components/
+runtime/
+logs/
+cache/
+temp/
+jobs/
+outputs/
+data/

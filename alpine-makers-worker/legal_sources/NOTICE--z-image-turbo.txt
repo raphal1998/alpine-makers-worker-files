@@ -1,0 +1,24 @@
+Alpine Makers — notice documentaire : z-image-turbo
+Auteur/éditeur : Comfy-Org
+Attribution : Z-Image-Turbo (Alibaba Tongyi)
+Licence : Apache-2.0 (modèle ; dépendances distinctes)
+Source officielle : https://huggingface.co/Comfy-Org/z_image_turbo
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Comfy-Org--z_image_turbo--6fc90a3b1b65--README.md
+https://huggingface.co/Comfy-Org/z_image_turbo/raw/6fc90a3b1b653e935a0d175e260736de25b84df5/README.md
+SHA-256 66b7c7b238a00ecba3488434c6e95473ad44c07ad9eade19da368ab5b1f747d5
+Copie : legal_sources/Comfy-Org--z_image_turbo--6fc90a3b1b65--README.md.txt
+Apache-2.0-full-license
+https://www.apache.org/licenses/LICENSE-2.0.txt
+SHA-256 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+Copie : legal_sources/Apache-2.0-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

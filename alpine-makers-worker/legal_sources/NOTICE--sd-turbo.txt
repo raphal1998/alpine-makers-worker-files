@@ -1,0 +1,26 @@
+Alpine Makers — notice documentaire : sd-turbo
+Auteur/éditeur : stabilityai
+Attribution : Stability AI — Powered by Stability AI
+Licence : Stability AI Community
+Source officielle : https://huggingface.co/stabilityai/sd-turbo
+État : license_text_and_publisher_declaration
+
+Powered by Stability AI
+This Stability AI Model is licensed under the Stability AI Community License, Copyright ©  Stability AI Ltd. All Rights Reserved
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--sd-turbo--b261bac6fd2c--LICENSE.md
+https://huggingface.co/stabilityai/sd-turbo/raw/b261bac6fd2cf515557d5d0707481eafa0485ec2/LICENSE.md
+SHA-256 d6f6b1a4dce5c852bd6d7d9482d002baf0ccdb71e662250b73be9eec8764ee8d
+Copie : legal_sources/stabilityai--sd-turbo--b261bac6fd2c--LICENSE.md.txt
+stabilityai--sd-turbo--b261bac6fd2c--README.md
+https://huggingface.co/stabilityai/sd-turbo/raw/b261bac6fd2cf515557d5d0707481eafa0485ec2/README.md
+SHA-256 2482ac53e71baf0624ede7aca74122ef60e442360535105cd57bcc9d7138c22e
+Copie : legal_sources/stabilityai--sd-turbo--b261bac6fd2c--README.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

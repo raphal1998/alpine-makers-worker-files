@@ -1,0 +1,53 @@
+---
+license: other
+license_name: stabilityai-ai-community
+license_link: https://huggingface.co/stabilityai/stable-diffusion-3.5-large/blob/main/LICENSE.md
+tags:
+- comfyui
+- diffusion-single-file
+base_model:
+- stabilityai/stable-diffusion-3.5-large
+- stabilityai/stable-diffusion-3.5-medium
+---
+
+# Stable Diffusion 3.5 FP8
+
+Repackaged model files for ComfyUI.
+
+Original model repository: https://huggingface.co/stabilityai/stable-diffusion-3.5-large
+
+Place the files in the following folders:
+
+```
+📂 ComfyUI/
+├── 📂 models/
+│   ├── 📂 checkpoints/
+│   │   ├── sd3.5_large_fp8_scaled.safetensors
+│   │   └── sd3.5_medium_incl_clips_t5xxlfp8scaled.safetensors
+│   ├── 📂 text_encoders/
+│   │   ├── clip_g.safetensors
+│   │   ├── clip_l.safetensors
+│   │   ├── t5xxl_fp16.safetensors
+│   │   ├── t5xxl_fp8_e4m3fn.safetensors
+│   │   └── t5xxl_fp8_e4m3fn_scaled.safetensors
+```
+
+---
+
+This is a smaller checkpoint for [SD3.5 Large](https://huggingface.co/stabilityai/stable-diffusion-3.5-large) that contains the text encoders/CLIP built in.
+
+Read our [blog](https://blog.comfy.org/sd3-5-comfyui/) for instructions on how to use SD3.5 with ComfyUI.
+
+## Workflows
+
+<table>
+<thead>
+<tr><th align="center" valign="middle" style="text-align:center;vertical-align:middle">Workflow</th><th colspan="2" align="center" valign="middle" style="text-align:center;vertical-align:middle">Thumb</th></tr>
+</thead>
+<tbody>
+<tr><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_simple_example.json">SD3.5 Simple</a></td><td colspan="2" align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_simple_example.json"><img src="https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_simple_example-1.webp" width="200" height="200" alt="SD3.5 Simple"></a></td></tr>
+<tr><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_depth.json">SD3.5 Large Depth</a></td><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_depth.json"><img src="https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_large_depth-2.webp" width="200" height="200" alt="SD3.5 Large Depth"></a><div align="center">Before</div></td><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_depth.json"><img src="https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_large_depth-1.webp" width="200" height="200" alt="SD3.5 Large Depth"></a><div align="center">After</div></td></tr>
+<tr><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_canny_controlnet_example.json">SD3.5 Large Canny ControlNet</a></td><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_canny_controlnet_example.json"><img src="https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_large_canny_controlnet_example-2.webp" width="200" height="200" alt="SD3.5 Large Canny ControlNet"></a><div align="center">Before</div></td><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_canny_controlnet_example.json"><img src="https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_large_canny_controlnet_example-1.webp" width="200" height="200" alt="SD3.5 Large Canny ControlNet"></a><div align="center">After</div></td></tr>
+<tr><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_blur.json">SD3.5 Large Blur</a></td><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_blur.json"><img src="https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_large_blur-2.webp" width="200" height="200" alt="SD3.5 Large Blur"></a><div align="center">Before</div></td><td align="center" valign="middle" style="text-align:center;vertical-align:middle"><a href="https://github.com/Comfy-Org/workflow_templates/blob/main/templates/sd3.5_large_blur.json"><img src="https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/sd3.5_large_blur-1.webp" width="200" height="200" alt="SD3.5 Large Blur"></a><div align="center">After</div></td></tr>
+</tbody>
+</table>

@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : hunyuan-dit-1.2
+Auteur/éditeur : Tencent-Hunyuan
+Attribution : Tencent
+Licence : HunyuanDiT : textes territoriaux divergents
+Source officielle : https://huggingface.co/Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers-Distilled
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Téléchargement épinglé ; licence des poids distillés et divergence GitHub/Hugging Face à confirmer par Tencent. Aucune réponse obtenue.
+
+Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers-Distilled--ba991d1546d8--README.md
+https://huggingface.co/Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers-Distilled/raw/ba991d1546d8c50936c4c16398ed0a87b9b99fb1/README.md
+SHA-256 74c62160ec8db2af9776b263c16fddf203b1e350b2adf40ddb224194ecae2fce
+Copie : legal_sources/Tencent-Hunyuan--HunyuanDiT-v1.2-Diffusers-Distilled--ba991d1546d8--README.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

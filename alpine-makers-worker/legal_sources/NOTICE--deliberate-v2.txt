@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : deliberate-v2
+Auteur/éditeur : XpucT
+Attribution : Deliberate v2
+Licence : Conditions auteur à consulter
+Source officielle : https://huggingface.co/XpucT/Deliberate
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+XpucT--Deliberate--740b11ddb4d7--README.md
+https://huggingface.co/XpucT/Deliberate/raw/740b11ddb4d7999a37069b4c5a3f3f3aeee97644/README.md
+SHA-256 9e868ae771e83846b077c6413d0e2e33690fb5eaff677f21c3b37ee3ac295d6d
+Copie : legal_sources/XpucT--Deliberate--740b11ddb4d7--README.md.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,19 @@
+{
+  "repo": "darkstorm2150/Protogen_x5.8_Official_Release",
+  "sha256": "847da9eead08fa6dfc11f95e479ee4e12bc6da4747b006ccefcd1e0e498f62c1",
+  "retrievedAt": "2026-10-03T14:26:11.172Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/847da9eead08fa6dfc11f95e479ee4e12bc6da4747b006ccefcd1e0e498f62c1",
+  "versionId": 4298,
+  "versionName": "Protogen x5.8",
+  "modelId": 3867,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/3867",
+  "modelName": "Protogen x5.8 Rebuilt (Scifi+Anime) Official Release",
+  "publisher": "darkstorm2150",
+  "allowNoCredit": true,
+  "allowCommercialUse": [],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "ProtoGen_X5.8 - Rebuilt - How to Build Protogen By Downloading you agree to the following licenses CreativeML Open RAIL-M Dreamlike License Seek Art Mega License Model Weights thanks to reddit user u/jonesaid Live Demo at Available on Hugging Face Comprehensive guide to camera control Dreamlike-PhotoReal V.2 is the core model, this cocktail version adds 5% modelshoot-1.0 20% roboDiffusion_v1 20% MoistMix 20% HASDX Please click the link below to read the license before downloading, thank you! This model is licensed under a modified CreativeML OpenRAIL-M license.",
+  "publicUrl": "https://civitai.com/models/3867?modelVersionId=4298"
+}

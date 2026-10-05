@@ -1,0 +1,16 @@
+Alpine Makers — notice documentaire : lab-realesrgan-x4plus
+Auteur/éditeur : Xintao Wang et contributeurs Real-ESRGAN ; fichier safetensors reconditionné par Comfy-Org
+Attribution : Real-ESRGAN (Xintao Wang, Liangbin Xie, Chao Dong, Ying Shan)
+Licence : BSD-3-Clause (déclarée par la fiche du dépôt ; code et poids Real-ESRGAN)
+Source officielle : https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged
+État : publisher_declaration_license_text_not_collected
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

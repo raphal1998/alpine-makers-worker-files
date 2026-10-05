@@ -1,0 +1,2288 @@
+{
+  "policy_version": "2026-10-03.3",
+  "generated_at": "2026-10-03T17:59:45.561Z",
+  "documents": [
+    {
+      "name": "stabilityai--sd-turbo--b261bac6fd2c--LICENSE.md",
+      "kind": "license",
+      "url": "https://huggingface.co/stabilityai/sd-turbo/raw/b261bac6fd2cf515557d5d0707481eafa0485ec2/LICENSE.md",
+      "local_path": "legal_sources/stabilityai--sd-turbo--b261bac6fd2c--LICENSE.md.txt",
+      "sha256": "d6f6b1a4dce5c852bd6d7d9482d002baf0ccdb71e662250b73be9eec8764ee8d",
+      "bytes": 11852,
+      "revision": "b261bac6fd2cf515557d5d0707481eafa0485ec2",
+      "retrieved_at": "2026-10-03T14:21:26.558Z"
+    },
+    {
+      "name": "stabilityai--sdxl-turbo--71153311d3db--LICENSE.md",
+      "kind": "license",
+      "url": "https://huggingface.co/stabilityai/sdxl-turbo/raw/71153311d3dbb46851df1931d3ca6e939de83304/LICENSE.md",
+      "local_path": "legal_sources/stabilityai--sdxl-turbo--71153311d3db--LICENSE.md.txt",
+      "sha256": "d6f6b1a4dce5c852bd6d7d9482d002baf0ccdb71e662250b73be9eec8764ee8d",
+      "bytes": 11852,
+      "revision": "71153311d3dbb46851df1931d3ca6e939de83304",
+      "retrieved_at": "2026-10-03T14:21:26.560Z"
+    },
+    {
+      "name": "stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md",
+      "kind": "license",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md",
+      "local_path": "legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt",
+      "sha256": "19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0",
+      "bytes": 14109,
+      "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+      "retrieved_at": "2026-10-03T14:21:26.515Z"
+    },
+    {
+      "name": "Lykon--DreamShaper--228d79cb2081--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Lykon/DreamShaper/raw/228d79cb20811466f5c5710aa91f05dabd0b8a14/README.md",
+      "local_path": "legal_sources/Lykon--DreamShaper--228d79cb2081--README.md.txt",
+      "sha256": "f5c22e0633a94e47b88b54537615936a811809df28cdb40a373b83edbe1bd5c6",
+      "bytes": 602,
+      "revision": "228d79cb20811466f5c5710aa91f05dabd0b8a14",
+      "retrieved_at": "2026-10-03T14:21:26.559Z"
+    },
+    {
+      "name": "stabilityai--sd-turbo--b261bac6fd2c--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/stabilityai/sd-turbo/raw/b261bac6fd2cf515557d5d0707481eafa0485ec2/README.md",
+      "local_path": "legal_sources/stabilityai--sd-turbo--b261bac6fd2c--README.md.txt",
+      "sha256": "2482ac53e71baf0624ede7aca74122ef60e442360535105cd57bcc9d7138c22e",
+      "bytes": 5900,
+      "revision": "b261bac6fd2cf515557d5d0707481eafa0485ec2",
+      "retrieved_at": "2026-10-03T14:21:26.558Z"
+    },
+    {
+      "name": "stabilityai--sdxl-turbo--71153311d3db--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/stabilityai/sdxl-turbo/raw/71153311d3dbb46851df1931d3ca6e939de83304/README.md",
+      "local_path": "legal_sources/stabilityai--sdxl-turbo--71153311d3db--README.md.txt",
+      "sha256": "98dabafc7a0c2981bac309d83ae7012e3f2fe276947ba1cdc5f3ebfc977f8d8b",
+      "bytes": 5883,
+      "revision": "71153311d3dbb46851df1931d3ca6e939de83304",
+      "retrieved_at": "2026-10-03T14:21:26.560Z"
+    },
+    {
+      "name": "stabilityai--stable-diffusion-xl-base-1.0--462165984030--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/README.md",
+      "local_path": "legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--README.md.txt",
+      "sha256": "40d263065b8a3e9a41996c257e11463fd97ae956ebf4e3f8b9625e0d78183893",
+      "bytes": 8668,
+      "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+      "retrieved_at": "2026-10-03T14:21:26.515Z"
+    },
+    {
+      "name": "Lykon--AbsoluteReality--df7c3efce8f5--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Lykon/AbsoluteReality/raw/df7c3efce8f54d02cf73a21fcecd908a0fde2898/README.md",
+      "local_path": "legal_sources/Lykon--AbsoluteReality--df7c3efce8f5--README.md.txt",
+      "sha256": "89fba6ef78af5de7769902067d0891bfb98a2c11ee2a6398cb4fa3a566eb4409",
+      "bytes": 598,
+      "revision": "df7c3efce8f54d02cf73a21fcecd908a0fde2898",
+      "retrieved_at": "2026-10-03T14:21:26.561Z"
+    },
+    {
+      "name": "stabilityai--stable-diffusion-xl-refiner-1.0--5d4cfe854c9a--LICENSE.md",
+      "kind": "license",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/raw/5d4cfe854c9a9a87939ff3653551c2b3c99a4356/LICENSE.md",
+      "local_path": "legal_sources/stabilityai--stable-diffusion-xl-refiner-1.0--5d4cfe854c9a--LICENSE.md.txt",
+      "sha256": "19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0",
+      "bytes": 14109,
+      "revision": "5d4cfe854c9a9a87939ff3653551c2b3c99a4356",
+      "retrieved_at": "2026-10-03T14:21:26.901Z"
+    },
+    {
+      "name": "stable-diffusion-v1-5--stable-diffusion-v1-5--451f4fe16113--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5/raw/451f4fe16113bff5a5d2269ed5ad43b0592e9a14/README.md",
+      "local_path": "legal_sources/stable-diffusion-v1-5--stable-diffusion-v1-5--451f4fe16113--README.md.txt",
+      "sha256": "2079161f9df7524bd9eca5e53ff5911271b8551e0f868b7b5a92b84776df28a3",
+      "bytes": 14461,
+      "revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+      "retrieved_at": "2026-10-03T14:21:26.941Z"
+    },
+    {
+      "name": "segmind--SSD-1B--60987f37e94c--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/segmind/SSD-1B/raw/60987f37e94cd59c36b1cba832b9f97b57395a10/README.md",
+      "local_path": "legal_sources/segmind--SSD-1B--60987f37e94c--README.md.txt",
+      "sha256": "3a87428a74ab83b664916e7d3242beb970951e4ca26296924c60191a6592636a",
+      "bytes": 10772,
+      "revision": "60987f37e94cd59c36b1cba832b9f97b57395a10",
+      "retrieved_at": "2026-10-03T14:21:26.972Z"
+    },
+    {
+      "name": "segmind--Segmind-Vega--7714c4363e58--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/segmind/Segmind-Vega/raw/7714c4363e5856ff974a4f4b068e8691f26d0b40/README.md",
+      "local_path": "legal_sources/segmind--Segmind-Vega--7714c4363e58--README.md.txt",
+      "sha256": "38acfbddf96c6ee26e645d584407e428baf28338502507689cec7516ec9ec7ef",
+      "bytes": 10060,
+      "revision": "7714c4363e5856ff974a4f4b068e8691f26d0b40",
+      "retrieved_at": "2026-10-03T14:21:27.014Z"
+    },
+    {
+      "name": "SG161222--Realistic_Vision_V6.0_B1_noVAE--9a857a696b9a--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/SG161222/Realistic_Vision_V6.0_B1_noVAE/raw/9a857a696b9aabbf509073e0aa55ec8200b6ef7d/README.md",
+      "local_path": "legal_sources/SG161222--Realistic_Vision_V6.0_B1_noVAE--9a857a696b9a--README.md.txt",
+      "sha256": "a51ba5985056d91937a6f5f2ea2dda16766369279ed03d8723f3f8707a7cbdf0",
+      "bytes": 4231,
+      "revision": "9a857a696b9aabbf509073e0aa55ec8200b6ef7d",
+      "retrieved_at": "2026-10-03T14:21:27.015Z"
+    },
+    {
+      "name": "stabilityai--stable-diffusion-xl-refiner-1.0--5d4cfe854c9a--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/raw/5d4cfe854c9a9a87939ff3653551c2b3c99a4356/README.md",
+      "local_path": "legal_sources/stabilityai--stable-diffusion-xl-refiner-1.0--5d4cfe854c9a--README.md.txt",
+      "sha256": "5859612ff210d6acfb57c932c3693cddd0d58b91b9de70f1c156c958f9bbfe3d",
+      "bytes": 5542,
+      "revision": "5d4cfe854c9a9a87939ff3653551c2b3c99a4356",
+      "retrieved_at": "2026-10-03T14:21:26.901Z"
+    },
+    {
+      "name": "SG161222--RealVisXL_V4.0--26dfe4493096--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/SG161222/RealVisXL_V4.0/raw/26dfe44930964cd70d0a817b6d1cc945c130e38d/README.md",
+      "local_path": "legal_sources/SG161222--RealVisXL_V4.0--26dfe4493096--README.md.txt",
+      "sha256": "9fe43bf79c8b6255f85e5cd846085dd00f40bc9f00c62a5d6396db7d8971f4f0",
+      "bytes": 2288,
+      "revision": "26dfe44930964cd70d0a817b6d1cc945c130e38d",
+      "retrieved_at": "2026-10-03T14:21:27.171Z"
+    },
+    {
+      "name": "playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--LICENSE.md",
+      "kind": "license",
+      "url": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/raw/1e032f13f2fe6db2dc49947dbdbd196e753de573/LICENSE.md",
+      "local_path": "legal_sources/playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--LICENSE.md.txt",
+      "sha256": "482775f827dd925031e7bc828ca78a7f10a2d7d21999792240e55442d1fbdfa7",
+      "bytes": 9464,
+      "revision": "1e032f13f2fe6db2dc49947dbdbd196e753de573",
+      "retrieved_at": "2026-10-03T14:21:27.209Z"
+    },
+    {
+      "name": "RunDiffusion--Juggernaut-XL-v9--cf419233522d--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/raw/cf419233522daa0b9ea36c3aff98fa2cab1fb0fb/README.md",
+      "local_path": "legal_sources/RunDiffusion--Juggernaut-XL-v9--cf419233522d--README.md.txt",
+      "sha256": "4c6b45288fcc4b08739d7a2eb12e930e1d91ad1ed485c841007c98b83d01c803",
+      "bytes": 10536,
+      "revision": "cf419233522daa0b9ea36c3aff98fa2cab1fb0fb",
+      "retrieved_at": "2026-10-03T14:21:27.268Z"
+    },
+    {
+      "name": "RunDiffusion--Juggernaut-XL-Lightning--9c35e7ca1112--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/RunDiffusion/Juggernaut-XL-Lightning/raw/9c35e7ca1112b7e567ae7b24400b83935909916d/README.md",
+      "local_path": "legal_sources/RunDiffusion--Juggernaut-XL-Lightning--9c35e7ca1112--README.md.txt",
+      "sha256": "fb8f5e8ca286914705e65ce93f7bb654e2691a5eee7fdd74be3b9a8ca59aa9c4",
+      "bytes": 8478,
+      "revision": "9c35e7ca1112b7e567ae7b24400b83935909916d",
+      "retrieved_at": "2026-10-03T14:21:27.268Z"
+    },
+    {
+      "name": "Lykon--dreamshaper-xl-lightning--561086c22aba--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Lykon/dreamshaper-xl-lightning/raw/561086c22aba3925b1e8803a73857f061635c7c3/README.md",
+      "local_path": "legal_sources/Lykon--dreamshaper-xl-lightning--561086c22aba--README.md.txt",
+      "sha256": "fc79a3dea9a9ebd4f26f64404e79b919d6954a302b118a397539bd81917ac2b2",
+      "bytes": 1543,
+      "revision": "561086c22aba3925b1e8803a73857f061635c7c3",
+      "retrieved_at": "2026-10-03T14:21:27.296Z"
+    },
+    {
+      "name": "playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic/raw/1e032f13f2fe6db2dc49947dbdbd196e753de573/README.md",
+      "local_path": "legal_sources/playgroundai--playground-v2.5-1024px-aesthetic--1e032f13f2fe--README.md.txt",
+      "sha256": "c6660ae40bb2bd3a3c932072f16de46efff8ac95e22048c5f90f41540a7a85c0",
+      "bytes": 6479,
+      "revision": "1e032f13f2fe6db2dc49947dbdbd196e753de573",
+      "retrieved_at": "2026-10-03T14:21:27.209Z"
+    },
+    {
+      "name": "Lykon--dreamshaper-xl-v2-turbo--f70ad5bce436--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Lykon/dreamshaper-xl-v2-turbo/raw/f70ad5bce436c640d23fc02cd0a6ccc787280b6e/README.md",
+      "local_path": "legal_sources/Lykon--dreamshaper-xl-v2-turbo--f70ad5bce436--README.md.txt",
+      "sha256": "0959ea48a3b054cfba33e0453f07c8e1aa1444f34f7f9949545220f75455fd7e",
+      "bytes": 1535,
+      "revision": "f70ad5bce436c640d23fc02cd0a6ccc787280b6e",
+      "retrieved_at": "2026-10-03T14:21:27.403Z"
+    },
+    {
+      "name": "cagliostrolab--animagine-xl-4.0--2b7c1b397761--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/cagliostrolab/animagine-xl-4.0/raw/2b7c1b397761bf5bd3cc42e5b39ec99314a75a96/README.md",
+      "local_path": "legal_sources/cagliostrolab--animagine-xl-4.0--2b7c1b397761--README.md.txt",
+      "sha256": "33c0532ffd945653223eea317756976a9af52faa2d6122b860dc56fe62e4cdc9",
+      "bytes": 15494,
+      "revision": "2b7c1b397761bf5bd3cc42e5b39ec99314a75a96",
+      "retrieved_at": "2026-10-03T14:21:27.503Z"
+    },
+    {
+      "name": "cagliostrolab--animagine-xl-3.1--483f0c322568--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/cagliostrolab/animagine-xl-3.1/raw/483f0c322568ed13697ed01dd0be07204746d12b/README.md",
+      "local_path": "legal_sources/cagliostrolab--animagine-xl-3.1--483f0c322568--README.md.txt",
+      "sha256": "67dce7c2f0fb0503be0e79faf1008ebed30f853d654c53e637610e908fbee088",
+      "bytes": 19929,
+      "revision": "483f0c322568ed13697ed01dd0be07204746d12b",
+      "retrieved_at": "2026-10-03T14:21:27.523Z"
+    },
+    {
+      "name": "ByteDance--SDXL-Lightning--c9a24f48e1c0--LICENSE.md",
+      "kind": "license",
+      "url": "https://huggingface.co/ByteDance/SDXL-Lightning/raw/c9a24f48e1c025556787b0c58dd67a091ece2e44/LICENSE.md",
+      "local_path": "legal_sources/ByteDance--SDXL-Lightning--c9a24f48e1c0--LICENSE.md.txt",
+      "sha256": "58a5efadd5103ca0906bfc86817ad2d02ebd0856a79e5034756cadd02fa97066",
+      "bytes": 14143,
+      "revision": "c9a24f48e1c025556787b0c58dd67a091ece2e44",
+      "retrieved_at": "2026-10-03T14:21:27.533Z"
+    },
+    {
+      "name": "SG161222--RealVisXL_V5.0--ac93e0dda1f6--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/SG161222/RealVisXL_V5.0/raw/ac93e0dda1f6d448cae19bbfab8c5e720a5e48bc/README.md",
+      "local_path": "legal_sources/SG161222--RealVisXL_V5.0--ac93e0dda1f6--README.md.txt",
+      "sha256": "ef3633a283f9f0902b2cc71162c238fc6df1dc1f06b360c2ec55c88a304f7acb",
+      "bytes": 2287,
+      "revision": "ac93e0dda1f6d448cae19bbfab8c5e720a5e48bc",
+      "retrieved_at": "2026-10-03T14:21:27.553Z"
+    },
+    {
+      "name": "SG161222--RealVisXL_V5.0_Lightning--f4454158ceda--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/SG161222/RealVisXL_V5.0_Lightning/raw/f4454158cedaab9f0688c199561d6c92525f3a85/README.md",
+      "local_path": "legal_sources/SG161222--RealVisXL_V5.0_Lightning--f4454158ceda--README.md.txt",
+      "sha256": "d1220d40da8a0996d845bd61202b5e4356c1072c1fdef26564f136bd31f4cbe0",
+      "bytes": 2482,
+      "revision": "f4454158cedaab9f0688c199561d6c92525f3a85",
+      "retrieved_at": "2026-10-03T14:21:27.630Z"
+    },
+    {
+      "name": "SG161222--RealVisXL_V4.0_Lightning--39b41eff57c9--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/SG161222/RealVisXL_V4.0_Lightning/raw/39b41eff57c9d10c62119590901d6771863b426d/README.md",
+      "local_path": "legal_sources/SG161222--RealVisXL_V4.0_Lightning--39b41eff57c9--README.md.txt",
+      "sha256": "d4fc47a79ff31761258130f2373cd361a63127fd39492348da7b90c48769bcb4",
+      "bytes": 2630,
+      "revision": "39b41eff57c9d10c62119590901d6771863b426d",
+      "retrieved_at": "2026-10-03T14:21:27.767Z"
+    },
+    {
+      "name": "ByteDance--SDXL-Lightning--c9a24f48e1c0--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/ByteDance/SDXL-Lightning/raw/c9a24f48e1c025556787b0c58dd67a091ece2e44/README.md",
+      "local_path": "legal_sources/ByteDance--SDXL-Lightning--c9a24f48e1c0--README.md.txt",
+      "sha256": "fe10b815ff7182438e18512afd0679ec010a5fc8f0fb8112d5df0201b02dbc04",
+      "bytes": 6527,
+      "revision": "c9a24f48e1c025556787b0c58dd67a091ece2e44",
+      "retrieved_at": "2026-10-03T14:21:27.533Z"
+    },
+    {
+      "name": "playgroundai--playground-v2-1024px-aesthetic--737a24ebe3ae--LICENSE.md",
+      "kind": "license",
+      "url": "https://huggingface.co/playgroundai/playground-v2-1024px-aesthetic/raw/737a24ebe3ae4e5421110879168be188853d86c8/LICENSE.md",
+      "local_path": "legal_sources/playgroundai--playground-v2-1024px-aesthetic--737a24ebe3ae--LICENSE.md.txt",
+      "sha256": "1638b153dff8f7bd3746fa74df1986868d0617d4179eb3f634193eac66942a39",
+      "bytes": 9362,
+      "revision": "737a24ebe3ae4e5421110879168be188853d86c8",
+      "retrieved_at": "2026-10-03T14:21:27.776Z"
+    },
+    {
+      "name": "dataautogpt3--ProteusV0.5--d1f0b0334736--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/dataautogpt3/ProteusV0.5/raw/d1f0b0334736a04e0a9431288b882b8cd0043d0b/README.md",
+      "local_path": "legal_sources/dataautogpt3--ProteusV0.5--d1f0b0334736--README.md.txt",
+      "sha256": "92773ff75ef31460e2e15b272d96f9e097dfad751670d1e758e24b559ed17b56",
+      "bytes": 7471,
+      "revision": "d1f0b0334736a04e0a9431288b882b8cd0043d0b",
+      "retrieved_at": "2026-10-03T14:21:27.786Z"
+    },
+    {
+      "name": "KBlueLeaf--Kohaku-XL-Zeta--c14affd9483a--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/KBlueLeaf/Kohaku-XL-Zeta/raw/c14affd9483ac7603cfff3f06b05da22a06deaa6/README.md",
+      "local_path": "legal_sources/KBlueLeaf--Kohaku-XL-Zeta--c14affd9483a--README.md.txt",
+      "sha256": "920f79387f0cadd01ab883c8979cfb1f142da912bb7fceade8b4bdec315759dc",
+      "bytes": 9185,
+      "revision": "c14affd9483ac7603cfff3f06b05da22a06deaa6",
+      "retrieved_at": "2026-10-03T14:21:27.879Z"
+    },
+    {
+      "name": "OnomaAIResearch--Illustrious-XL-v2.0--69459c1fe6f4--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/OnomaAIResearch/Illustrious-XL-v2.0/raw/69459c1fe6f46db41ab31e6114f05acc0e06bcaa/README.md",
+      "local_path": "legal_sources/OnomaAIResearch--Illustrious-XL-v2.0--69459c1fe6f4--README.md.txt",
+      "sha256": "f06d16269c0f09e5d8cca9ff406f48c0ac484d0884f458e37f73f0fc9995092f",
+      "bytes": 1404,
+      "revision": "69459c1fe6f46db41ab31e6114f05acc0e06bcaa",
+      "retrieved_at": "2026-10-03T14:21:27.925Z"
+    },
+    {
+      "name": "OnomaAIResearch--Illustrious-xl-early-release-v0--dca0dac303e6--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/OnomaAIResearch/Illustrious-xl-early-release-v0/raw/dca0dac303e6dc4b0c31d8001bc685b89b5d0204/README.md",
+      "local_path": "legal_sources/OnomaAIResearch--Illustrious-xl-early-release-v0--dca0dac303e6--README.md.txt",
+      "sha256": "0205e7c1d93c5c4fd6a2045ebf9ae3cd333684074385130d5b9e5aef3e051b45",
+      "bytes": 16918,
+      "revision": "dca0dac303e6dc4b0c31d8001bc685b89b5d0204",
+      "retrieved_at": "2026-10-03T14:21:28.026Z"
+    },
+    {
+      "name": "Laxhar--noobai-XL-1.1--814a274af2b8--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Laxhar/noobai-XL-1.1/raw/814a274af2b8097c0828819d561ec74c7d0c6cea/README.md",
+      "local_path": "legal_sources/Laxhar--noobai-XL-1.1--814a274af2b8--README.md.txt",
+      "sha256": "cf21e79ff853c46efa1dcfd809940caf7d21db0c45eefc05d67ddb8a891a9635",
+      "bytes": 6702,
+      "revision": "814a274af2b8097c0828819d561ec74c7d0c6cea",
+      "retrieved_at": "2026-10-03T14:21:28.062Z"
+    },
+    {
+      "name": "playgroundai--playground-v2-1024px-aesthetic--737a24ebe3ae--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/playgroundai/playground-v2-1024px-aesthetic/raw/737a24ebe3ae4e5421110879168be188853d86c8/README.md",
+      "local_path": "legal_sources/playgroundai--playground-v2-1024px-aesthetic--737a24ebe3ae--README.md.txt",
+      "sha256": "388ef4b4c492eed08f9a7ee2469b4a319864ffe9440aa3c69fae7c3cb4fa9c2e",
+      "bytes": 6699,
+      "revision": "737a24ebe3ae4e5421110879168be188853d86c8",
+      "retrieved_at": "2026-10-03T14:21:27.776Z"
+    },
+    {
+      "name": "Lykon--AAM_XL_AnimeMix--693a8d0f4dde--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Lykon/AAM_XL_AnimeMix/raw/693a8d0f4dde950c6ae9897000fe31be9eb93f6e/README.md",
+      "local_path": "legal_sources/Lykon--AAM_XL_AnimeMix--693a8d0f4dde--README.md.txt",
+      "sha256": "326fb455dac62cae7ed0e3d260e2a085df7e0bc1978137198a3ddb651beb11f0",
+      "bytes": 1529,
+      "revision": "693a8d0f4dde950c6ae9897000fe31be9eb93f6e",
+      "retrieved_at": "2026-10-03T14:21:28.140Z"
+    },
+    {
+      "name": "sd-community--sdxl-flash--e34c99ffd7d7--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/sd-community/sdxl-flash/raw/e34c99ffd7d7e8da501fef94e7119f65dd8ee542/README.md",
+      "local_path": "legal_sources/sd-community--sdxl-flash--e34c99ffd7d7--README.md.txt",
+      "sha256": "80c7963795a6354523f9d8f4f53be9216153796f8f2fad7aed8c025555c92d95",
+      "bytes": 1785,
+      "revision": "e34c99ffd7d7e8da501fef94e7119f65dd8ee542",
+      "retrieved_at": "2026-10-03T14:21:28.140Z"
+    },
+    {
+      "name": "SG161222--Paragon_V1.0--a14527663e4c--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/SG161222/Paragon_V1.0/raw/a14527663e4c65e4af9095008a9973db1b23d2f5/README.md",
+      "local_path": "legal_sources/SG161222--Paragon_V1.0--a14527663e4c--README.md.txt",
+      "sha256": "4691b3aac68bef8a76a6414efa79131609620e945d565c16ebdc6ca93343e4b4",
+      "bytes": 1876,
+      "revision": "a14527663e4c65e4af9095008a9973db1b23d2f5",
+      "retrieved_at": "2026-10-03T14:21:28.472Z"
+    },
+    {
+      "name": "SG161222--Realistic_Vision_V5.1_noVAE--1e9f017a7b1e--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE/raw/1e9f017a7b1eaefb63a1900ea6c5953d2739fd21/README.md",
+      "local_path": "legal_sources/SG161222--Realistic_Vision_V5.1_noVAE--1e9f017a7b1e--README.md.txt",
+      "sha256": "8570fe3da7bdc73bbd98b3ed7e6e9cb207cc4c6a5d50c73faa004fbbd2ed012c",
+      "bytes": 2831,
+      "revision": "1e9f017a7b1eaefb63a1900ea6c5953d2739fd21",
+      "retrieved_at": "2026-10-03T14:21:28.391Z"
+    },
+    {
+      "name": "XpucT--Reliberate--75fbc70b46c6--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/XpucT/Reliberate/raw/75fbc70b46c6855c2312b04ec5f89a867a078523/README.md",
+      "local_path": "legal_sources/XpucT--Reliberate--75fbc70b46c6--README.md.txt",
+      "sha256": "5e19452d23c8d763b95aee6643804d5787b0852a993bcc6886afdcaec1227241",
+      "bytes": 39,
+      "revision": "75fbc70b46c6855c2312b04ec5f89a867a078523",
+      "retrieved_at": "2026-10-03T14:21:28.494Z"
+    },
+    {
+      "name": "gsdf--Counterfeit-V2.5--93c5412baf37--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/gsdf/Counterfeit-V2.5/raw/93c5412baf37cbfa23a3278f7b33b0328db581fb/README.md",
+      "local_path": "legal_sources/gsdf--Counterfeit-V2.5--93c5412baf37--README.md.txt",
+      "sha256": "d98c0557ad9131980ec37d92034205b7068faaee17c18b4977ec061ac5de27ae",
+      "bytes": 4060,
+      "revision": "93c5412baf37cbfa23a3278f7b33b0328db581fb",
+      "retrieved_at": "2026-10-03T14:21:28.525Z"
+    },
+    {
+      "name": "gsdf--Counterfeit-V3.0--d8ce63b3eb8e--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/gsdf/Counterfeit-V3.0/raw/d8ce63b3eb8e9102e54b3fcc07f9cb7a28ef30fc/README.md",
+      "local_path": "legal_sources/gsdf--Counterfeit-V3.0--d8ce63b3eb8e--README.md.txt",
+      "sha256": "ab9fff26630cee92c5c5f5427ad7d3f3bc814716c896e60bb9cd2da25482eed8",
+      "bytes": 1026,
+      "revision": "d8ce63b3eb8e9102e54b3fcc07f9cb7a28ef30fc",
+      "retrieved_at": "2026-10-03T14:21:28.497Z"
+    },
+    {
+      "name": "Lykon--NeverEnding-Dream--239d0482dc70--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Lykon/NeverEnding-Dream/raw/239d0482dc703082d1b2b1a7b6051790ecd6d28c/README.md",
+      "local_path": "legal_sources/Lykon--NeverEnding-Dream--239d0482dc70--README.md.txt",
+      "sha256": "b11e8c5f87de4a66e390887d0a6ba0da608f10d5eb8d42bddf039471e4596aeb",
+      "bytes": 992,
+      "revision": "239d0482dc703082d1b2b1a7b6051790ecd6d28c",
+      "retrieved_at": "2026-10-03T14:21:28.621Z"
+    },
+    {
+      "name": "Lykon--AAM_Anylora_AnimeMix--2aac4e8fa7d2--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Lykon/AAM_Anylora_AnimeMix/raw/2aac4e8fa7d29af5cb47818adb8134c96bdeae6f/README.md",
+      "local_path": "legal_sources/Lykon--AAM_Anylora_AnimeMix--2aac4e8fa7d2--README.md.txt",
+      "sha256": "f03ec07074ab4d79f161d640957ecc52c0b8d69f377752652c79b08c2e4650b4",
+      "bytes": 1473,
+      "revision": "2aac4e8fa7d29af5cb47818adb8134c96bdeae6f",
+      "retrieved_at": "2026-10-03T14:21:28.722Z"
+    },
+    {
+      "name": "prompthero--openjourney--f4572661b028--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/prompthero/openjourney/raw/f4572661b028c732b2b97c8fbdc32fa5db3afe03/README.md",
+      "local_path": "legal_sources/prompthero--openjourney--f4572661b028--README.md.txt",
+      "sha256": "addae99f4c832f08cc9931163e1601ef152b11205fc1820d5f5a828ecc57bc66",
+      "bytes": 2725,
+      "revision": "f4572661b028c732b2b97c8fbdc32fa5db3afe03",
+      "retrieved_at": "2026-10-03T14:21:28.767Z"
+    },
+    {
+      "name": "wavymulder--Analog-Diffusion--211449c27387--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/wavymulder/Analog-Diffusion/raw/211449c273875dedc683fdb5a95d8a0ff9d76484/README.md",
+      "local_path": "legal_sources/wavymulder--Analog-Diffusion--211449c27387--README.md.txt",
+      "sha256": "e03e1887f44b045cf2686c1dcfc04c4cc6e7024ca8a42c40973f51a730601da4",
+      "bytes": 1622,
+      "revision": "211449c273875dedc683fdb5a95d8a0ff9d76484",
+      "retrieved_at": "2026-10-03T14:21:28.768Z"
+    },
+    {
+      "name": "darkstorm2150--Protogen_x5.8_Official_Release--9e9ff27a0b5b--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/darkstorm2150/Protogen_x5.8_Official_Release/raw/9e9ff27a0b5bbbaaa6aa911532d8cc3624587824/README.md",
+      "local_path": "legal_sources/darkstorm2150--Protogen_x5.8_Official_Release--9e9ff27a0b5b--README.md.txt",
+      "sha256": "92e5218b708bb1493c14468b8262dd524d22fac7dfe6e7967f1745a560623e99",
+      "bytes": 9510,
+      "revision": "9e9ff27a0b5bbbaaa6aa911532d8cc3624587824",
+      "retrieved_at": "2026-10-03T14:21:28.778Z"
+    },
+    {
+      "name": "bluepen5805--blue_pencil-XL--a9b51617185d--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/bluepen5805/blue_pencil-XL/raw/a9b51617185da2ab086af93564cb85710c59d9d3/README.md",
+      "local_path": "legal_sources/bluepen5805--blue_pencil-XL--a9b51617185d--README.md.txt",
+      "sha256": "b0cb2bd1bd7fc4c22454ae75f25bf78a7390170e8646636d0b5cba520e298cd1",
+      "bytes": 14059,
+      "revision": "a9b51617185da2ab086af93564cb85710c59d9d3",
+      "retrieved_at": "2026-10-03T14:21:29.022Z"
+    },
+    {
+      "name": "s6yx--ReV_Animated--e77d9937e1d3--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/s6yx/ReV_Animated/raw/e77d9937e1d3772579eb9f94f415f2a69b517e49/README.md",
+      "local_path": "legal_sources/s6yx--ReV_Animated--e77d9937e1d3--README.md.txt",
+      "sha256": "bd2ef39139a3d972f8a1ff01c7de775961eb12299503fe6460079b01d15a1d39",
+      "bytes": 6878,
+      "revision": "e77d9937e1d3772579eb9f94f415f2a69b517e49",
+      "retrieved_at": "2026-10-03T14:21:29.017Z"
+    },
+    {
+      "name": "ehristoforu--Visionix-alpha--8e2c24abace1--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/ehristoforu/Visionix-alpha/raw/8e2c24abace1c06d2008e2b21fe81d98be01f526/README.md",
+      "local_path": "legal_sources/ehristoforu--Visionix-alpha--8e2c24abace1--README.md.txt",
+      "sha256": "6b006be98f94173c9bd427dccdc8f2179f7f270124a80213da7424618456a31d",
+      "bytes": 2804,
+      "revision": "8e2c24abace1c06d2008e2b21fe81d98be01f526",
+      "retrieved_at": "2026-10-03T14:21:29.062Z"
+    },
+    {
+      "name": "OnomaAIResearch--Illustrious-XL-v1.1--8d966ec81087--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/OnomaAIResearch/Illustrious-XL-v1.1/raw/8d966ec810874502d56a22ec9130dab6ef74c5ff/README.md",
+      "local_path": "legal_sources/OnomaAIResearch--Illustrious-XL-v1.1--8d966ec81087--README.md.txt",
+      "sha256": "b8d0d8958039adb4ed081739919c647b28785de279d5fe6fbe6aa0b7cb4b6944",
+      "bytes": 1664,
+      "revision": "8d966ec810874502d56a22ec9130dab6ef74c5ff",
+      "retrieved_at": "2026-10-03T14:21:29.139Z"
+    },
+    {
+      "name": "mann-e--Mann-E_Dreams--aeab11b103b9--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/mann-e/Mann-E_Dreams/raw/aeab11b103b9211559139b4039011f634722a758/README.md",
+      "local_path": "legal_sources/mann-e--Mann-E_Dreams--aeab11b103b9--README.md.txt",
+      "sha256": "227568b96d28743803f2c3fd15ac89d85cacac94d9c5e6717469819ceb190cbc",
+      "bytes": 2025,
+      "revision": "aeab11b103b9211559139b4039011f634722a758",
+      "retrieved_at": "2026-10-03T14:21:29.273Z"
+    },
+    {
+      "name": "sd-community--sdxl-flash-mini--7402868d57e5--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/sd-community/sdxl-flash-mini/raw/7402868d57e5e72d029b56e5cf2dbad90f083c91/README.md",
+      "local_path": "legal_sources/sd-community--sdxl-flash-mini--7402868d57e5--README.md.txt",
+      "sha256": "ef63b05f6d9964f3af7a55d6cd8e23c28436cf38ba23ad410b07f0fb9eff8c19",
+      "bytes": 1096,
+      "revision": "7402868d57e5e72d029b56e5cf2dbad90f083c91",
+      "retrieved_at": "2026-10-03T14:21:29.294Z"
+    },
+    {
+      "name": "Comfy-Org--flux1-schnell--c2b683ea0071--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Comfy-Org/flux1-schnell/raw/c2b683ea00713d6feadcd54b39e3725bbc78638b/README.md",
+      "local_path": "legal_sources/Comfy-Org--flux1-schnell--c2b683ea0071--README.md.txt",
+      "sha256": "e99c5695f8c1eecfc478dd9dfdf4655df7ec5b6fe58f5892104735cef925e3a3",
+      "bytes": 2108,
+      "revision": "c2b683ea00713d6feadcd54b39e3725bbc78638b",
+      "retrieved_at": "2026-10-03T14:21:29.347Z"
+    },
+    {
+      "name": "Comfy-Org--flux1-dev--83c446ef27a6--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Comfy-Org/flux1-dev/raw/83c446ef27a6ac1e9e36ecf13257283aa12cf22a/README.md",
+      "local_path": "legal_sources/Comfy-Org--flux1-dev--83c446ef27a6--README.md.txt",
+      "sha256": "99d86fdd0244f89ed02d3a30e64048bad5366b9c0fccc6ff89f4d43a55128358",
+      "bytes": 8658,
+      "revision": "83c446ef27a6ac1e9e36ecf13257283aa12cf22a",
+      "retrieved_at": "2026-10-03T14:21:29.367Z"
+    },
+    {
+      "name": "Comfy-Org--stable-diffusion-3.5-fp8--934251d1e616--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/raw/934251d1e6168bcb45a069abc5bd5cdd5f8fea00/README.md",
+      "local_path": "legal_sources/Comfy-Org--stable-diffusion-3.5-fp8--934251d1e616--README.md.txt",
+      "sha256": "3af62e29af1de7a990376da4550a8dcf2df90b89169cf0113abcf79f5937a949",
+      "bytes": 5213,
+      "revision": "934251d1e6168bcb45a069abc5bd5cdd5f8fea00",
+      "retrieved_at": "2026-10-03T14:21:29.385Z"
+    },
+    {
+      "name": "Comfy-Org--z_image_turbo--6fc90a3b1b65--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Comfy-Org/z_image_turbo/raw/6fc90a3b1b653e935a0d175e260736de25b84df5/README.md",
+      "local_path": "legal_sources/Comfy-Org--z_image_turbo--6fc90a3b1b65--README.md.txt",
+      "sha256": "66b7c7b238a00ecba3488434c6e95473ad44c07ad9eade19da368ab5b1f747d5",
+      "bytes": 4785,
+      "revision": "6fc90a3b1b653e935a0d175e260736de25b84df5",
+      "retrieved_at": "2026-10-03T14:21:29.765Z"
+    },
+    {
+      "name": "Comfy-Org--Qwen-Image_ComfyUI--1f12b17be14c--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/raw/1f12b17be14c89b026c51a91d67c32f84bb047bc/README.md",
+      "local_path": "legal_sources/Comfy-Org--Qwen-Image_ComfyUI--1f12b17be14c--README.md.txt",
+      "sha256": "94dc8893156fd87263175a4f4967da2bb3cc3dc2573ed4ca8cb45a909a92930a",
+      "bytes": 9239,
+      "revision": "1f12b17be14c89b026c51a91d67c32f84bb047bc",
+      "retrieved_at": "2026-10-03T14:21:29.986Z"
+    },
+    {
+      "name": "Comfy-Org--HiDream-I1_ComfyUI--0703a0bd5983--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/raw/0703a0bd5983e85e5f5b007577263164938de251/README.md",
+      "local_path": "legal_sources/Comfy-Org--HiDream-I1_ComfyUI--0703a0bd5983--README.md.txt",
+      "sha256": "8115c9b4815e6af32d8d981c8ed079f78378a6773641b552ea3abb13bfbac853",
+      "bytes": 5534,
+      "revision": "0703a0bd5983e85e5f5b007577263164938de251",
+      "retrieved_at": "2026-10-03T14:21:30.006Z"
+    },
+    {
+      "name": "Comfy-Org--Lumina_Image_2.0_Repackaged--5b072540ef86--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/raw/5b072540ef86570fecb8249c505f23d5bdeb88cd/README.md",
+      "local_path": "legal_sources/Comfy-Org--Lumina_Image_2.0_Repackaged--5b072540ef86--README.md.txt",
+      "sha256": "ba15a2f2624ab81a11d960abafba65d6c3b1296bf44c0a3a2ff178272bfd9a02",
+      "bytes": 864,
+      "revision": "5b072540ef86570fecb8249c505f23d5bdeb88cd",
+      "retrieved_at": "2026-10-03T14:21:29.520Z"
+    },
+    {
+      "name": "lodestones--Chroma1-HD--0e0c60ece1e8--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/lodestones/Chroma1-HD/raw/0e0c60ece1e82b17cb7f77342d765ba5024c40c0/README.md",
+      "local_path": "legal_sources/lodestones--Chroma1-HD--0e0c60ece1e8--README.md.txt",
+      "sha256": "7fb4b45c76fd5e2028d540dd76b59491eb547edd6271f88769a513c4ac1336be",
+      "bytes": 8107,
+      "revision": "0e0c60ece1e82b17cb7f77342d765ba5024c40c0",
+      "retrieved_at": "2026-10-03T14:21:30.007Z"
+    },
+    {
+      "name": "comfyanonymous--flux_text_encoders--6af2a98e3f61--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/raw/6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5/README.md",
+      "local_path": "legal_sources/comfyanonymous--flux_text_encoders--6af2a98e3f61--README.md.txt",
+      "sha256": "a7574aa7a1f033923bd1374587892e5f3f761f5e30edfad92521842cd0f75d3a",
+      "bytes": 249,
+      "revision": "6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5",
+      "retrieved_at": "2026-10-03T14:21:30.021Z"
+    },
+    {
+      "name": "johnslegers--epic-diffusion--1e092ea9beb7--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/johnslegers/epic-diffusion/raw/1e092ea9beb780df1f504ddde34fe78a13cb0fb9/README.md",
+      "local_path": "legal_sources/johnslegers--epic-diffusion--1e092ea9beb7--README.md.txt",
+      "sha256": "f2fd445452487e6b4723363cc12a8464590b2d8ce8336ccc21425e76156f7b3c",
+      "bytes": 33585,
+      "revision": "1e092ea9beb780df1f504ddde34fe78a13cb0fb9",
+      "retrieved_at": "2026-10-03T14:21:29.731Z"
+    },
+    {
+      "name": "wavymulder--portraitplus--edc3dc523391--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/wavymulder/portraitplus/raw/edc3dc5233916dd716d1413dc2f8d427cb4f3e69/README.md",
+      "local_path": "legal_sources/wavymulder--portraitplus--edc3dc523391--README.md.txt",
+      "sha256": "5a2dd4e64c11adcf457718f903be3b750212809800273a84e99dbb269ceda0f0",
+      "bytes": 2151,
+      "revision": "edc3dc5233916dd716d1413dc2f8d427cb4f3e69",
+      "retrieved_at": "2026-10-03T14:21:29.731Z"
+    },
+    {
+      "name": "DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--LICENSE",
+      "kind": "license",
+      "url": "https://huggingface.co/DGSpitzer/Cyberpunk-Anime-Diffusion/raw/2b6407002b73374e6864d3647f4eb9659bca36a9/LICENSE",
+      "local_path": "legal_sources/DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--LICENSE.txt",
+      "sha256": "76e48c919858d4d8ed688345f66b2580a1053465f8e31f83788d2d1f2ec54846",
+      "bytes": 15379,
+      "revision": "2b6407002b73374e6864d3647f4eb9659bca36a9",
+      "retrieved_at": "2026-10-03T14:21:29.733Z"
+    },
+    {
+      "name": "XpucT--Deliberate--740b11ddb4d7--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/XpucT/Deliberate/raw/740b11ddb4d7999a37069b4c5a3f3f3aeee97644/README.md",
+      "local_path": "legal_sources/XpucT--Deliberate--740b11ddb4d7--README.md.txt",
+      "sha256": "9e868ae771e83846b077c6413d0e2e33690fb5eaff677f21c3b37ee3ac295d6d",
+      "bytes": 2867,
+      "revision": "740b11ddb4d7999a37069b4c5a3f3f3aeee97644",
+      "retrieved_at": "2026-10-03T14:21:29.730Z"
+    },
+    {
+      "name": "DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/DGSpitzer/Cyberpunk-Anime-Diffusion/raw/2b6407002b73374e6864d3647f4eb9659bca36a9/README.md",
+      "local_path": "legal_sources/DGSpitzer--Cyberpunk-Anime-Diffusion--2b6407002b73--README.md.txt",
+      "sha256": "bc4901338333657474e0c690c4b5c88e2dc79ecb0ba037fae09389dad1fc718d",
+      "bytes": 5420,
+      "revision": "2b6407002b73374e6864d3647f4eb9659bca36a9",
+      "retrieved_at": "2026-10-03T14:21:29.733Z"
+    },
+    {
+      "name": "Apache-2.0-full-license",
+      "kind": "license",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "local_path": "legal_sources/Apache-2.0-full-license.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "bytes": 11358,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:01.099Z"
+    },
+    {
+      "name": "MIT-full-license-template",
+      "kind": "license_template",
+      "url": "https://raw.githubusercontent.com/spdx/license-list-data/main/text/MIT.txt",
+      "local_path": "legal_sources/MIT-full-license-template.txt",
+      "sha256": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5",
+      "bytes": 1078,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:01.172Z"
+    },
+    {
+      "name": "FAIPL-1.0-SD-full-official-page",
+      "kind": "license_html_as_text",
+      "url": "https://freedevproject.org/faipl-1.0-sd/",
+      "local_path": "legal_sources/FAIPL-1.0-SD-full-official-page.txt",
+      "sha256": "430e926fd41937bb6ec02716534ceadc0386f54efec48e77b2ee4e1aaa0f53c0",
+      "bytes": 14576,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:01.627Z"
+    },
+    {
+      "name": "CreativeML-OpenRAIL-M-full-license",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE",
+      "local_path": "legal_sources/CreativeML-OpenRAIL-M-full-license.txt",
+      "sha256": "be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef",
+      "bytes": 14385,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:01.716Z"
+    },
+    {
+      "name": "Comfy-Org/ComfyUI--9c90340bc26e--LICENSE",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/Comfy-Org/ComfyUI/9c90340bc26ea69c2029ee6e882acbbb06e157b4/LICENSE",
+      "local_path": "legal_sources/Comfy-Org--ComfyUI--9c90340bc26e--LICENSE.txt",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "bytes": 35149,
+      "revision": "9c90340bc26ea69c2029ee6e882acbbb06e157b4",
+      "retrieved_at": "2026-10-03T16:28:01.742Z"
+    },
+    {
+      "name": "Tencent-Hunyuan/Hunyuan3D-2--f8db63096c82--LICENSE",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/Tencent-Hunyuan/Hunyuan3D-2/f8db63096c8282cb27354314d896feba5ba6ff8a/LICENSE",
+      "local_path": "legal_sources/Tencent-Hunyuan--Hunyuan3D-2--f8db63096c82--LICENSE.txt",
+      "sha256": "94259df223918a5733677965c1bfe1774a2dba25042d9c3b47a3418ea6c1f324",
+      "bytes": 17829,
+      "revision": "f8db63096c8282cb27354314d896feba5ba6ff8a",
+      "retrieved_at": "2026-10-03T16:28:01.822Z"
+    },
+    {
+      "name": "Tencent-Hunyuan/Hunyuan3D-2.1--82920d643c0d--LICENSE",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/Tencent-Hunyuan/Hunyuan3D-2.1/82920d643c0dc2f7bfd7255f45f62d386edfe60c/LICENSE",
+      "local_path": "legal_sources/Tencent-Hunyuan--Hunyuan3D-2.1--82920d643c0d--LICENSE.txt",
+      "sha256": "b79ac5e11ce063b6c6570dbe9686a45a03ba08bd248aa6aa82fb342a23a81c0c",
+      "bytes": 17914,
+      "revision": "82920d643c0dc2f7bfd7255f45f62d386edfe60c",
+      "retrieved_at": "2026-10-03T16:28:01.934Z"
+    },
+    {
+      "name": "VAST-AI-Research/TripoSG--fc5c40990181--LICENSE",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/VAST-AI-Research/TripoSG/fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c/LICENSE",
+      "local_path": "legal_sources/VAST-AI-Research--TripoSG--fc5c40990181--LICENSE.txt",
+      "sha256": "0fc2acd0176b345d3da59f466861ad09b78698de4200739aeaa2ffc9ae7a6842",
+      "bytes": 1125,
+      "revision": "fc5c40990181e2a756c4e0b1c2f4d6b5202faf8c",
+      "retrieved_at": "2026-10-03T16:28:01.960Z"
+    },
+    {
+      "name": "wgsxm/PartCrafter--3d773bf02fad--LICENSE",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/wgsxm/PartCrafter/3d773bf02fad51c7ab31a5615573fec93b287b30/LICENSE",
+      "local_path": "legal_sources/wgsxm--PartCrafter--3d773bf02fad--LICENSE.txt",
+      "sha256": "ae8c80719a5c916e5fd99fd3da99f8cf74be1589e9e4a11d5754898967a54e1f",
+      "bytes": 1066,
+      "revision": "3d773bf02fad51c7ab31a5615573fec93b287b30",
+      "retrieved_at": "2026-10-03T16:28:01.985Z"
+    },
+    {
+      "name": "VAST-AI-Research/TripoSR--107cefdc244c--LICENSE",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/107cefdc244c39106fa830359024f6a2f1c78871/LICENSE",
+      "local_path": "legal_sources/VAST-AI-Research--TripoSR--107cefdc244c--LICENSE.txt",
+      "sha256": "ade0a66629bdd7e01e46b3296b3851cff0fd27989bca53da470ad6e96ed620fb",
+      "bytes": 1080,
+      "revision": "107cefdc244c39106fa830359024f6a2f1c78871",
+      "retrieved_at": "2026-10-03T16:28:02.009Z"
+    },
+    {
+      "name": "Civitai--4384--128713--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/4384",
+      "local_path": "legal_sources/Civitai--4384--128713--author-permissions.txt",
+      "sha256": "9857d522d304b1607d0eac57c60722faf1046b3b890a58d58dee3a6cd1dca79f",
+      "bytes": 5630,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:11.865Z",
+      "artifact_sha256": "879db523c30d3b9017143d56705015e15a2cb5628762c11d086fed9538abd7fd",
+      "version_id": 128713
+    },
+    {
+      "name": "Civitai--81458--132760--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/81458",
+      "local_path": "legal_sources/Civitai--81458--132760--author-permissions.txt",
+      "sha256": "a4ea0453878d39ea6a73c97572442a69f5f30ae88e4c0d221d89a0d844b8c357",
+      "bytes": 4538,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:11.726Z",
+      "artifact_sha256": "463d6a9fe8a4b56a4d69ef3692074c0617428dfd8e8f12f9efe3b1e9a71717ce",
+      "version_id": 132760
+    },
+    {
+      "name": "tencent/Hunyuan3D-2mini--f90a0f7df7d5--LICENSE",
+      "kind": "license",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2mini/raw/f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6/LICENSE",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2mini--f90a0f7df7d5--LICENSE.txt",
+      "sha256": "e5e6e2041e18326d82cd105a1b9404e36db55263dd9d42d4989f917c2501b67b",
+      "bytes": 17828,
+      "revision": "f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6",
+      "retrieved_at": "2026-10-03T16:28:02.263Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2mini--f90a0f7df7d5--NOTICE",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2mini/raw/f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6/NOTICE",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2mini--f90a0f7df7d5--NOTICE.txt",
+      "sha256": "7b7ace3714c188b7a27e20edbcceaaac836540bbb63759a37039e5624c8f6bbc",
+      "bytes": 32064,
+      "revision": "f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6",
+      "retrieved_at": "2026-10-03T16:28:02.381Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2mini--f90a0f7df7d5--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2mini/raw/f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6/README.md",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2mini--f90a0f7df7d5--README.md.txt",
+      "sha256": "7001c57f874772940abbe4b836db84181f3b7812a856c81f50a6e361e0a25cd5",
+      "bytes": 4319,
+      "revision": "f90a0f7df7d5e6f71109cf333f6a95a0ae3194a6",
+      "retrieved_at": "2026-10-03T16:28:02.556Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2--9cd649ba6913--LICENSE",
+      "kind": "license",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2/raw/9cd649ba6913f7a852e3286bad86bfa9a2d83dcf/LICENSE",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2--9cd649ba6913--LICENSE.txt",
+      "sha256": "eca02cc10abaf520d85c3c523aef0b88f36b935b85635f1e34370688e93da3dd",
+      "bytes": 17830,
+      "revision": "9cd649ba6913f7a852e3286bad86bfa9a2d83dcf",
+      "retrieved_at": "2026-10-03T16:28:02.796Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2--9cd649ba6913--NOTICE",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2/raw/9cd649ba6913f7a852e3286bad86bfa9a2d83dcf/NOTICE",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2--9cd649ba6913--NOTICE.txt",
+      "sha256": "7b7ace3714c188b7a27e20edbcceaaac836540bbb63759a37039e5624c8f6bbc",
+      "bytes": 32064,
+      "revision": "9cd649ba6913f7a852e3286bad86bfa9a2d83dcf",
+      "retrieved_at": "2026-10-03T16:28:02.921Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2--9cd649ba6913--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2/raw/9cd649ba6913f7a852e3286bad86bfa9a2d83dcf/README.md",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2--9cd649ba6913--README.md.txt",
+      "sha256": "315092be8a8763bbc20ac7da187a224875990b34ea67a64a2a2fbd04c9716690",
+      "bytes": 9518,
+      "revision": "9cd649ba6913f7a852e3286bad86bfa9a2d83dcf",
+      "retrieved_at": "2026-10-03T16:28:03.037Z"
+    },
+    {
+      "name": "Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled--527cf2ecce7c--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled/raw/527cf2ecce7c04021975938f8b0e44e35d2b1ed9/README.md",
+      "local_path": "legal_sources/Tencent-Hunyuan--HunyuanDiT-v1.1-Diffusers-Distilled--527cf2ecce7c--README.md.txt",
+      "sha256": "2ca7f2a95d84d4f188a36030107248c8360f5e7caab351cbe8ff4727d5a7f9f3",
+      "bytes": 3812,
+      "revision": "527cf2ecce7c04021975938f8b0e44e35d2b1ed9",
+      "retrieved_at": "2026-10-03T16:28:03.264Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2mv--3a761b539b29--LICENSE",
+      "kind": "license",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2mv/raw/3a761b539b29fe4ff64714813aa9560fd66f5de0/LICENSE",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2mv--3a761b539b29--LICENSE.txt",
+      "sha256": "e5e6e2041e18326d82cd105a1b9404e36db55263dd9d42d4989f917c2501b67b",
+      "bytes": 17828,
+      "revision": "3a761b539b29fe4ff64714813aa9560fd66f5de0",
+      "retrieved_at": "2026-10-03T16:28:03.496Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2mv--3a761b539b29--NOTICE",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2mv/raw/3a761b539b29fe4ff64714813aa9560fd66f5de0/NOTICE",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2mv--3a761b539b29--NOTICE.txt",
+      "sha256": "7b7ace3714c188b7a27e20edbcceaaac836540bbb63759a37039e5624c8f6bbc",
+      "bytes": 32064,
+      "revision": "3a761b539b29fe4ff64714813aa9560fd66f5de0",
+      "retrieved_at": "2026-10-03T16:28:03.619Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2mv--3a761b539b29--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2mv/raw/3a761b539b29fe4ff64714813aa9560fd66f5de0/README.md",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2mv--3a761b539b29--README.md.txt",
+      "sha256": "53b682bae4301043f28dedef19264f2b791797d2c049febd230c42182a462cda",
+      "bytes": 4402,
+      "revision": "3a761b539b29fe4ff64714813aa9560fd66f5de0",
+      "retrieved_at": "2026-10-03T16:28:03.733Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2.1--0b94677654c5--LICENSE",
+      "kind": "license",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2.1/raw/0b94677654c57bb9a6b6845cd7b704ccf551d327/LICENSE",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2.1--0b94677654c5--LICENSE.txt",
+      "sha256": "5bd08f93b2d280bb26ff3eed5d3996fe47a9698b5f7785163928668d7fd578c6",
+      "bytes": 17915,
+      "revision": "0b94677654c57bb9a6b6845cd7b704ccf551d327",
+      "retrieved_at": "2026-10-03T16:28:03.974Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2.1--0b94677654c5--Notice.txt",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2.1/raw/0b94677654c57bb9a6b6845cd7b704ccf551d327/Notice.txt",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2.1--0b94677654c5--Notice.txt.txt",
+      "sha256": "ffccf6b539a82e6084d14ff064dadd22d33384d6164b07c0c5a3141810df0350",
+      "bytes": 16644,
+      "revision": "0b94677654c57bb9a6b6845cd7b704ccf551d327",
+      "retrieved_at": "2026-10-03T16:28:04.095Z"
+    },
+    {
+      "name": "tencent/Hunyuan3D-2.1--0b94677654c5--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/tencent/Hunyuan3D-2.1/raw/0b94677654c57bb9a6b6845cd7b704ccf551d327/README.md",
+      "local_path": "legal_sources/tencent--Hunyuan3D-2.1--0b94677654c5--README.md.txt",
+      "sha256": "2905a706952c6a7716599cc76de44de82c650fd787d664b9cc013da3ef422679",
+      "bytes": 3998,
+      "revision": "0b94677654c57bb9a6b6845cd7b704ccf551d327",
+      "retrieved_at": "2026-10-03T16:28:04.260Z"
+    },
+    {
+      "name": "Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers-Distilled--ba991d1546d8--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers-Distilled/raw/ba991d1546d8c50936c4c16398ed0a87b9b99fb1/README.md",
+      "local_path": "legal_sources/Tencent-Hunyuan--HunyuanDiT-v1.2-Diffusers-Distilled--ba991d1546d8--README.md.txt",
+      "sha256": "74c62160ec8db2af9776b263c16fddf203b1e350b2adf40ddb224194ecae2fce",
+      "bytes": 3812,
+      "revision": "ba991d1546d8c50936c4c16398ed0a87b9b99fb1",
+      "retrieved_at": "2026-10-03T16:28:04.571Z"
+    },
+    {
+      "name": "VAST-AI/TripoSG--2c1c516d22d5--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/VAST-AI/TripoSG/raw/2c1c516d22d58db486a058d98d31bb6177344e06/README.md",
+      "local_path": "legal_sources/VAST-AI--TripoSG--2c1c516d22d5--README.md.txt",
+      "sha256": "0f4c34a1a17acdbcff02c259d7f4f7b5df1b8956395c625c28da97930eb82ef3",
+      "bytes": 1465,
+      "revision": "2c1c516d22d58db486a058d98d31bb6177344e06",
+      "retrieved_at": "2026-10-03T16:28:04.853Z"
+    },
+    {
+      "name": "VAST-AI/TripoSG-scribble--e70b06bad2de--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/VAST-AI/TripoSG-scribble/raw/e70b06bad2dece5b6a359aa8cd12f538cabd7095/README.md",
+      "local_path": "legal_sources/VAST-AI--TripoSG-scribble--e70b06bad2de--README.md.txt",
+      "sha256": "6d2b2f26d32661ccd7ad8a3a2406b72aa0f309513909385f04e8c6e908550730",
+      "bytes": 1806,
+      "revision": "e70b06bad2dece5b6a359aa8cd12f538cabd7095",
+      "retrieved_at": "2026-10-03T16:28:05.111Z"
+    },
+    {
+      "name": "wgsxm/PartCrafter--69a0ffc1dad5--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/wgsxm/PartCrafter/raw/69a0ffc1dad5e48e7e5ed91c0609f2b1276eb31f/README.md",
+      "local_path": "legal_sources/wgsxm--PartCrafter--69a0ffc1dad5--README.md.txt",
+      "sha256": "759873b025f71187d8e5a8bb15602d4692e59a366c17cf8ef3af7f058e57356c",
+      "bytes": 687,
+      "revision": "69a0ffc1dad5e48e7e5ed91c0609f2b1276eb31f",
+      "retrieved_at": "2026-10-03T16:28:05.388Z"
+    },
+    {
+      "name": "wgsxm/PartCrafter-Scene--0454bb8e595a--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/wgsxm/PartCrafter-Scene/raw/0454bb8e595a2765e8cb1f17ffacad9ba159777a/README.md",
+      "local_path": "legal_sources/wgsxm--PartCrafter-Scene--0454bb8e595a--README.md.txt",
+      "sha256": "ff00df14a5e54521336764daee1fbcaf9eea6c6d279db6de920ea91677d41b08",
+      "bytes": 700,
+      "revision": "0454bb8e595a2765e8cb1f17ffacad9ba159777a",
+      "retrieved_at": "2026-10-03T16:28:05.624Z"
+    },
+    {
+      "name": "stabilityai/TripoSR--5b521936b01f--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/stabilityai/TripoSR/raw/5b521936b01fbe1890f6f9baed0254ab6351c04a/README.md",
+      "local_path": "legal_sources/stabilityai--TripoSR--5b521936b01f--README.md.txt",
+      "sha256": "5c12ef5b850c6ee2aa7454b1a264f6f8dfa95164384dbb1ab374acd917aa558b",
+      "bytes": 2488,
+      "revision": "5b521936b01fbe1890f6f9baed0254ab6351c04a",
+      "retrieved_at": "2026-10-03T16:28:05.858Z"
+    },
+    {
+      "name": "Civitai--133005--348913--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/133005",
+      "local_path": "legal_sources/Civitai--133005--348913--author-permissions.txt",
+      "sha256": "9f37efff28167c29aff754a9498ff7c37f1e5a34aaed266c42e7385f70bfad36",
+      "bytes": 3706,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:12.509Z",
+      "artifact_sha256": "c9e3e68f89b8e38689e1097d4be4573cf308de4e3fd044c64ca697bdb4aa8bca",
+      "version_id": 348913
+    },
+    {
+      "name": "Civitai--133005--357609--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/133005",
+      "local_path": "legal_sources/Civitai--133005--357609--author-permissions.txt",
+      "sha256": "126f9aef4f26c12ca16713f6f3ce0cbec745a071624e99c0142e6fdf6481a3b5",
+      "bytes": 3713,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:12.339Z",
+      "artifact_sha256": "c8df560d2992ac04299412be6a36fa53a4e7a1b74f27b94867ad3f84f4b425a5",
+      "version_id": 357609
+    },
+    {
+      "name": "Civitai--112902--355868--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/112902",
+      "local_path": "legal_sources/Civitai--112902--355868--author-permissions.txt",
+      "sha256": "16d1c3ec96b2bb9f0fa90a240ed7863ff1a0f48f90f588cf3791c10d8b62f52f",
+      "bytes": 4248,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:12.070Z",
+      "artifact_sha256": "832e7bb2302c3cd67c818ca4fe9dcbedf696d3070dab5463127263ec4db9899f",
+      "version_id": 355868
+    },
+    {
+      "name": "Civitai--833294--1116447--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/833294",
+      "local_path": "legal_sources/Civitai--833294--1116447--author-permissions.txt",
+      "sha256": "f953d494c3e0d4d1f81304ec45aef6bec702815b2650a8bfca2e11f1b7db6f17",
+      "bytes": 8323,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:11.216Z",
+      "artifact_sha256": "6681e8e4b134c81f16533acedb0d406d7e5e366e1624b4105178c64d00b05d51",
+      "version_id": 1116447
+    },
+    {
+      "name": "Civitai--269232--303526--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/269232",
+      "local_path": "legal_sources/Civitai--269232--303526--author-permissions.txt",
+      "sha256": "e23017e8a85a4abfb20738d5080590aa2034e8ed99716eaad568f2c86211e899",
+      "bytes": 2081,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:11.650Z",
+      "artifact_sha256": "d48c2391e04f7dbc83d8538b71be8a30991f3e4e2ff1a8a757b849381f769a8b",
+      "version_id": 303526
+    },
+    {
+      "name": "Civitai--10028--64094--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/10028",
+      "local_path": "legal_sources/Civitai--10028--64094--author-permissions.txt",
+      "sha256": "45d4251ba97c79024221eec3034f9dcd10c0b07ea06f94a928ec68d483ee2e16",
+      "bytes": 2716,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:12.318Z",
+      "artifact_sha256": "ecefb796ffcb7e4099df12f6419dffad671caa88780ff84fac9d680947173a0f",
+      "version_id": 64094
+    },
+    {
+      "name": "Civitai--84586--89927--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/84586",
+      "local_path": "legal_sources/Civitai--84586--89927--author-permissions.txt",
+      "sha256": "90d0efc8ebeb069972a41bcffc315bf71154545097373bc0282720700d9ff9cb",
+      "bytes": 3391,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:11.217Z",
+      "artifact_sha256": "354b8c571d3abe963e1520d3b4e0647be519841f4376fc5d16f7f5e7859f7d49",
+      "version_id": 89927
+    },
+    {
+      "name": "Civitai--3867--4298--author-permissions",
+      "kind": "publisher_permissions_by_artifact_hash",
+      "url": "https://civitai.com/api/v1/models/3867",
+      "local_path": "legal_sources/Civitai--3867--4298--author-permissions.txt",
+      "sha256": "75bf8ef7dc5842e9eef67ed878c76fa16d29ec49816d82d32718b23fc525047c",
+      "bytes": 1347,
+      "revision": null,
+      "retrieved_at": "2026-10-03T14:26:11.172Z",
+      "artifact_sha256": "847da9eead08fa6dfc11f95e479ee4e12bc6da4747b006ccefcd1e0e498f62c1",
+      "version_id": 4298
+    },
+    {
+      "name": "OrcaSlicer-AGPL-3.0-current-license",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/main/LICENSE.txt",
+      "local_path": "legal_sources/OrcaSlicer-AGPL-3.0-current-license.txt",
+      "sha256": "57c8ff33c9c0cfc3ef00e650a1cc910d7ee479a8bc509f6c9209a7c2a11399d6",
+      "bytes": 34520,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:05.893Z"
+    },
+    {
+      "name": "FreeCAD-current-license",
+      "kind": "license_html_as_text",
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD/main/src/Doc/LICENSE.html",
+      "local_path": "legal_sources/FreeCAD-current-license.txt",
+      "sha256": "2e11ad2982e6cc734d145ca2d3d36db0f9af55acd8a9f6e9961ed573e191487f",
+      "bytes": 25180,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:05.920Z"
+    },
+    {
+      "name": "CUDA-12.8-EULA-official",
+      "kind": "license_html_as_text",
+      "url": "https://docs.nvidia.com/cuda/archive/12.8.0/eula/index.html",
+      "local_path": "legal_sources/CUDA-12.8-EULA-official.txt",
+      "sha256": "fb99e91b9a7222fc2fcd6a63f18695c441b8edf35c9431bb465521c100a0cc84",
+      "bytes": 103831,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:06.071Z"
+    },
+    {
+      "name": "Ultralytics-8.4.170-AGPL-license",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/ultralytics/ultralytics/v8.4.170/LICENSE",
+      "local_path": "legal_sources/Ultralytics-8.4.170-AGPL-license.txt",
+      "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+      "bytes": 34523,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:06.103Z"
+    },
+    {
+      "name": "FLUX-dev-full-license",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/black-forest-labs/flux/802fb4713906133fcbd0d8dc5351620ca4773036/model_licenses/LICENSE-FLUX1-dev",
+      "local_path": "legal_sources/FLUX-dev-full-license.txt",
+      "sha256": "6f7b3d94ddd94380a4dc2d1211ed57883d320dea96f4393b34d4a454041029e1",
+      "bytes": 18621,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:06.294Z"
+    },
+    {
+      "name": "Llama-3.1-full-license",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/meta-llama/llama-models/0e0b8c519242d5833d8c11bffc1232b77ad7f301/models/llama3_1/LICENSE",
+      "local_path": "legal_sources/Llama-3.1-full-license.txt",
+      "sha256": "bf2eac60b81e5c5f779fc3b4849d3bfacfd63f97f3eb68b44e9c6868c5801712",
+      "bytes": 7680,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:06.719Z"
+    },
+    {
+      "name": "Llama-3.1-AUP",
+      "kind": "license",
+      "url": "https://raw.githubusercontent.com/meta-llama/llama-models/0e0b8c519242d5833d8c11bffc1232b77ad7f301/models/llama3_1/USE_POLICY.md",
+      "local_path": "legal_sources/Llama-3.1-AUP.txt",
+      "sha256": "f456a3f5b15ab588c84d06cf095a245bfee0bbc1620b48ed00af2cca4a711735",
+      "bytes": 4673,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:06.915Z"
+    },
+    {
+      "name": "PrintGuard-2.4.0-METADATA.txt",
+      "kind": "installed_package_metadata",
+      "url": "local-package:PrintGuard-windows-x64.zip",
+      "local_path": "legal_sources/PrintGuard-2.4.0-METADATA.txt.txt",
+      "sha256": "e13e4957113d127d95a33e7e48f9d0c391edae8d731a21f063745ebb4b357a69",
+      "bytes": 1746,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:07.026Z",
+      "archive_member": "_internal/printguard-2.4.0.dist-info/METADATA"
+    },
+    {
+      "name": "PrintGuard-2.4.0-licenses-LICENSE.md.txt",
+      "kind": "license",
+      "url": "local-package:PrintGuard-windows-x64.zip",
+      "local_path": "legal_sources/PrintGuard-2.4.0-licenses-LICENSE.md.txt.txt",
+      "sha256": "5ac905d7a79817e44361177caa050a386a9773d37e1635a97f77dc23516f1fe9",
+      "bytes": 18053,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:28:07.228Z",
+      "archive_member": "_internal/printguard-2.4.0.dist-info/licenses/LICENSE.md"
+    },
+    {
+      "name": "PrintGuard-v2.4.0-LICENSE.md.txt",
+      "url": "https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/LICENSE.md",
+      "sha256": "287d1f9af994fa7bade423cc4fcbff58eb0c3a3732252e0ec128bd3dc276b62c",
+      "bytes": 18073,
+      "local_path": "legal_sources/PrintGuard-v2.4.0-LICENSE.md.txt",
+      "kind": "license",
+      "revision": "b7b97f3f9942a066c8649c30565312eb0ecce37e",
+      "retrieved_at": "2026-10-03T17:45:24.372Z"
+    },
+    {
+      "name": "PrintGuard-v2.4.0-THIRD_PARTY_NOTICES.md.txt",
+      "url": "https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/THIRD_PARTY_NOTICES.md",
+      "sha256": "df87abeec3a0e5de1f0d39f7500a5f9f09e490083f0b513ffc2e4052f85f3b5b",
+      "bytes": 3016,
+      "local_path": "legal_sources/PrintGuard-v2.4.0-THIRD_PARTY_NOTICES.md.txt",
+      "kind": "publisher_document",
+      "revision": "b7b97f3f9942a066c8649c30565312eb0ecce37e",
+      "retrieved_at": "2026-10-03T17:45:24.372Z"
+    },
+    {
+      "name": "PrintGuard-v2.4.0-models-metadata.json.txt",
+      "url": "https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/models/metadata.json",
+      "sha256": "d0f49498774afe81138c0f8207c5440732691a1c38fcb2805b7bd2bbc2963c8a",
+      "bytes": 1138,
+      "local_path": "legal_sources/PrintGuard-v2.4.0-models-metadata.json.txt",
+      "kind": "publisher_document",
+      "revision": "b7b97f3f9942a066c8649c30565312eb0ecce37e",
+      "retrieved_at": "2026-10-03T17:45:24.372Z"
+    },
+    {
+      "name": "PrintGuard-v2.4.0-pyproject.toml.txt",
+      "url": "https://raw.githubusercontent.com/oliverbravery/PrintGuard/b7b97f3f9942a066c8649c30565312eb0ecce37e/pyproject.toml",
+      "sha256": "97a04537b7f36f0ca3a5ffd8b9f6c8a553176d2517ce6a92d179726abc826297",
+      "bytes": 1958,
+      "local_path": "legal_sources/PrintGuard-v2.4.0-pyproject.toml.txt",
+      "kind": "publisher_document",
+      "revision": "b7b97f3f9942a066c8649c30565312eb0ecce37e",
+      "retrieved_at": "2026-10-03T17:45:24.372Z"
+    },
+    {
+      "name": "NOTICE--image_generation",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--image_generation.txt",
+      "sha256": "0ea7dbfc05183f4b640e985abedc9f2bf82a6d910161e70e2653e2301dee8828",
+      "bytes": 1047,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.618Z"
+    },
+    {
+      "name": "NOTICE--ai3d",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--ai3d.txt",
+      "sha256": "3a8c1dd3598b0affe22a65425157f7654270281cf0002b525bcc3e8e4969ff45",
+      "bytes": 1530,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.620Z"
+    },
+    {
+      "name": "NOTICE--converter",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--converter.txt",
+      "sha256": "62fe9507687ed65fd2ecb790344dc632979cb29a907d31a1978ff725cc4e44f6",
+      "bytes": 1036,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.620Z"
+    },
+    {
+      "name": "NOTICE--printguard",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--printguard.txt",
+      "sha256": "0145d46ff68170b4449e0ff94d60a5c02f144eb1e16d0c1be27dfab8beaf238e",
+      "bytes": 2726,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:51:26.016Z"
+    },
+    {
+      "name": "NOTICE--model-studio",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--model-studio.txt",
+      "sha256": "f2b42476d3b5c2d1d20ab1926905fce37feeac23159e37eab198db066fac08d1",
+      "bytes": 1096,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.622Z"
+    },
+    {
+      "name": "NOTICE--laser-studio",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--laser-studio.txt",
+      "sha256": "83fb5489aeded95ad14e31bfca4728fcae9f8d199c358274795c405aa90dd60d",
+      "bytes": 916,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.622Z"
+    },
+    {
+      "name": "NOTICE--orca-bridge",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--orca-bridge.txt",
+      "sha256": "60d12f013c1a3951737468073c0729c9b5ca4b941b408d8ebde0457fd1611979",
+      "bytes": 1134,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.623Z"
+    },
+    {
+      "name": "NOTICE--cuda-toolkit",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--cuda-toolkit.txt",
+      "sha256": "e1c9c1781d7aa5a84d6bf36c08be635c7467a6190438bce8d91eb18db17cb538",
+      "bytes": 971,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.624Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-21",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-21.txt",
+      "sha256": "b0460a05ba60fd3a9e8535624463965bb3c217a8808fa966d5a1dfe675277b82",
+      "bytes": 1544,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.624Z"
+    },
+    {
+      "name": "NOTICE--open3d-lab",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--open3d-lab.txt",
+      "sha256": "5e13c2dcce4a9756f7e4213ded5fff5b9235d619c6956c4e1c44e55d0339f657",
+      "bytes": 1743,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.625Z"
+    },
+    {
+      "name": "NOTICE--fire-watch",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--fire-watch.txt",
+      "sha256": "d1774a3aed46682f332e78e593e212ca0e33d0dedec19e151f6d1b3e77328c2d",
+      "bytes": 1107,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.626Z"
+    },
+    {
+      "name": "NOTICE--sdxl-base-1.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-base-1.0.txt",
+      "sha256": "b809d69579c52de78b5f31a7851cf18216f50ef5089a96f50e26715e97302844",
+      "bytes": 1992,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.626Z"
+    },
+    {
+      "name": "NOTICE--sd-turbo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sd-turbo.txt",
+      "sha256": "d5950c15efceaf71aa8f247361aadcdf9c045f8522d6c0d3369536889378b5a4",
+      "bytes": 1584,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.628Z"
+    },
+    {
+      "name": "NOTICE--dreamshaper-8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--dreamshaper-8.txt",
+      "sha256": "aabd2433fd6c34db715a746eabf3cacc974dbfd4b11b365a021ef64b2d87065f",
+      "bytes": 2103,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.629Z"
+    },
+    {
+      "name": "NOTICE--sdxl-turbo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-turbo.txt",
+      "sha256": "82acd419824f9037ba27bfcae03461f4d816650c7694e1cda9a86ed6fb50bc07",
+      "bytes": 1600,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.630Z"
+    },
+    {
+      "name": "NOTICE--absolutereality-1.8.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--absolutereality-1.8.1.txt",
+      "sha256": "3f9517c623a6fbf71cde0c845ed5b5e829cc5cda76225ab8b2adbb417cfb2ff3",
+      "bytes": 2130,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.631Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2.txt",
+      "sha256": "2cbba649d24d86231357794586cfce667c301990c33d385a08bd8eb0c6715384",
+      "bytes": 2171,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.631Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2-standard",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2-standard.txt",
+      "sha256": "4b863f0f210f557e2e31bc7a7c14e30a83467ea4852dd65153514eed90fdad5e",
+      "bytes": 2048,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.632Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2mini-turbo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2mini-turbo.txt",
+      "sha256": "b5d2e81bbb0feb80fbba4366b47b4bccead16216da1b443a3011d0b0d20c6e62",
+      "bytes": 2181,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.632Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2-turbo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2-turbo.txt",
+      "sha256": "91abcf59f0d5c195b656a6f19a33b4f35a2c2e74c83f9a86938497adfee736bf",
+      "bytes": 2045,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.633Z"
+    },
+    {
+      "name": "NOTICE--hunyuan-dit",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan-dit.txt",
+      "sha256": "80636ea03332bd18d9ccc2e6da0f005eb75cd7d9dc67c0437f4b9a46e71e0e1d",
+      "bytes": 1298,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:51:26.027Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2mv",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2mv.txt",
+      "sha256": "bb04b384f6ad4701aab4a0ff7184053a45e25a772d3ac282eaa4693b2a3523e9",
+      "bytes": 2153,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.634Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2-paint",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2-paint.txt",
+      "sha256": "7442d1619e8818e0bc79d4619cce14881b368a39f9248c3f50478c8f02b6bf0e",
+      "bytes": 2045,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.635Z"
+    },
+    {
+      "name": "NOTICE--sdxl-refiner-1.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-refiner-1.0.txt",
+      "sha256": "e3deff93895b13b33e38c4b12c2559dc8d6c9b08543570f02a0325d13f5a6a2e",
+      "bytes": 2374,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.636Z"
+    },
+    {
+      "name": "NOTICE--stable-diffusion-1.5",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--stable-diffusion-1.5.txt",
+      "sha256": "c8f5e07be4f10852386ebefce636a783084ce36bebde5c7a190ecab3a23e66f9",
+      "bytes": 2028,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.637Z"
+    },
+    {
+      "name": "NOTICE--ssd-1b",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--ssd-1b.txt",
+      "sha256": "8e4315a0fbb4c26e5b7b322d4e4352fbbae02b655a0f7ddfd49bea1b3d784100",
+      "bytes": 2157,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:51:26.030Z"
+    },
+    {
+      "name": "NOTICE--segmind-vega",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--segmind-vega.txt",
+      "sha256": "c36314432c56308092c7bd0a6bc225a274f192435b06d2c2d3a3b5cc54eb0b9e",
+      "bytes": 2187,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:51:26.031Z"
+    },
+    {
+      "name": "NOTICE--realistic-vision-6.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--realistic-vision-6.0.txt",
+      "sha256": "04957e6d82dbfa5dafa7855d176ebf7969601c96f6f42a8634698448652d2adf",
+      "bytes": 1999,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.639Z"
+    },
+    {
+      "name": "NOTICE--realvisxl-4.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--realvisxl-4.0.txt",
+      "sha256": "1bb7be92eacb43665a6a54113816b310a9ccf5eed0f28242c97998cddc86d612",
+      "bytes": 1921,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.639Z"
+    },
+    {
+      "name": "NOTICE--playground-2.5",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--playground-2.5.txt",
+      "sha256": "74691c8af79b3507acdbe17eb075e1ba374736456fcc1f8a93d8233db602ee8d",
+      "bytes": 1665,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:51:26.032Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2-fast",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2-fast.txt",
+      "sha256": "6833a471d72afb0e9ae1187f084a9357275854e8b179f69419b0c5f7bdfd2bd8",
+      "bytes": 2044,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.640Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2mini-fast",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2mini-fast.txt",
+      "sha256": "d1ac18d06830f60c8ec2edc3e3c644d5a6393741e16c1485cc4bdc1c0e6bd9a8",
+      "bytes": 2180,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.641Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2mv-turbo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2mv-turbo.txt",
+      "sha256": "e25f6f680180afae0b7e8fcccfe7748ef7599c162ddd0071b99d9a460d4cd5e5",
+      "bytes": 2159,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.642Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2mv-fast",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2mv-fast.txt",
+      "sha256": "f78a5d09c6349a70e6a9e4d08b012c643111379a1cacb64562852481262430ff",
+      "bytes": 2158,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.642Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-21-shape",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-21-shape.txt",
+      "sha256": "cfa2f9f995c42e80024de1579e13cbfc54144b5a2284aaf9d0798cd0a3089823",
+      "bytes": 2078,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.643Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-21-paint-pbr",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-21-paint-pbr.txt",
+      "sha256": "8a13cac863ecf3dbcafca0c0da417ab399d4de69c756f66a4c4cca8f048ac9b9",
+      "bytes": 2082,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.643Z"
+    },
+    {
+      "name": "NOTICE--hunyuan3d-2-paint-turbo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan3d-2-paint-turbo.txt",
+      "sha256": "ca047dead6753ad15caebfb2a2712dcc47ed09f08834c6f9e70352669abbb77b",
+      "bytes": 2051,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.644Z"
+    },
+    {
+      "name": "NOTICE--hunyuan-dit-1.2",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hunyuan-dit-1.2.txt",
+      "sha256": "c20da810c4f20773a279f3d6ecb8b0f3b4534110c065d16bad065cb4739a9956",
+      "bytes": 1302,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:51:26.038Z"
+    },
+    {
+      "name": "NOTICE--triposg",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--triposg.txt",
+      "sha256": "67fa7647196f474f46016623febabbd24da701c01ffec37f677fb38ec95ddbaf",
+      "bytes": 1451,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.645Z"
+    },
+    {
+      "name": "NOTICE--triposg-scribble",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--triposg-scribble.txt",
+      "sha256": "f748d12a7a005a0165133a80a8d38d4035ca076c64d0f61ac30c3d75a4333d8e",
+      "bytes": 1496,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.645Z"
+    },
+    {
+      "name": "NOTICE--partcrafter",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--partcrafter.txt",
+      "sha256": "4c1f3a55ca78d96f4c55ec0a2e7e81166fdb6a2cf3e68dd4ed71e78bd76ed902",
+      "bytes": 1432,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.646Z"
+    },
+    {
+      "name": "NOTICE--partcrafter-scene",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--partcrafter-scene.txt",
+      "sha256": "a5eacef15da5c97bb266dd6e45b29627a86ca5f8dbc75fcd1df2494258a00f45",
+      "bytes": 1462,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.646Z"
+    },
+    {
+      "name": "NOTICE--triposr",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--triposr.txt",
+      "sha256": "d28ee306299cd55a0c5b5d662eaabbee762a0d010d1e89f2abd3ee179febfb21",
+      "bytes": 1467,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.647Z"
+    },
+    {
+      "name": "NOTICE--juggernaut-xl-v9",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--juggernaut-xl-v9.txt",
+      "sha256": "a5146e1d6096e15a0bc2e91685ed78c0954bb4ccdf776d7e78da68fe8c4e5424",
+      "bytes": 2142,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.647Z"
+    },
+    {
+      "name": "NOTICE--juggernaut-xl-lightning",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--juggernaut-xl-lightning.txt",
+      "sha256": "9b25e4ee5fef4b74e1b9b97a7152a6d174e94d37a0465e371df6f9221ecbf160",
+      "bytes": 2184,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.648Z"
+    },
+    {
+      "name": "NOTICE--dreamshaper-xl-lightning",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--dreamshaper-xl-lightning.txt",
+      "sha256": "e9945efb248b8551a646591328d4fd62df79abc1355f138bec47de113e134c2c",
+      "bytes": 2194,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.649Z"
+    },
+    {
+      "name": "NOTICE--dreamshaper-xl-turbo-v2",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--dreamshaper-xl-turbo-v2.txt",
+      "sha256": "a2d5c6325cdba58fdc63fc4188ace6a1c92b60b9048a168c56ebcde79fe1cafa",
+      "bytes": 1960,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.649Z"
+    },
+    {
+      "name": "NOTICE--animagine-xl-4.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--animagine-xl-4.0.txt",
+      "sha256": "41cbf3db602af8a04dda2f695e4cfb7b6311976d0613d0f3d2e2252444d5f4da",
+      "bytes": 1960,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.650Z"
+    },
+    {
+      "name": "NOTICE--animagine-xl-3.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--animagine-xl-3.1.txt",
+      "sha256": "4ff2b7b0429068a5a86aff29112e95eb606ef95353bc154711fec38ef4b9c1b5",
+      "bytes": 1960,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.650Z"
+    },
+    {
+      "name": "NOTICE--sdxl-lightning-2step",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-lightning-2step.txt",
+      "sha256": "60fd7021b0b723b50a4e592c4128a8d2bf3f04dbe9b58d61cf8d4b8d94000825",
+      "bytes": 2254,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.651Z"
+    },
+    {
+      "name": "NOTICE--sdxl-lightning-4step",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-lightning-4step.txt",
+      "sha256": "bd66c0fccca38932cb3f2ea712943b9e316d6125851ca67df27193aa74340ba9",
+      "bytes": 2254,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.652Z"
+    },
+    {
+      "name": "NOTICE--sdxl-lightning-8step",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-lightning-8step.txt",
+      "sha256": "8dd46529a24848d59ed7640ae80ebc12a48ae6091416a1e27ecc2c56389ee36d",
+      "bytes": 2254,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.652Z"
+    },
+    {
+      "name": "NOTICE--realvisxl-5.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--realvisxl-5.0.txt",
+      "sha256": "bbf0fda602062e91752abdda9fb294696e422f780e2d066fe975facb51dbc0ce",
+      "bytes": 1921,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.653Z"
+    },
+    {
+      "name": "NOTICE--realvisxl-5.0-lightning",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--realvisxl-5.0-lightning.txt",
+      "sha256": "571b63578769e05faf329c0ad6cbe60d1deb97039530d0f9bc143eda4b570721",
+      "bytes": 1981,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.655Z"
+    },
+    {
+      "name": "NOTICE--realvisxl-4.0-lightning",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--realvisxl-4.0-lightning.txt",
+      "sha256": "a3c0693aa13e8be8a3548b9b300e397e4f77630ba0d6a822fce8443c55ca45af",
+      "bytes": 1981,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.656Z"
+    },
+    {
+      "name": "NOTICE--playground-v2",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--playground-v2.txt",
+      "sha256": "17691fc8a53e21235fa37cd19a494ab0d8d6bc00bc808bfe98a4052d0b84345d",
+      "bytes": 1571,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.656Z"
+    },
+    {
+      "name": "NOTICE--proteus-0.5",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--proteus-0.5.txt",
+      "sha256": "f2b347e2e04762d359eb8d427ce3365d3b2597f7ffe0ab660ed9c0e22d743b26",
+      "bytes": 2121,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.657Z"
+    },
+    {
+      "name": "NOTICE--kohaku-xl-zeta",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--kohaku-xl-zeta.txt",
+      "sha256": "e84c540ae3517c16beb10da3b24ca5d85ddc61bac9f91ec2ec5a26519b55904b",
+      "bytes": 1490,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.657Z"
+    },
+    {
+      "name": "NOTICE--illustrious-xl-2.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--illustrious-xl-2.0.txt",
+      "sha256": "e1ee87205038dc26b8b059bfd87727544291d026570a36ea3929a7691967a6f5",
+      "bytes": 1984,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.658Z"
+    },
+    {
+      "name": "NOTICE--illustrious-xl-0.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--illustrious-xl-0.1.txt",
+      "sha256": "4d055f757b234e3428d4d29eb0607683cc1cf1d185bbaf2ff837ba774d8eb57b",
+      "bytes": 1596,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.659Z"
+    },
+    {
+      "name": "NOTICE--noobai-xl-1.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--noobai-xl-1.1.txt",
+      "sha256": "b3e91097acd57a10567ceabe5d59e632d33c8e78755afb13ac24f2e932904a4b",
+      "bytes": 1699,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.659Z"
+    },
+    {
+      "name": "NOTICE--aam-xl-animemix",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--aam-xl-animemix.txt",
+      "sha256": "d3f5d9b810b574e44b5c202a4653f773ea7ef60028f8788bfe7373117411e8a7",
+      "bytes": 1704,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.660Z"
+    },
+    {
+      "name": "NOTICE--sdxl-flash",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-flash.txt",
+      "sha256": "66307a10b57393d27ac1285f8cb913168bba937c3ea407a7131f86532be2076c",
+      "bytes": 1919,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.661Z"
+    },
+    {
+      "name": "NOTICE--realistic-vision-5.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--realistic-vision-5.1.txt",
+      "sha256": "32a37eb5f1323f668e91403f8472e7a9036c9c4431d72d771264a2c5ad18cfc7",
+      "bytes": 1987,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.661Z"
+    },
+    {
+      "name": "NOTICE--paragon-1.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--paragon-1.0.txt",
+      "sha256": "f02338b042979fe2c16a7a579b6dd63f8d148ca0e7145b25e298cbbeca005967",
+      "bytes": 1917,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.662Z"
+    },
+    {
+      "name": "NOTICE--reliberate-v3",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--reliberate-v3.txt",
+      "sha256": "f3753d8de51270adeb159d3d0ae9cf7c75c349a68658e6f232ffb9d2cf230d0b",
+      "bytes": 1890,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.663Z"
+    },
+    {
+      "name": "NOTICE--counterfeit-v3.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--counterfeit-v3.0.txt",
+      "sha256": "d423731d3227fda4c8dcc29a10e81d250323ff1165ff672e11f3df5f57c13a43",
+      "bytes": 1915,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.663Z"
+    },
+    {
+      "name": "NOTICE--counterfeit-v2.5",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--counterfeit-v2.5.txt",
+      "sha256": "4e8f5f3442bfa9cbe805656fa23646a79cd085ce4d03ed6fa28118f577494e40",
+      "bytes": 1915,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.664Z"
+    },
+    {
+      "name": "NOTICE--neverending-dream",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--neverending-dream.txt",
+      "sha256": "2af1ca64e767b301859cf5c81646a904553a959bc54d70eff55da735f21587af",
+      "bytes": 2132,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.664Z"
+    },
+    {
+      "name": "NOTICE--aam-anylora-animemix",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--aam-anylora-animemix.txt",
+      "sha256": "0892100cf4645a081c84a17b7ae90ae00dd239887687479e5a421f40bc6bceac",
+      "bytes": 2165,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.665Z"
+    },
+    {
+      "name": "NOTICE--openjourney",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--openjourney.txt",
+      "sha256": "6da575eb5d83cd610cc0162c34d5fbd85e28e92e0f5b6dd2db2a123b195f2218",
+      "bytes": 1927,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.666Z"
+    },
+    {
+      "name": "NOTICE--analog-diffusion",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--analog-diffusion.txt",
+      "sha256": "cd078a7148e2439704d2567b4a446711cb472e055bf11f726ae59240fc10713d",
+      "bytes": 1949,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.666Z"
+    },
+    {
+      "name": "NOTICE--protogen-x5.8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--protogen-x5.8.txt",
+      "sha256": "ae34439e2d63dfb32657eaac16d559aba6793b475b2e4b28d6affb582d1180d9",
+      "bytes": 2187,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.667Z"
+    },
+    {
+      "name": "NOTICE--rev-animated-1.2.2",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--rev-animated-1.2.2.txt",
+      "sha256": "8134217fbb85a5e6e00fa599eca9a90e8037de911cb10d10245858501cf02803",
+      "bytes": 1903,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.667Z"
+    },
+    {
+      "name": "NOTICE--blue-pencil-xl-7.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--blue-pencil-xl-7.0.txt",
+      "sha256": "a3c0b84e0af42d1049ba40d100bf9fded628944cccb5f1103d97de836df211be",
+      "bytes": 1946,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.668Z"
+    },
+    {
+      "name": "NOTICE--visionix-alpha",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--visionix-alpha.txt",
+      "sha256": "a939a4dc302d4d1b8a785cfcd0294351ee8d7a82b1760481a5b4372dd265ddeb",
+      "bytes": 1938,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.668Z"
+    },
+    {
+      "name": "NOTICE--illustrious-xl-1.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--illustrious-xl-1.1.txt",
+      "sha256": "2e32fa79c85311c9107c8dabc174a4ad475960977e6cdc0091968e0700fe305d",
+      "bytes": 1984,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.669Z"
+    },
+    {
+      "name": "NOTICE--mann-e-dreams-0.0.4",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--mann-e-dreams-0.0.4.txt",
+      "sha256": "d79f358846ed58e66d32aa9d9fc3f92890f8271fe3a5d6c7dd056b752d558666",
+      "bytes": 2121,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.669Z"
+    },
+    {
+      "name": "NOTICE--sdxl-flash-mini",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sdxl-flash-mini.txt",
+      "sha256": "ef9174a98700c6c82f4413ba81f7d9cce14e651747f8fecc3f7eb8986d2bf7cc",
+      "bytes": 1949,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.670Z"
+    },
+    {
+      "name": "NOTICE--flux1-schnell-fp8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--flux1-schnell-fp8.txt",
+      "sha256": "6d9b36590f177bbf11b04d620d2cd63b7e6d4520778c8f23416f9d947c71470d",
+      "bytes": 1367,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.670Z"
+    },
+    {
+      "name": "NOTICE--flux1-dev-fp8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--flux1-dev-fp8.txt",
+      "sha256": "ae76fa8076152c3bfe71b4c6d0d706d7354fd005e08c7d36ef57ca294725d1d3",
+      "bytes": 1733,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.671Z"
+    },
+    {
+      "name": "NOTICE--sd35-medium",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sd35-medium.txt",
+      "sha256": "3060a9fcd3e6b24e26521d12e600a4d6704d06bffaf44d16d963509ccf220f08",
+      "bytes": 1624,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:59:45.554Z"
+    },
+    {
+      "name": "NOTICE--sd35-large-fp8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--sd35-large-fp8.txt",
+      "sha256": "8f19d49c230a6e0b5488163299ed948056f9f52dbb10d160419036131ef0d915",
+      "bytes": 1627,
+      "revision": null,
+      "retrieved_at": "2026-10-03T17:59:45.554Z"
+    },
+    {
+      "name": "NOTICE--lumina-image-2.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lumina-image-2.0.txt",
+      "sha256": "77acc762761bd40f9ae86ac42a91cf0a32ab0cfdacb1ce9609eb1b295253985e",
+      "bytes": 1418,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.672Z"
+    },
+    {
+      "name": "NOTICE--z-image-turbo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--z-image-turbo.txt",
+      "sha256": "978116f972b47ab66805caf4679117b2751a48b523c8a3e1083889c7e7b215b7",
+      "bytes": 1359,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.673Z"
+    },
+    {
+      "name": "NOTICE--qwen-image-fp8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--qwen-image-fp8.txt",
+      "sha256": "3521592f1866232be46598dc4474f04b38dc6aef7ddeac9b0376ed4323d0e5e5",
+      "bytes": 1374,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.673Z"
+    },
+    {
+      "name": "NOTICE--hidream-i1-dev-fp8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hidream-i1-dev-fp8.txt",
+      "sha256": "47c9392b8ba5ed45b9180fa8b350394effff9c4799b996b972683889c74ad56c",
+      "bytes": 2067,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.673Z"
+    },
+    {
+      "name": "NOTICE--hidream-i1-fast-fp8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hidream-i1-fast-fp8.txt",
+      "sha256": "c0c929e4a0f89a29aba18a43cbc2f266cd742959fd2281923f2a69e2d9c67f3f",
+      "bytes": 2068,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.674Z"
+    },
+    {
+      "name": "NOTICE--hidream-i1-full-fp8",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--hidream-i1-full-fp8.txt",
+      "sha256": "41dcac7070d3e5fee6799d1a4ba7e1cf1140639860918cf888acf58b322cfb2e",
+      "bytes": 2068,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.675Z"
+    },
+    {
+      "name": "NOTICE--chroma1-hd",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--chroma1-hd.txt",
+      "sha256": "9f4c0d4f40c7773c179f2ed3f5cd3ccbda48e9d60f75b88b8436b653b85f0ab9",
+      "bytes": 1978,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.675Z"
+    },
+    {
+      "name": "NOTICE--deliberate-v2",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--deliberate-v2.txt",
+      "sha256": "d2bb9662b369f6c9d3e003dab8fb6509d7efb84fe241b4b9d3e56e7c07821e0d",
+      "bytes": 1082,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.676Z"
+    },
+    {
+      "name": "NOTICE--epic-diffusion-1.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--epic-diffusion-1.1.txt",
+      "sha256": "4fb64a356987f40b50be14cfe3f0533c65b90590c8b701f81786921f6a310ada",
+      "bytes": 1946,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.676Z"
+    },
+    {
+      "name": "NOTICE--portraitplus-1.0",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--portraitplus-1.0.txt",
+      "sha256": "fa3337fef5a0241af5dee19d9f8c54fcdccc84e89ed900c52c09e9795dc03270",
+      "bytes": 1926,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.677Z"
+    },
+    {
+      "name": "NOTICE--cyberpunk-anime-diffusion",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--cyberpunk-anime-diffusion.txt",
+      "sha256": "f1c68b99f835a431e51bd624924f04a9aff330496c0ec6c7eff93fb5627f660c",
+      "bytes": 2325,
+      "revision": null,
+      "retrieved_at": "2026-10-03T16:33:37.678Z"
+    },
+    {
+      "name": "NOTICE--lab-realesrgan-x4plus",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lab-realesrgan-x4plus.txt",
+      "sha256": "305e746c835738ba8d4be0e5b7ff373d4926a410d72966d3dce9aeb7e7d14783",
+      "bytes": 1034,
+      "revision": null,
+      "retrieved_at": "2026-10-05T19:00:00.000Z"
+    },
+    {
+      "name": "NOTICE--lab-birefnet",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lab-birefnet.txt",
+      "sha256": "6a5b3dee153e66721820ec98b2338bcfcc79fb95ffb07c0b199633fc196a8460",
+      "bytes": 1193,
+      "revision": null,
+      "retrieved_at": "2026-10-05T19:00:00.000Z"
+    },
+    {
+      "name": "NOTICE--lab-depth-anything-3-small",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lab-depth-anything-3-small.txt",
+      "sha256": "c802296edb35ec6a5ae4cdfe300b5bff665f18eb75be8588d9fab47bd1bdf1fe",
+      "bytes": 1147,
+      "revision": null,
+      "retrieved_at": "2026-10-05T19:00:00.000Z"
+    },
+    {
+      "name": "NOTICE--lab-depth-anything-3-base",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lab-depth-anything-3-base.txt",
+      "sha256": "58a19251655eb142bf46a84383b3c3f5c33c3e4f3463439958559121b934788e",
+      "bytes": 1145,
+      "revision": null,
+      "retrieved_at": "2026-10-05T19:00:00.000Z"
+    },
+    {
+      "name": "NOTICE--lab-sdpose-wholebody",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lab-sdpose-wholebody.txt",
+      "sha256": "f895cd044a854472a90be4172e1b7dca1211745f0ac7e2820b2c451cbcc83c10",
+      "bytes": 1128,
+      "revision": null,
+      "retrieved_at": "2026-10-05T19:00:00.000Z"
+    },
+    {
+      "name": "NOTICE--lab-qwen35-2b",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lab-qwen35-2b.txt",
+      "sha256": "fa10018c3720c6ce74d496725e3878a898a9e4d913a14364581f0e81b0e29b37",
+      "bytes": 1190,
+      "revision": null,
+      "retrieved_at": "2026-10-05T19:00:00.000Z"
+    },
+    {
+      "name": "sd2-community--stable-diffusion-2-1-base--4e63672c0310--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/sd2-community/stable-diffusion-2-1-base/raw/4e63672c03103b6c636b8fb4119ba982469b2955/README.md",
+      "local_path": "legal_sources/sd2-community--stable-diffusion-2-1-base--4e63672c0310--README.md.txt",
+      "sha256": "28d20df20b26b5bd476370e4bf51832442db701b21a9fa90a62cc4a272d18581",
+      "bytes": 12473,
+      "revision": "4e63672c03103b6c636b8fb4119ba982469b2955",
+      "retrieved_at": "2026-10-05T21:30:00.000Z"
+    },
+    {
+      "name": "NOTICE--stable-diffusion-2.1-base",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--stable-diffusion-2.1-base.txt",
+      "sha256": "b59394ee8d57ad4bb0764e7ad2751b2c1d2041cca75911c9b8f1fa733fb17ea7",
+      "bytes": 1805,
+      "revision": null,
+      "retrieved_at": "2026-10-05T21:30:00.000Z"
+    },
+    {
+      "name": "sd2-community--stable-diffusion-2-1--bb2154823665--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/sd2-community/stable-diffusion-2-1/raw/bb2154823665391b4fb29b0b9cf82a198964ee05/README.md",
+      "local_path": "legal_sources/sd2-community--stable-diffusion-2-1--bb2154823665--README.md.txt",
+      "sha256": "aa3dd57f8edabdc9c96d36430130acd8d30f709b23744d851077c8bc913f618f",
+      "bytes": 12400,
+      "revision": "bb2154823665391b4fb29b0b9cf82a198964ee05",
+      "retrieved_at": "2026-10-05T21:30:00.000Z"
+    },
+    {
+      "name": "NOTICE--stable-diffusion-2.1",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--stable-diffusion-2.1.txt",
+      "sha256": "c404a6641a699ddf13b5157f79a8248d0602cb6493205497c84ef9a7b3de9b85",
+      "bytes": 1780,
+      "revision": null,
+      "retrieved_at": "2026-10-05T21:30:00.000Z"
+    },
+    {
+      "name": "stabilityai--stable-cascade--a89f66d459ae--README.md",
+      "kind": "publisher_model_card",
+      "url": "https://huggingface.co/stabilityai/stable-cascade/raw/a89f66d459ae653e3b4d4f992a7c3789d0dc4d16/README.md",
+      "local_path": "legal_sources/stabilityai--stable-cascade--a89f66d459ae--README.md.txt",
+      "sha256": "fac1ea38330cb92617d4e46f2ddc8e117fb4db45b74786d89da40a34c91c0569",
+      "bytes": 9961,
+      "revision": "a89f66d459ae653e3b4d4f992a7c3789d0dc4d16",
+      "retrieved_at": "2026-10-05T21:30:00.000Z"
+    },
+    {
+      "name": "stabilityai--stable-cascade--a89f66d459ae--LICENSE",
+      "kind": "license",
+      "url": "https://huggingface.co/stabilityai/stable-cascade/raw/a89f66d459ae653e3b4d4f992a7c3789d0dc4d16/LICENSE",
+      "local_path": "legal_sources/stabilityai--stable-cascade--a89f66d459ae--LICENSE.txt",
+      "sha256": "d1aca0f2c1a212c45a3a55bdb9d35fc07b450697ab0fbd5acf4c4e062874038d",
+      "bytes": 7452,
+      "revision": "a89f66d459ae653e3b4d4f992a7c3789d0dc4d16",
+      "retrieved_at": "2026-10-05T21:30:00.000Z"
+    },
+    {
+      "name": "NOTICE--stable-cascade",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--stable-cascade.txt",
+      "sha256": "de1055a55c09218f7f6bc9b85df381d0ec90fbd62e4bad3d4552fe096262c956",
+      "bytes": 1493,
+      "revision": null,
+      "retrieved_at": "2026-10-05T21:30:00.000Z"
+    }
+  ]
+}

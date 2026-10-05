@@ -1,0 +1,23 @@
+---
+license: creativeml-openrail-m
+---
+<b>Please read this!</b><br>
+This model is in the testing phase. The necessary VAE is already baked into the model.<br><hr>
+<b>The recommended negative prompt:</b><br><br>
+(deformed iris, deformed pupils, semi-realistic, cgi, 3d, render, sketch, cartoon, drawing, anime, mutated hands and fingers:1.4), (deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, mutated, ugly, disgusting, amputation, <a href="https://civitai.com/models/7808/easynegative">easynegative</a>, <a href="https://huggingface.co/zwv9/idk-who-is-this-model-belong-to/blob/main/bad-hands-5.pt">bad-hands-5</a><br><br>
+<b>Recommended parameters for generation:</b><br><br>
+<b>Sampling method:</b> Euler A<br>
+<b>CFG Scale:</b> 5-12<br>
+<b>Clip Skip:</b> 2<br><br>
+<b>Hires.Fix Parameters:</b><br><br>
+<b>Upscaler:</b> Latent or other<br>
+<b>Hires Steps:</b> 0 or other<br>
+<b>Denoising Strength:</b> 0.35 - 0.7<br>
+<b>Upscaled by:</b> 1.1 - 2.0<br><hr>
+<b>Examples:</b><br><br>
+<a href='https://postimg.cc/3kxXkXSJ' target='_blank'><img src='https://i.postimg.cc/0ypcHZ7m/Pic1.png' border='0' alt='Pic1'/></a>
+<a href='https://postimg.cc/2qmVqr8d' target='_blank'><img src='https://i.postimg.cc/q76n5vPF/Pic2.png' border='0' alt='Pic2'/></a>
+<a href='https://postimg.cc/k6GM84rS' target='_blank'><img src='https://i.postimg.cc/sX9MkQwT/Pic3.png' border='0' alt='Pic3'/></a>
+<a href='https://postimg.cc/gX7zKWdT' target='_blank'><img src='https://i.postimg.cc/j2xDtx1t/Pic4.png' border='0' alt='Pic4'/></a>
+<a href='https://postimg.cc/Js81xKVM' target='_blank'><img src='https://i.postimg.cc/mgztb6mz/Pic5.png' border='0' alt='Pic5'/></a>
+<a href='https://postimg.cc/Pp0HwQQG' target='_blank'><img src='https://i.postimg.cc/Zn55Xf9q/Pic6.png' border='0' alt='Pic6'/></a>

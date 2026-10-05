@@ -1,0 +1,107 @@
+---
+license: other
+license_name: tencent-hunyuan-community
+license_link: https://huggingface.co/Tencent-Hunyuan/HunyuanDiT/blob/main/LICENSE.txt
+language:
+- en
+---
+<!-- ## **HunyuanDiT** -->
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Tencent/HunyuanDiT/main/asset/logo.png"  height=100>
+</p>
+
+# Hunyuan-DiT : A Powerful Multi-Resolution Diffusion Transformer with Fine-Grained Chinese Understanding
+# 混元-DiT: 具有细粒度中文理解的多分辨率Diffusion Transformer
+
+[[Arxiv]](https://arxiv.org/abs/2405.08748) [[project page]](https://dit.hunyuan.tencent.com/) [[github]](https://github.com/Tencent/HunyuanDiT)
+
+This repo contains the distilled Hunyuan-DiT in 🤗 [Diffusers](https://github.com/huggingface/diffusers) format.
+
+It supports 25-step text-to-image generation.
+
+## Dependency
+Please install PyTorch first, following the instruction in [https://pytorch.org](https://pytorch.org)
+
+Install the latest version of transformers with `pip`:
+```
+pip install --upgrade transformers
+```
+
+Then install the latest github version of 🤗 Diffusers with `pip`:
+```
+pip install git+https://github.com/huggingface/diffusers.git
+```
+
+## Example Usage with 🤗 Diffusers
+```py
+import torch
+from diffusers import HunyuanDiTPipeline
+
+pipe = HunyuanDiTPipeline.from_pretrained("Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers-Distilled", torch_dtype=torch.float16)
+pipe.to("cuda")
+
+# You may also use English prompt as HunyuanDiT supports both English and Chinese
+# prompt = "An astronaut riding a horse"
+prompt = "一个宇航员在骑马"
+image = pipe(prompt).images[0]
+```
+
+![image/png](https://cdn-uploads.huggingface.co/production/uploads/646b0bbdec9a61e871799339/xoO_-5N7eZ-aCt4KpBYY6.png)
+
+## 📈 Comparisons
+In order to comprehensively compare the generation capabilities of HunyuanDiT and other models, we constructed a 4-dimensional test set, including Text-Image Consistency, Excluding AI Artifacts, Subject Clarity, Aesthetic. More than 50 professional evaluators performs the evaluation.
+
+<p align="center">
+<table> 
+<thead> 
+<tr> 
+    <th rowspan="2">Model</th> <th rowspan="2">Open Source</th> <th>Text-Image Consistency (%)</th> <th>Excluding AI Artifacts (%)</th> <th>Subject Clarity (%)</th> <th rowspan="2">Aesthetics (%)</th> <th rowspan="2">Overall (%)</th> 
+</tr> 
+</thead> 
+<tbody> 
+<tr> 
+    <td>SDXL</td> <td> ✔ </td> <td>64.3</td> <td>60.6</td> <td>91.1</td> <td>76.3</td> <td>42.7</td> 
+</tr> 
+<tr> 
+    <td>PixArt-α</td> <td> ✔</td> <td>68.3</td> <td>60.9</td> <td>93.2</td> <td>77.5</td> <td>45.5</td> 
+</tr> 
+<tr> 
+    <td>Playground 2.5</td> <td>✔</td> <td>71.9</td> <td>70.8</td> <td>94.9</td> <td>83.3</td> <td>54.3</td> 
+</tr> 
+
+<tr> 
+    <td>SD 3</td> <td>&#10008</td> <td>77.1</td> <td>69.3</td> <td>94.6</td> <td>82.5</td> <td>56.7</td> 
+    
+</tr> 
+<tr> 
+    <td>MidJourney v6</td><td>&#10008</td> <td>73.5</td> <td>80.2</td> <td>93.5</td> <td>87.2</td> <td>63.3</td> 
+</tr> 
+<tr> 
+    <td>DALL-E 3</td><td>&#10008</td> <td>83.9</td> <td>80.3</td> <td>96.5</td> <td>89.4</td> <td>71.0</td> 
+</tr> 
+<tr style="font-weight: bold; background-color: #f2f2f2;"> 
+    <td>Hunyuan-DiT</td><td>✔</td> <td>74.2</td> <td>74.3</td> <td>95.4</td> <td>86.6</td> <td>59.0</td> 
+</tr>
+</tbody>
+</table>
+</p>
+
+## 🎥 Visualization
+
+* **Chinese Elements**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Tencent/HunyuanDiT/main/asset/chinese elements understanding.png"  height=220>
+</p>
+
+* **Long Text Input**
+
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Tencent/HunyuanDiT/main/asset/long text understanding.png"  height=310>
+</p>
+
+
+## 🔥🔥🔥 Tencent Hunyuan Bot
+
+Welcome to [Tencent Hunyuan Bot](https://hunyuan.tencent.com/bot/chat), where you can explore our innovative products in multi-round conversation! 

@@ -1,0 +1,990 @@
+{
+  "models": {
+    "2dn": {
+      "filename": "2dn_latentlensV1.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "5383e5b15240c36a6a57934f00efac62578f3b6556e23cad0a8c83e1661575aa",
+      "size_bytes": 6938050106,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/2dn_latentlensV1.safetensors"
+    },
+    "526mix-animated": {
+      "filename": "526mixAnimated.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "5c0b94405672bff73bb16fc9f2b4335695021494de16ddb1709ea7ee0f2e1b74",
+      "size_bytes": 2132625431,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/526mixAnimated.safetensors"
+    },
+    "abyss-orangemix": {
+      "filename": "AbyssOrangeMix.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "587e4cedae0cd5549986a6774e2e9c7cdde32018d2d4fbe67d4b7236e07af39c",
+      "size_bytes": 2132857772,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/AbyssOrangeMix.ckpt"
+    },
+    "abyssorangemix-afterdark": {
+      "filename": "AbyssOrangeMix-AfterDark.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "c3273e9f899a8f910759e4ca70dcc244b436ed76e02ec0421d0b81218fca6627",
+      "size_bytes": 2300204411,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/AbyssOrangeMix-AfterDark.ckpt"
+    },
+    "acertainthing": {
+      "filename": "ACertainThing.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "866946217b513157b12ff9b1eae2279e98ae34ece178e34eac536f2e831c101c",
+      "size_bytes": 4265335100,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ACertainThing.ckpt"
+    },
+    "aio-pixel-art": {
+      "filename": "AIO-Pixel-Art.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d7fb6396ab39b73019f37040977e15ec76a2548372daa534f9ac44b61c3d9548",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/AIO-Pixel-Art.ckpt"
+    },
+    "albedobase-xl-3-1": {
+      "filename": "albedobaseXL_V31Large.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "c379d154eb476b67b390e31463c41c79ac9e766466315408886ebb7faa2ea098",
+      "size_bytes": 6776583201,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/albedobaseXL_V31Large.safetensors"
+    },
+    "albedobase-xl-sdxl": {
+      "filename": "albedo_base_xl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "1718b5bb2da1ef4815fee8af8a7fc2fa8ab8f467b279eded4d991ea0cce59a6d",
+      "size_bytes": 6776583201,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/albedo_base_xl.safetensors"
+    },
+    "amponyxl": {
+      "filename": "amponyxl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "821aa5537f8ddafdbf963827551865c31c5bbfab1abe7925cb5f006c8f71e485",
+      "size_bytes": 6776583201,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/amponyxl.safetensors"
+    },
+    "analog-madness": {
+      "filename": "analogMadness_v70.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "3c5d7960a76dbc715ad1c4f2c4f948cd1f12ccd09d44cef243a7dd2cf82371bf",
+      "size_bytes": 2132650982,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/analogMadness_v70.safetensors"
+    },
+    "anime-pencil-diffusion": {
+      "filename": "AnimePencilArt.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "fbc9124ceb1a07d0b2551e326880cab4010557e3c70712c9251831d52aca3f97",
+      "size_bytes": 4098041880,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/AnimePencilArt.ckpt"
+    },
+    "anygen": {
+      "filename": "Anygen.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "4e1217801836a7daf6a38acfa74c21152887dafd788c5d9bfcec34ce71ecba16",
+      "size_bytes": 5984636185,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Anygen.ckpt"
+    },
+    "anylora": {
+      "filename": "anylora.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "8a952cafe958f5033a3b436804e2268281c13b5f72aa2d98cd8c599cace809ed",
+      "size_bytes": 3455823176,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/anylora.safetensors"
+    },
+    "anything-diffusion": {
+      "filename": "Anything-Diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "633c153d96230355efb4230da6ae2e3ba85b084b93c89eb88cb1118d6cc06cef",
+      "size_bytes": 2132857772,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Anything-Diffusion.ckpt"
+    },
+    "anything-v3": {
+      "filename": "AnythingV3.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "786e34bf8ed2ce3c1d2dd2087089264f0cbc63748979048a9ecf7d75497788d6",
+      "size_bytes": 2132857198,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/AnythingV3.ckpt"
+    },
+    "anything-v5": {
+      "filename": "AnythingV5.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "7f96a1a9ca9b3a3242a9ae95d19284f0d2da8d5282b42d2d974398bf7663a252",
+      "size_bytes": 2132626102,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/AnythingV5.safetensors"
+    },
+    "app-icon-diffusion": {
+      "filename": "app-icon-diffusion-2k.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "8156fd9e6ffdfd3e3496e04c5ec9067297ee8fe82225a9591252c98954096b34",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/app-icon-diffusion-2k.ckpt"
+    },
+    "art-of-mtg": {
+      "filename": "ArtOfMtg.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "e0947d2d736d9f31494f4c4ee4e00cf0396930a3e46309c5e95623e47e0993ed",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ArtOfMtg.ckpt"
+    },
+    "aurora": {
+      "filename": "aurora.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "1b5f8211ec04926035ac81033518c802db9964e93630ab4698b6365b9811c7eb",
+      "size_bytes": 2132651163,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/aurora.safetensors"
+    },
+    "babes": {
+      "filename": "babes.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d319cb2188b7beb32d3fb69b560ca1fdb65fa9ca4468dfe51e5bec6166526f0d",
+      "size_bytes": 2132625468,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/babes.safetensors"
+    },
+    "bb95-furry-mix": {
+      "filename": "bb95FurryMix.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "5a8bfcfdd17c96ac2b2ee68d8a916e88bf03c426475f5524d13eb0959c66bcde",
+      "size_bytes": 5672748956,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/bb95FurryMix.safetensors"
+    },
+    "bb95-furry-mix-v14": {
+      "filename": "bb95FurryMix_v14.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "1af9dd8a47f244a35565812b00fbf3633fe9db42b7c70254ca1435bd8c030b2c",
+      "size_bytes": 5672748956,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/bb95FurryMix_v14.safetensors"
+    },
+    "bigasp": {
+      "filename": "bigasp_v20.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "6c77be501b95da35528431c224ccfb51b0ae948857431b3556db64e213cc1edf",
+      "size_bytes": 6938040682,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/bigasp_v20.safetensors"
+    },
+    "blank-canvas-xl": {
+      "filename": "blank_canvas_xl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "3e8f641d333b9df9629a2124103f2e58331eccd79c0220ee43cac4f81dc4f64e",
+      "size_bytes": 6776583201,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/blank_canvas_xl.safetensors"
+    },
+    "blendermix-pony": {
+      "filename": "blendermix_v20.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "bca71253f32d784d3cf4a8a334297c66fda32725a9399fedbd2ba9a8b306c5c3",
+      "size_bytes": 7105350502,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/blendermix_v20.safetensors"
+    },
+    "bweshmix": {
+      "filename": "bweshmix.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "20d02efae7f8e1803b1e6679abba754f0893f5eddade092e1bd00e271544fe5e",
+      "size_bytes": 2299935566,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/bweshmix.safetensors"
+    },
+    "camelliamix-2-5d": {
+      "filename": "camelliamix25D.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "ed4f26c284bc9baaeee63f10ad823486bcc0dd6fcc03c9472fd8c44e508889a1",
+      "size_bytes": 2132625431,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/camelliamix25D.safetensors"
+    },
+    "cetus-mix": {
+      "filename": "cetusMix.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "b42b09ff12ca9cd70d78aa8210f8d4577ec513fc1484a68615385b8076292639",
+      "size_bytes": 3894258133,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/cetusMix.safetensors"
+    },
+    "cheese-daddys-landscape-mix": {
+      "filename": "CDLandscapeMix.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "469820821518540111673d6ba590cf2010ea4bc4a758e47fcf2b1ae23408b016",
+      "size_bytes": 2132898217,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/CDLandscapeMix.ckpt"
+    },
+    "cheyenne": {
+      "filename": "cheyenne.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "7804aacc0bc8f6fb9fe15e382adacdd433aae7c459f24d44c821712f25fbb882",
+      "size_bytes": 6775433578,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/cheyenne.safetensors"
+    },
+    "comic-diffusion": {
+      "filename": "comic-diffusion-v2.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d3c225cbc2e0ed3ac8032e05e6fabe5acfe81e2e3d18e23389e84b9cb5ce127f",
+      "size_bytes": 2132887713,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/comic-diffusion-v2.ckpt"
+    },
+    "cyberrealistic-pony": {
+      "filename": "cyberrealisticPony_v8.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "9f90c59f3aa99d9160b5652c4c68215fdc27399e5d1c692429abf2407bb909d1",
+      "size_bytes": 6938040682,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/cyberrealisticPony_v8.safetensors"
+    },
+    "cyriousmix": {
+      "filename": "CyriousMix.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "57315513b1369c95bab7cb00a51a9c6276a84b3a5ed1fe4b9dd2c81efeb51ee3",
+      "size_bytes": 2132856686,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/CyriousMix.ckpt"
+    },
+    "dan-mumford-style": {
+      "filename": "DanMumford.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "15e6c6aeb24e5c64f4c7f419fb419caf2c7a294742e2982f49f65701a78b372e",
+      "size_bytes": 4265327278,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/DanMumford.ckpt"
+    },
+    "deliberate-3-0": {
+      "filename": "deliberate_v3.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "aadddd3d7579de79db91f4ac03f2fbad4e9b71216bbebb50c338cae74b77cb27",
+      "size_bytes": null,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/deliberate_v3.safetensors"
+    },
+    "double-exposure-diffusion": {
+      "filename": "dublex-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "a617570008118be201c1b96b80cd3f27f54a5541485436448f1418e374849f96",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/dublex-diffusion.ckpt"
+    },
+    "dreamlike-diffusion": {
+      "filename": "dreamlike-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "0aecbcfa2cbe01bb44f7c0e4f413022ab25b35057b85507d55ba15e2d5db35da",
+      "size_bytes": 2132856686,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/dreamlike-diffusion.ckpt"
+    },
+    "dreamlikesamkuvshinov": {
+      "filename": "DreamLikeSamKuvshinov.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d43a0899eb8be52939b612189e6e93d99722888fd74999baae214cfb78192188",
+      "size_bytes": 4265327916,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/DreamLikeSamKuvshinov.ckpt"
+    },
+    "dreamshaper-xl": {
+      "filename": "dreamshaper_xl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "fdbe56354b8f876b736f24d3ad867ecd4140c019f57642ec8ddd878088d44f64",
+      "size_bytes": 6776583201,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/dreamshaper_xl.safetensors"
+    },
+    "duchaiten": {
+      "filename": "DucHaiten.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "ce4d987a0e8bcf5253d2d0b045f9b12b1264dd440f4d4b05be6b56f646995b0f",
+      "size_bytes": 5672744666,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/DucHaiten.safetensors"
+    },
+    "duchaiten-classic-anime": {
+      "filename": "DucHaiten_classic.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "95f931b25daa871edd0170887e9dd22a57ee449371a2ebb6dd6f622224a45b13",
+      "size_bytes": 3852169453,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/DucHaiten_classic.ckpt"
+    },
+    "duchaiten-gameart-unreal-pony": {
+      "filename": "duchaitenGameart_unrealengineV10.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "bb307bfc22ec0455e3eb37af25d93c451e55a5c4f29d548c36560decffb9359e",
+      "size_bytes": 6938040682,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/duchaitenGameart_unrealengineV10.safetensors"
+    },
+    "dungeons-and-diffusion": {
+      "filename": "Dungeons-and-Diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "00f5bb5b294aede41a08402b2973ccf6c1663d0f2810580458f61c4c70e7bd4b",
+      "size_bytes": 2132893519,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Dungeons-and-Diffusion.ckpt"
+    },
+    "dungeons-n-waifus": {
+      "filename": "DnW.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "46530c4d35fb3091529dabbbf8faa29efa5c1565eefe11bb29125747a97c590a",
+      "size_bytes": 4244356832,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/DnW.ckpt"
+    },
+    "edge-of-realism": {
+      "filename": "edgeOfRealism.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "7f6146b8a9ad2a92b739954c1d5ef34e26fb0b65eef2d70ffd128e6046a3d0ab",
+      "size_bytes": 2132625438,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/edgeOfRealism.safetensors"
+    },
+    "eimis-anime-diffusion": {
+      "filename": "eimis_anime-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "39ee30561fb851b682a081fd8a59a9db71aa33fff3db1d24632d6b68921d2d5b",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/eimis_anime-diffusion.ckpt"
+    },
+    "elysium-anime": {
+      "filename": "Elysium_Anime.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "50265e48dfa0b53c6fa242e66c10106c85d1d68f1f188109475f6b70043d5497",
+      "size_bytes": 4265096871,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Elysium_Anime.safetensors"
+    },
+    "ether-real-mix": {
+      "filename": "etherRealMix_etherRealMix4.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "081c0d5fa113b01fb5eb2e9ade24c05491325a983099b0afc4813c9eeb7e6c13",
+      "size_bytes": 2132651178,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/etherRealMix_etherRealMix4.safetensors"
+    },
+    "experience": {
+      "filename": "eXp.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "2380900718b034c6e9860e4b142c985e629304c920b9b00bbff525a00f1213d0",
+      "size_bytes": 4265327980,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/eXp.ckpt"
+    },
+    "expmix-line": {
+      "filename": "expmix.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "4924272be3d1947eb8b049489e236f5c57da75ac87e5ef76302eb2722a1b91ee",
+      "size_bytes": 2132857198,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/expmix.ckpt"
+    },
+    "faetastic": {
+      "filename": "FaeTastic.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "f161545daa0225db4f3ca47617e44e092e013886963cc7ea9794459b1c205e84",
+      "size_bytes": 2132857772,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/FaeTastic.ckpt"
+    },
+    "fantasy-card-diffusion": {
+      "filename": "fantasy-card-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "55e74e95128f50033d0c1306fe8768cf319fc8d3436398b86b7e852ab58fcac6",
+      "size_bytes": 4098020782,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/fantasy-card-diffusion.ckpt"
+    },
+    "flat-2d-animerge": {
+      "filename": "flat2DAnimerge_v45Sharp.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "fe95063ba60bc9298d60eb252f98d057039d9a882158afe042f266bdc1b1e528",
+      "size_bytes": 2132626066,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/flat2DAnimerge_v45Sharp.safetensors"
+    },
+    "fustercluck": {
+      "filename": "fustercluck.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "4a200332e753f71e0b432c9e32a2d1899c15d681c83f094eab00dfbd93c64421",
+      "size_bytes": 6775469337,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/fustercluck.safetensors"
+    },
+    "galena-redux": {
+      "filename": "galenaREDUX.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "a45ad8b3865aa11a6de9e35b435628792c66782064926939c8e21db48fc647b7",
+      "size_bytes": 2132625438,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/galenaREDUX.safetensors"
+    },
+    "ghibli-diffusion": {
+      "filename": "ghibli-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "f886220c83f69e67456d45bc36875f065cf93f54aad60b9e60c6700409f64f3a",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ghibli-diffusion.ckpt"
+    },
+    "ghostmix": {
+      "filename": "ghostmix.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d7465e52e17ef26f6c2c77be64f569afbd849dcf111fa78cc6c577ec9c159e1d",
+      "size_bytes": 2132650526,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ghostmix.safetensors"
+    },
+    "grapefruit-hentai": {
+      "filename": "Grapefruit.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "b61b283e8a4e864e439fb1e58ae7b37a7fc82037fd5f6ae7beae11ded55e5377",
+      "size_bytes": 2132857708,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Grapefruit.ckpt"
+    },
+    "gta5-artwork-diffusion": {
+      "filename": "GTA5_Artwork_Diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "607aa02fb8a03d4d7f65c6554b7c48c48c2ba5e93721703ff29870536b838114",
+      "size_bytes": 2132903585,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/GTA5_Artwork_Diffusion.ckpt"
+    },
+    "hasdx": {
+      "filename": "HASDX.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "8e52a8c83fa533ac096584bff094f72ab056ded0255fd9b5ad172e51f5803d69",
+      "size_bytes": 7703807158,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/HASDX.ckpt"
+    },
+    "hassaku-xl": {
+      "filename": "hassakuXLIllustrious_v22.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "9ece21c3526a6985f564e589df99a1452ed8c3c10068a1d14553a8a2877e6d0b",
+      "size_bytes": 6938040456,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/hassakuXLIllustrious_v22.safetensors"
+    },
+    "healy-s-anime-blend": {
+      "filename": "Healys.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "8416edf88cf48cc59c6cd36aece35acd4ae465aea934b7ff1e29b3f1049e2161",
+      "size_bytes": 4265327916,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Healys.ckpt"
+    },
+    "hentai-diffusion": {
+      "filename": "hentai-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "28e9a418c50eb31b78d190d34300f011b7f18702612cd8f3459d70b6b90a1563",
+      "size_bytes": 2132981728,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/hentai-diffusion.ckpt"
+    },
+    "holymix-ilxl": {
+      "filename": "holyMixIllustriousxl_v1.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "71f6653377759bff3565e8a723ef6238f16e5c05b7613c1e93fba6d529e80802",
+      "size_bytes": 6938056186,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/holyMixIllustriousxl_v1.safetensors"
+    },
+    "hrl": {
+      "filename": "HRL.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "26a224bead8388247525a6f0fe45507e92f04a5a5d6c517acf46697926be6f63",
+      "size_bytes": 2132856686,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/HRL.ckpt"
+    },
+    "icbinp-i-can-t-believe-it-s-not-photography": {
+      "filename": "icbinp.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "6d3331c3d87b4f1b17adc37aac2fdbb5da1e61714e1dc4b19b7d16012f438c03",
+      "size_bytes": 2132857262,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/icbinp.safetensors"
+    },
+    "icbinp-xl": {
+      "filename": "icbinp_xl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "b54e38a6bdaf010179bcaf4ca8637598a5b0b7587bab3b6ebd1cdff699d8863d",
+      "size_bytes": 6775430376,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/icbinp_xl.safetensors"
+    },
+    "icomix": {
+      "filename": "icomix.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "6cec6bc9b1d93828159da71b677357b925ff989bd3eb214a05713934e89c23de",
+      "size_bytes": 2132857836,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/icomix.ckpt"
+    },
+    "inkpunk-diffusion": {
+      "filename": "inkpunk-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "2182245415908822cbac065128a4c5144cc547d0701feb21241cb4e70bb5cf56",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/inkpunk-diffusion.ckpt"
+    },
+    "jim-eidomode": {
+      "filename": "JimEidomode.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "41c0eafdf04ad6bffd2fa698f06371676daa10bab57bb8aa0c33ff06106a5778",
+      "size_bytes": 2132857262,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/JimEidomode.ckpt"
+    },
+    "kaynegillustriousxl": {
+      "filename": "kaynegillustriousxl_v10.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "4af2ea715aa0d52ce089020e8a9d23e05a9d22dfd67e487896d729871ee04db1",
+      "size_bytes": 6938040400,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/kaynegillustriousxl_v10.safetensors"
+    },
+    "lawlas-s-yiff-mix": {
+      "filename": "Lawlas-yiffmix.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "6c5b0a63903a1e1eef23f2eeb8202cdc60659f414b8e7456a28e916cd9cf601b",
+      "size_bytes": 2132885216,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Lawlas-yiffmix.ckpt"
+    },
+    "liberty": {
+      "filename": "liberty.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "b59a47e81c6b110dc02b8141928b44f2396928469f999f9228bc0920eb89de10",
+      "size_bytes": 2300165614,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/liberty.ckpt"
+    },
+    "lyriel": {
+      "filename": "lyriel.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "ec6f68ea6388951d53d6c8178c22aecfd1b4fedfe31f5a5814ddd7638c4eff37",
+      "size_bytes": 2132625432,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/lyriel.safetensors"
+    },
+    "majicmix-realistic": {
+      "filename": "majicmixRealistic.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d819c8be6bc2a15307640a7eb069fa92e4c69c84289d8309273760ee7394e5f0",
+      "size_bytes": 2400040296,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/majicmixRealistic.safetensors"
+    },
+    "meinamix": {
+      "filename": "meinamix.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "77b7dc4ef0fca64ed8c3c38e80efa3e559488ee377f4138ec4bce488ef6c8412",
+      "size_bytes": 3526112242,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/meinamix.safetensors"
+    },
+    "mhxl-aventis-horizon": {
+      "filename": "mhxlAventisHorizon_v30.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "af9059f568fce827825b7e1b0680c1d430c1892245f425e6a03701d2df2eb895",
+      "size_bytes": 6938046564,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/mhxlAventisHorizon_v30.safetensors"
+    },
+    "midjourney-paintart": {
+      "filename": "mdjrny-pntrt.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "c3a8bdee04d7f0b28c18dd5f1debb260a7069002b22e01f0c7d3ea8773397da5",
+      "size_bytes": 2132824329,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/mdjrny-pntrt.ckpt"
+    },
+    "mistoon-anime": {
+      "filename": "mistoonAnime_v10Noobai.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "77a72cfa4b175b61ced4fc2bd19955dd37dc578b274b7d4a8ddfc5ed4d25a953",
+      "size_bytes": 6938040808,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/mistoonAnime_v10Noobai.safetensors"
+    },
+    "modernart-diffusion": {
+      "filename": "ModernArt_Diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "9eb00d984c5c228651178eb8e025bef3d0be5d643851db9686083b5384d852da",
+      "size_bytes": 4265335100,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ModernArt_Diffusion.ckpt"
+    },
+    "moonmix-fantasy": {
+      "filename": "moonmix_fantasy.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "7458ea41046e57032a8f1bccd4dd6d3cc3c15104f16dd1198d650a0a83cc0072",
+      "size_bytes": 5570803596,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/moonmix_fantasy.safetensors"
+    },
+    "movie-diffusion": {
+      "filename": "movie-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "5a08f9d89c51cc5f0f43d27d6ff5c242679f5f1ada6e0f73a3aafe10c1cf4e1b",
+      "size_bytes": 2132860661,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/movie-diffusion.ckpt"
+    },
+    "natvis": {
+      "filename": "natvisNaturalVision_v27.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "24e8e68fc45b0835297d54c56a03a247d2cc5251a65821a6053e51120281da0c",
+      "size_bytes": 6938042770,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/natvisNaturalVision_v27.safetensors"
+    },
+    "neurogen": {
+      "filename": "neurogen.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "7ce537a0b7cca96f6862dda000b0d4054b8b996ae5859ddb2c196211447f99fc",
+      "size_bytes": 2132625431,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/neurogen.safetensors"
+    },
+    "noob-v-pencil-xl": {
+      "filename": "noobVPencilXL_v051.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "dd5c095cac4277bc0b5b6599dab30a9b20346fdc3922cc0ff0cf0cb63e5827bf",
+      "size_bytes": 6938040802,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/noobVPencilXL_v051.safetensors"
+    },
+    "noobevo": {
+      "filename": "noobevo_v1.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "bc505caab21724e8f4cdec6af7a11275bcfc1814ad814806b107474a09b5d7f3",
+      "size_bytes": 6938042794,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/noobevo_v1.safetensors"
+    },
+    "nova-furry-pony": {
+      "filename": "novaFurryPony_v60.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "c470f98735889cc44124f4f7045c2270574115dcaedf27d4a33f5b5cece008a1",
+      "size_bytes": 6938063064,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/novaFurryPony_v60.safetensors"
+    },
+    "ntr-mix-il-noob-xl": {
+      "filename": "ntrMIXIllustriousXL_xiii.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "1207404b1705a026eaa2896b66953dbef8be5ccde5340e4fd940b674aecb8cf8",
+      "size_bytes": 6938050106,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ntrMIXIllustriousXL_xiii.safetensors"
+    },
+    "pastel-mix": {
+      "filename": "PastelMix.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "cfaf882b0a6dc34f392b12e9ee6c35f39ff794a98ef1a132eebd2873be1896ed",
+      "size_bytes": 2132878842,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/PastelMix.ckpt"
+    },
+    "perfect-world": {
+      "filename": "PerfectWorld.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "ba38c834f6eca6f4dfa81b531237e576f89a7403f5d7fa911ea181d0b2976a13",
+      "size_bytes": 2132857262,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/PerfectWorld.ckpt"
+    },
+    "photon": {
+      "filename": "photon.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "ec41bd2a8271acde4ae81cac004d9f3300e7fb0870eae8cbfe0bbc4ef8e27f91",
+      "size_bytes": 2132631552,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/photon.safetensors"
+    },
+    "poison": {
+      "filename": "poison.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "0b25c515b9d060cb5afc5d3f4a05b039d5255fb27f65b647f7a87d49601d55e5",
+      "size_bytes": 7703657858,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/poison.ckpt"
+    },
+    "pony-diffusion-xl": {
+      "filename": "pony_diffusion_xl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "67ab2fd8ec439a89b3fedb15cc65f54336af163c7eb5e4f2acc98f090a29b0b3",
+      "size_bytes": 6776583201,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/pony_diffusion_xl.safetensors"
+    },
+    "pony-realism": {
+      "filename": "ponyRealism_v21MainVAE.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "059934ff58033c5abb606b6b98f969ffdf7e7312d352c3be47a0440ba28d303b",
+      "size_bytes": 7105348824,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ponyRealism_v21MainVAE.safetensors"
+    },
+    "ppp": {
+      "filename": "PPP.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "40c6475ecb9aacee74f19a92a43d36b4485f16dda90acbdff79801e9c1798bb4",
+      "size_bytes": 4098378733,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/PPP.ckpt"
+    },
+    "prefect-pony": {
+      "filename": "prefectPonyXL_v3.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "e31a2563f0749cb4351a4a024780c025b9242e08a3a458f3b83a4b8516bd194b",
+      "size_bytes": 6938043248,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/prefectPonyXL_v3.safetensors"
+    },
+    "pretty-2-5d": {
+      "filename": "pretty25D.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d42772d3c087346d32213522ece84033b1c9d3be15cb57bdce41ac891f7125b2",
+      "size_bytes": 2132884642,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/pretty25D.ckpt"
+    },
+    "project-unreal-engine-5": {
+      "filename": "ProjectUnreal5.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "bb708df2be557a4abe252db8e1c67ab39b3477e1e63a833222348c6c584c1ccd",
+      "size_bytes": 4265678851,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ProjectUnreal5.ckpt"
+    },
+    "quiet-goodnight-xl": {
+      "filename": "quietGoodnightXL_v2.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "18b7586c94e8e410076df1b077d654e9ea07bbbd15ad8c8e14e13fd0666150ba",
+      "size_bytes": 6939226112,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/quietGoodnightXL_v2.safetensors"
+    },
+    "real-dos-mix": {
+      "filename": "realdosmix.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "0d27c62ffac6d300014245995cee2355dc0963fc8fbad79f79586cf3ba0abd5d",
+      "size_bytes": 2132625431,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/realdosmix.safetensors"
+    },
+    "realbiter": {
+      "filename": "RealBiter.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "0f3eb9f4a299e3928c68e43b21390f7e621e651c56cb424f9aa3284913adfb60",
+      "size_bytes": 2132857198,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/RealBiter.ckpt"
+    },
+    "rpg": {
+      "filename": "rpg_v5.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "bb7e29def5e64f1a303bf0d87195b7e88f4d463696b532c6cdfd109fbec4fd9e",
+      "size_bytes": 2132626066,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/rpg_v5.safetensors"
+    },
+    "sci-fi-diffusion": {
+      "filename": "Sci-Fi_Diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "cd73c52cd00b9b40cad916cd1ea6f205146ece332dbeba21733902cc8c351f1b",
+      "size_bytes": 2132910547,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Sci-Fi_Diffusion.ckpt"
+    },
+    "sd-silicon": {
+      "filename": "SD-Silicon.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "7288e03c24b76e91fea215b9fe64b87d8db44caedd4803656499c156ca3fe0a5",
+      "size_bytes": 2132857708,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/SD-Silicon.ckpt"
+    },
+    "something": {
+      "filename": "Something.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "6fa3590a5baf5881dc67084977ca6987f4aae367c59b3678988589234b9cd40f",
+      "size_bytes": 2132857772,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Something.ckpt"
+    },
+    "swamponyxl": {
+      "filename": "swamponyxl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "674fcb56695a3d4208548db4326fcfc22a93cb4bf1816ec88d5b4b8900f369e3",
+      "size_bytes": 6776583201,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/swamponyxl.safetensors"
+    },
+    "toonyou": {
+      "filename": "toonyou_beta6.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "e8d456c42e12841e6036ab283f976bb8eff873b8ad6b893945863eed4f80db33",
+      "size_bytes": 2299933946,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/toonyou_beta6.safetensors"
+    },
+    "tunix-pony": {
+      "filename": "tunix3DStylizedPony_v10VAE.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "22e9fa0dbc277bfddf3960bdd5791b8a5dc7305b7a2dfca4c0ee3e2f401738c5",
+      "size_bytes": 6938040706,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/tunix3DStylizedPony_v10VAE.safetensors"
+    },
+    "uhmami": {
+      "filename": "Uhmami.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "5fb5fd29437c99e7e93d5e75e42da5114c86cc519a8291f53cc7d8b493b4e6ff",
+      "size_bytes": 2132857772,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Uhmami.ckpt"
+    },
+    "ultraspice": {
+      "filename": "ultraspice_v23.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "cfd51d0cb5107b0b2c3db37bde3fbf3cd569f0a1e0a2d8826d2c4da2fcb57c09",
+      "size_bytes": 6939220250,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ultraspice_v23.safetensors"
+    },
+    "unstable-diffusers-xl": {
+      "filename": "unstable_diffusers_xl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "dda8c0514ca0b28bb4285385cc8696871f6fa1fa31aa49ca5fd83fa17c35e87b",
+      "size_bytes": 6775433578,
+      "url": "https://huggingface.co/Yamer-AI/SDXL_Unstable_Diffusers/resolve/main/Unstable%20Diffusers%20V11%20%2B%20RunDiffusion.safetensors"
+    },
+    "unstable-ink-dream": {
+      "filename": "unstableinkdream.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "264966bd6cef691b2ae89240ceae6a9b15f9d5207a91b3cb3aa93cf418fe95fb",
+      "size_bytes": 4098327353,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/unstableinkdream.ckpt"
+    },
+    "urpm": {
+      "filename": "URPM.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "ce9f23b04771e636b37b7d52ff0d0f20f176f170af1ebbe9203d2b3e4a88522e",
+      "size_bytes": 2132867300,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/URPM.ckpt"
+    },
+    "wai-ani-nsfw-ponyxl": {
+      "filename": "waiANINSFWPONYXL_v80.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "c09f285811f11aecdb6d8ba73057c3670a30752b25b835c1c2f8ec919f8f40cd",
+      "size_bytes": 6938040714,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/waiANINSFWPONYXL_v80.safetensors"
+    },
+    "wai-cute-pony": {
+      "filename": "waiCUTE_v80.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "5db3bcc019f0eba2b913b80187b29d5636c3ab79df6910adb95eab5beaa10cc5",
+      "size_bytes": 6938040682,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/waiCUTE_v80.safetensors"
+    },
+    "wai-nsfw-illustrious-sdxl": {
+      "filename": "waiNSFWIllustrious_v140.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "bdb59bac77d94ae7a55ff893170f9554c3f349e48a1b73c0c17c0b7c6f4d41a2",
+      "size_bytes": 6938040416,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/waiNSFWIllustrious_v140.safetensors"
+    },
+    "waifu-diffusion": {
+      "filename": "waifu-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "9dade826203c7ee369881b5dc20d34298fa644c1f137568e09fbc4b9a0d3e817",
+      "size_bytes": 4265384157,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/waifu-diffusion.ckpt"
+    },
+    "western-animation-diffusion": {
+      "filename": "westernAnimationDiffusion.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "d20bc9d543b7d7d46a3ed7d91edc1880d8423f1a8a77dcf378801b5dbe211c3b",
+      "size_bytes": 2132650982,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/westernAnimationDiffusion.safetensors"
+    },
+    "white-pony-diffusion-4": {
+      "filename": "whitePonyDiffusion4_whitepony4Classic.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "cb61cbc8ae84581d9b27e13c5229afbe0d0315156637ef424346ab8cf585e157",
+      "size_bytes": 6938048970,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/whitePonyDiffusion4_whitepony4Classic.safetensors"
+    },
+    "woop-woop-photo": {
+      "filename": "WoopWoop-Photo.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "9552600070809f08a84ce643e543b62b1d0d656362f5718037a161bcbb2ae9c6",
+      "size_bytes": 2546382637,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/WoopWoop-Photo.ckpt"
+    },
+    "yiffy": {
+      "filename": "yiffy.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "64e242ae67cb1fc85110a68242c936fa6f3e33077f2bfed48c4769959dff6c61",
+      "size_bytes": 3852165745,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/yiffy.ckpt"
+    },
+    "zavychromaxl": {
+      "filename": "zavychromaxl_v100.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "ff5b69c9a197ee7e577d72e0e73c826c8dd8b83d88289f93bb78b53a258acc7c",
+      "size_bytes": 6938040682,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/zavychromaxl_v100.safetensors"
+    },
+    "zeipher-female-model": {
+      "filename": "f222.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "9e2c6ceff3f6d6f65c6fb0e10d8e69d772871813be647fd2ea5d06e00db33c1f",
+      "size_bytes": 4265327916,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/f222.ckpt"
+    }
+  },
+  "schema": 1,
+  "source_retrieved_at": "2026-10-03"
+}

@@ -1,0 +1,28 @@
+---
+license: other
+license_name: sdxl-license
+license_link: >-
+  https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/LICENSE.md
+---
+
+# Illustrious-XL-v1.1 
+---
+Before we dive into the details of 'Illustrious-XL-v1.1', we’re excited to share that you can now generate images directly with our Illustrious XL models on our official site: [illustrious-xl.ai](http://illustrious-xl.ai/).
+
+We’ve launched a full image generation platform featuring high-res outputs, natural language prompting, and custom presets - plus, several exclusive models you won’t find on any other hub.
+
+Explore our updated model tiers and naming here: [Model Series](https://www.illustrious-xl.ai/updates/20).
+
+Need help getting started? Check out our generation user guide: [ILXL Image Generation User Guide](https://www.illustrious-xl.ai/updates/21).
+
+---
+
+
+### Illustrious XL v1.1 — More natural language focused "refined" model
+We introduce Illustrious v1.1 - which is continued from v1.0, with tuned hyperparameter for stabilization. The model shows slightly better character understanding, however with knowledge cutoff until 2024-07.
+
+The model shows slight difference on color balance, anatomy, saturation, with ELO rating 1617,compared to v1.0, ELO rating 1571, in collected for 400 sample responses.
+
+We will continue our journey until v2, v3, and so on!
+
+For better model development, we are collaborating to collect & analyze user needs, and preferences - to offer preference-optimized checkpoints, or aesthetic tuned variants, as well as fully trainable base checkpoints. We promise that we will try our best to make a better future for everyone.

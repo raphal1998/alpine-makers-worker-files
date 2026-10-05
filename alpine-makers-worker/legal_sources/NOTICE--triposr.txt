@@ -1,0 +1,24 @@
+Alpine Makers — notice documentaire : triposr
+Auteur/éditeur : VAST-AI Research / auteurs Tripo
+Attribution : VAST-AI Research / auteurs Tripo
+Licence : MIT pour ce modèle ; dépendances d'intégration distinctes
+Source officielle : https://huggingface.co/stabilityai/TripoSR
+État : publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai/TripoSR--5b521936b01f--README.md
+https://huggingface.co/stabilityai/TripoSR/raw/5b521936b01fbe1890f6f9baed0254ab6351c04a/README.md
+SHA-256 5c12ef5b850c6ee2aa7454b1a264f6f8dfa95164384dbb1ab374acd917aa558b
+Copie : legal_sources/stabilityai--TripoSR--5b521936b01f--README.md.txt
+VAST-AI-Research/TripoSR--107cefdc244c--LICENSE
+https://raw.githubusercontent.com/VAST-AI-Research/TripoSR/107cefdc244c39106fa830359024f6a2f1c78871/LICENSE
+SHA-256 ade0a66629bdd7e01e46b3296b3851cff0fd27989bca53da470ad6e96ed620fb
+Copie : legal_sources/VAST-AI-Research--TripoSR--107cefdc244c--LICENSE.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

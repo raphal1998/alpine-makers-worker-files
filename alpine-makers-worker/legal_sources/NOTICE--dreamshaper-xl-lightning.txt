@@ -1,0 +1,33 @@
+Alpine Makers — notice documentaire : dreamshaper-xl-lightning
+Auteur/éditeur : Lykon
+Attribution : DreamShaper XL Lightning
+Licence : CreativeML OpenRAIL / OpenRAIL++ selon la référence exacte
+Source officielle : https://huggingface.co/Lykon/dreamshaper-xl-lightning
+État : license_text_and_publisher_declaration
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Lykon--dreamshaper-xl-lightning--561086c22aba--README.md
+https://huggingface.co/Lykon/dreamshaper-xl-lightning/raw/561086c22aba3925b1e8803a73857f061635c7c3/README.md
+SHA-256 fc79a3dea9a9ebd4f26f64404e79b919d6954a302b118a397539bd81917ac2b2
+Copie : legal_sources/Lykon--dreamshaper-xl-lightning--561086c22aba--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--112902--355868--author-permissions
+https://civitai.com/api/v1/models/112902
+SHA-256 16d1c3ec96b2bb9f0fa90a240ed7863ff1a0f48f90f588cf3791c10d8b62f52f
+Copie : legal_sources/Civitai--112902--355868--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.
