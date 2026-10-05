@@ -110,8 +110,9 @@ Il n'installe **aucun moteur ni modèle** : cela se fait depuis le site.
 
 ## 4. Utilisation au quotidien
 
-Presque tout se fait **depuis le site**. Sur le PC, un seul fichier à connaître :
-**`MENU-WORKER.bat`**, dans le dossier installé. Chaque entrée explique ce qu'elle fait avant d'agir.
+Presque tout se fait **depuis le site**. Sur le PC, une seule chose à connaître : le **menu du Worker**.
+Ouvre **`worker.exe`** (raccourci « Alpine Makers Worker » sur le Bureau) ou, en secours, **`MENU-WORKER.bat`**
+dans le dossier installé : les entrées sont les mêmes, et chacune explique ce qu'elle fait avant d'agir.
 
 | Je veux… | Comment |
 | --- | --- |
