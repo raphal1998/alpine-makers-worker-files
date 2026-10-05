@@ -62,7 +62,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.41.1"
+AGENT_VERSION = "1.42.0"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Maintenance des environnements (agent 1.35.17) : Python isolé et pip/wheel/setuptools des .venv gérés rafraîchis

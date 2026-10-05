@@ -268,6 +268,27 @@ if ([IO.Path]::GetFullPath($PSScriptRoot) -ne [IO.Path]::GetFullPath($agentRoot)
     Copy-Item -LiteralPath $workerItem.FullName -Destination $agentRoot -Recurse -Force
   }
 }
+# Raccourcis vers worker.exe (application graphique du menu) : Bureau et menu Demarrer du compte qui installe.
+# Jamais bloquant : sans eux, worker.exe et MENU-WORKER.bat restent dans le dossier du Worker.
+$workerManager = Join-Path $agentRoot "worker.exe"
+if (Test-Path -LiteralPath $workerManager -PathType Leaf) {
+  try {
+    $workerIcon = Join-Path $agentRoot "branding\alpine-makers-worker.ico"
+    $shell = New-Object -ComObject WScript.Shell
+    foreach ($shortcutFolder in @([Environment]::GetFolderPath("Desktop"), [Environment]::GetFolderPath("Programs"))) {
+      if (!$shortcutFolder -or !(Test-Path -LiteralPath $shortcutFolder)) { continue }
+      $shortcut = $shell.CreateShortcut((Join-Path $shortcutFolder "Alpine Makers Worker.lnk"))
+      $shortcut.TargetPath = $workerManager
+      $shortcut.WorkingDirectory = $agentRoot
+      $shortcut.Description = "Gestionnaire du Worker Alpine Makers"
+      if (Test-Path -LiteralPath $workerIcon -PathType Leaf) { $shortcut.IconLocation = "$workerIcon,0" } else { $shortcut.IconLocation = "$workerManager,0" }
+      $shortcut.Save()
+    }
+    Write-Host "Raccourci « Alpine Makers Worker » cree sur le Bureau et dans le menu Demarrer." -ForegroundColor Green
+  } catch {
+    Write-Host "Raccourci non cree ($($_.Exception.Message)) : ouvre worker.exe dans $agentRoot." -ForegroundColor Yellow
+  }
+}
 $storageSetup = Join-Path $agentRoot "storage_paths.py"
 & $python $storageSetup --root $agentRoot --initialize
 if ($LASTEXITCODE -ne 0) { throw "Création de l’arborescence Worker impossible. Aucun moteur ni modèle IA n’a été téléchargé." }

@@ -4,6 +4,8 @@
     Usage :
         menu_worker.ps1                 menu interactif
         menu_worker.ps1 -Apercu         affiche le menu UNE fois et sort (code 0), sans rien demander
+        menu_worker.ps1 -EtatJson       écrit l'état et le catalogue en JSON (une ligne) et sort : c'est ce que
+                                        lit worker.exe, l'application graphique, qui lance ensuite -Choix N
         menu_worker.ps1 -Choix 9        lance directement l'entrée 9, puis sort avec le code de l'outil
         menu_worker.ps1 -Choix 17 -Oui  idem, en acceptant la confirmation ROUGE du MENU, et elle seule.
                                         -Oui n'est JAMAIS relayé à un outil de la zone rouge : l'outil garde
@@ -31,6 +33,7 @@
 param(
     [string]$Racine = '',
     [switch]$Apercu,
+    [switch]$EtatJson,
     [string]$Choix = '',
     [switch]$Oui,
     [switch]$SansPause
@@ -44,6 +47,7 @@ catch {
     Write-Host ''
     Write-Erreur $_.Exception.Message
     Write-Conseil 'Lance MENU-WORKER.bat depuis le dossier du Worker (celui qui contient agent.py), ou indique-le avec -Racine.'
+    if ($EtatJson) { Write-Output (@{ ok = $false; erreur = [string]$_.Exception.Message } | ConvertTo-Json -Compress); exit 1 }
     Wait-FinOutil -SansPause:($SansPause -or $Apercu -or [bool]$Choix)
     exit 1
 }
@@ -652,6 +656,32 @@ function Show-Aide {
 # ---------------------------------------------------------------------------
 # Déroulé
 # ---------------------------------------------------------------------------
+
+if ($EtatJson) {
+    # Même lecture que le bandeau, sans droits particuliers et sans aucun secret (Get-ConfigSure ne rend ni jeton ni identité).
+    $e = Get-EtatBandeau
+    $config = $null
+    if ($e.Config) { $config = @{ present = [bool]$e.Config.Present; associe = [bool]$e.Config.Associe; nom = [string]$e.Config.Nom; identifiant = [string]$e.Config.WorkerIdCourt; serveur = [string]$e.Config.ServeurUrl } }
+    $lancement = $null
+    if ($e.Lancement) {
+        $service = $null
+        if ($e.Lancement.Service) { $service = @{ etat = [string]$e.Lancement.Service.Etat; demarrage = [string]$e.Lancement.Service.Demarrage; vise_ce_dossier = [bool]$e.Lancement.Service.ViseCeDossier } }
+        $lancement = @{ mode = [string]$e.Lancement.Mode; service = $service
+                        taches = @($e.Lancement.Taches | ForEach-Object { @{ nom = [string]$_.Nom; etat = [string]$_.Etat; vise_ce_dossier = [bool]$_.ViseCeDossier; orpheline = [bool]$_.Orpheline } }) }
+    }
+    $sortie = @{
+        ok = $true; racine = [string]$Racine; version = [string]$e.Version; config = $config; lancement = $lancement
+        agent = @{ niveau = [string]$e.AgentNiveau; texte = [string]$e.AgentTexte; detail = [string]$e.AgentDetail }
+        moteurs = @($e.Moteurs | ForEach-Object { @{ outil = [string]$_.Outil; nom = [string]$_.Nom; port = [int]$_.Port; en_ecoute = [bool]$_.EnEcoute; fiche = [bool]$_.FichePresente } })
+        vram = @(@($e.Vram) | Where-Object { $_ } | ForEach-Object { @{ nom = [string]$_.Nom; utilise_gio = [double]$_.UtiliseGio; total_gio = [double]$_.TotalGio; pourcent = [int]$_.Pourcent } })
+        alertes = @($e.Alertes | ForEach-Object { [string]$_ })
+        groupes = @($script:Groupes | ForEach-Object { @{ cle = [string]$_.Cle; titre = [string]$_.Titre; aide = [string]$_.Aide } })
+        entrees = @($script:Entrees | Sort-Object Numero | ForEach-Object { @{ numero = [int]$_.Numero; groupe = [string]$_.Groupe; nom = [string]$_.Nom; description = [string]$_.Description
+                    admin = [bool]$_.Admin; arret = [bool]$_.Arret; rouge = [bool]$_.Rouge; disponible = [bool](Test-Path -LiteralPath $_.Chemin -PathType Leaf) } })
+    }
+    Write-Output ($sortie | ConvertTo-Json -Depth 6 -Compress)
+    exit 0
+}
 
 if ($Apercu) {
     Write-Menu -Etat (Get-EtatBandeau)

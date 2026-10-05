@@ -49,6 +49,14 @@ outils, avec pour chacun une explication avant de lancer quoi que ce soit. Comme
 toujours par l'entrée **1 · État complet du Worker** : elle ne modifie rien et te dit
 quel outil utiliser ensuite.
 
+**`worker.exe`** (même dossier, raccourci « Alpine Makers Worker » sur le Bureau et dans le menu Démarrer) est le même
+menu sous forme d'application : état du Worker et du Dashboard, une carte par entrée, journal copiable, sans
+fenêtre de console. Il lance exactement les mêmes outils ; `MENU-WORKER.bat` reste le menu de secours. Quand un
+outil a besoin des droits administrateur, Windows demande son accord comme avant. Fermer `worker.exe` n'arrête
+pas le Worker. `worker.exe` et l'installateur sont signés par un certificat autosigné « Alpine Makers » : Windows
+peut tout de même afficher un avertissement au premier lancement (détails dans `docs/worker_signing/README.md`
+du dashboard).
+
 La **version** installée n'est volontairement écrite nulle part dans ce document : lis-la
 dans l'en-tête du menu, ou dans le fichier `agent_manifest.json` (ligne `agent_version`).
 

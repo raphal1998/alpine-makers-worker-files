@@ -351,6 +351,7 @@ function Invoke-OutilEleve {
         L'outil relancé reçoit -DejaEleve pour ne pas boucler.
     #>
     param([string]$Script, [string[]]$Arguments = @())
+    if ($env:ALPINE_WORKER_GUI -eq '1') { return (Invoke-OutilEleveSansFenetre -Script $Script -Arguments $Arguments) }
     $liste = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (ConvertTo-ArgumentCite $Script), '-DejaEleve')
     foreach ($a in $Arguments) { $liste += (ConvertTo-ArgumentCite $a) }
     try {
@@ -360,6 +361,37 @@ function Invoke-OutilEleve {
     } catch {
         return $null
     }
+}
+
+function Invoke-OutilEleveSansFenetre {
+    <#
+        Variante pour worker.exe (application graphique, ALPINE_WORKER_GUI=1) : l'instance administrateur tourne
+        SANS fenêtre et sans clavier (-NonInteractive : une question y lèverait une erreur au lieu de bloquer,
+        invisible). Tout ce qu'elle écrit va dans un fichier du dossier logs, recopié ici à la fin pour que
+        l'application l'affiche. Windows demande toujours l'accord UAC. Renvoie le code, ou $null si refusé.
+    #>
+    param([string]$Script, [string[]]$Arguments = @())
+    $dossier = Join-Path (Split-Path -Parent (Split-Path -Parent $Script)) 'logs'
+    try { if (-not (Test-Path -LiteralPath $dossier)) { New-Item -ItemType Directory -Path $dossier -Force | Out-Null } } catch { $dossier = $env:TEMP }
+    $sortie = Join-Path $dossier ('outil-admin-' + [Guid]::NewGuid().ToString('N') + '.log')
+    $cite = { param([string]$v) "'" + ($v -replace "'", "''") + "'" }
+    $commande = '& ' + (& $cite $Script) + ' -DejaEleve'
+    foreach ($a in $Arguments) { if ($a -match '^-[A-Za-z]+$') { $commande += ' ' + $a } else { $commande += ' ' + (& $cite $a) } }
+    $commande += ' *>&1 | Out-File -LiteralPath ' + (& $cite $sortie) + ' -Encoding UTF8; exit $LASTEXITCODE'
+    $encodee = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($commande))
+    $code = $null
+    try {
+        $p = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', $encodee) -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ErrorAction Stop
+        $code = 0
+        if ($null -ne $p.ExitCode) { $code = [int]$p.ExitCode }
+    } catch { $code = $null }
+    try {
+        if (Test-Path -LiteralPath $sortie -PathType Leaf) {
+            foreach ($ligne in @(Get-Content -LiteralPath $sortie -Encoding UTF8)) { Write-Host $ligne }
+            Remove-Item -LiteralPath $sortie -Force -ErrorAction SilentlyContinue
+        }
+    } catch { }
+    return $code
 }
 
 # ---------------------------------------------------------------------------
