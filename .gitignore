@@ -1,0 +1,11 @@
+# Donnees locales d un Worker installe : jamais dans ce depot.
+config.json
+storage.json
+*.log
+.env*
+*.pem
+*.key
+*.pfx
+*.p12
+*.sqlite3
+__pycache__/
