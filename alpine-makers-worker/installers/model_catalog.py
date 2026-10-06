@@ -227,6 +227,22 @@ COMFYUI_UTILITY_MODELS = {
 }
 for (_tool_id, _utility_id), _utility in COMFYUI_UTILITY_MODELS.items():
     COMFYUI_REQUIREMENTS[_utility_id] = tuple(_utility["vram"])
+# Modules du Labo image SANS téléchargement (agent 1.46.0) : du code livré avec l'agent (runners/), exécuté par le Python du
+# moteur image. « Installer » le module = vérifier ses prérequis dans l'environnement de ComfyUI (paquets importables,
+# fonctions de Pillow utilisées) puis poser un marqueur JSON dans ComfyUI/models/<sous-dossier>/ ; l'inventaire relève ce
+# marqueur, le désinstaller le retire. Aucun fichier tiers, aucune adresse, aucune empreinte de téléchargement.
+# « marker » : (sous-dossier de ComfyUI/models, fichier) ; « imports » : modules exigés dans l'environnement du moteur ;
+# « scripts » : fichiers de l'agent requis (relatifs à worker_agent/).
+COMFYUI_LAB_MODULES = {
+    ("image_generation", "lab-maps-tools"): {
+        "tool": "image_maps", "capabilities": ("image-maps",), "vram": (0, 0),
+        "marker": ("alpine_lab_maps", "lab-maps-tools.json"),
+        "imports": ("PIL", "numpy"),
+        "scripts": ("runners/image_maps.py", "runners/image_maps_script.py"),
+    },
+}
+for (_tool_id, _module_id), _module in COMFYUI_LAB_MODULES.items():
+    COMFYUI_REQUIREMENTS[_module_id] = tuple(_module["vram"])
 HUNYUAN_CATALOG = {
     "hunyuan3d-2": ("tencent/Hunyuan3D-2mini", "hunyuan3d-2mini"),
     "hunyuan-dit": ("Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled", "hunyuan-dit"),

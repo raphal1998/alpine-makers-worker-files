@@ -13,7 +13,7 @@ from pathlib import Path
 
 if __package__:
     from .. import worker_legal as legal_compliance, local_sandbox
-    from .model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS, COMFYUI_KEY_SOURCES
+    from .model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, COMFYUI_LAB_MODULES, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS, COMFYUI_KEY_SOURCES
     from . import asset_installer
     from .transfer_progress import progress, TransferProgress, huggingface_progress_class
     from ..safety import is_link, remove_worker_file, remove_worker_tree
@@ -28,7 +28,7 @@ else:
     from safety import is_link, remove_worker_file, remove_worker_tree
     from storage_paths import WorkerStorage
     from hardware_profiles import detect_hardware, runtime_profile, model_hardware_error
-    from model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS, COMFYUI_KEY_SOURCES
+    from model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, COMFYUI_LAB_MODULES, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS, COMFYUI_KEY_SOURCES
     import asset_installer
 
 
@@ -313,6 +313,76 @@ def manage_comfyui_bundle(root, model_id, action):
     print(f"{model_id} installé et vérifié.")
 
 
+# Contrôle des prérequis d'un module du Labo sans téléchargement (COMFYUI_LAB_MODULES), exécuté par le Python du moteur
+# image en mode isolé : les paquets doivent s'importer et Pillow offrir les fonctions dont le script du module se sert.
+LAB_MODULE_CHECK = (
+    "import json\n"
+    "import PIL\n"
+    "from PIL import Image, ImageChops, ImageFilter, ImageMath, ImageOps\n"
+    "import numpy\n"
+    "assert hasattr(ImageMath, 'lambda_eval') and hasattr(Image, 'Resampling') and hasattr(Image, 'Quantize')\n"
+    "print(json.dumps({'pillow': str(PIL.__version__), 'numpy': str(numpy.__version__)}))\n"
+)
+LAB_MODULE_CHECK_TIMEOUT = 180
+
+
+def _lab_module_python(comfy_root):
+    for folder in (".venv", "venv"):
+        candidate = python_in(comfy_root / folder)
+        if candidate.is_file():
+            return candidate
+    raise SystemExit("Installe d’abord le moteur ComfyUI (Générateur d’images) sur ce Worker : ce module utilise son environnement Python.")
+
+
+def manage_lab_module(root, model_id, action):
+    """Module du Labo sans téléchargement : prérequis vérifiés dans l'environnement de ComfyUI, puis marqueur posé.
+
+    Rien n'est téléchargé ni installé par pip : un prérequis absent est une erreur expliquée (réparer le moteur).
+    Désinstaller retire le marqueur ; le code du module reste livré avec l'agent mais ne sert plus.
+    """
+    spec = COMFYUI_LAB_MODULES[("image_generation", model_id)]
+    comfy_root = configured_component_root(root, "comfyui")
+    subdir, filename = spec["marker"]
+    marker = checked_model_path(comfy_root, comfy_root / "models" / subdir / filename)
+    if action == "uninstall":
+        remove_worker_file(marker, comfy_root)
+        print(f"{model_id} retiré : ses calculs sont refusés sur ce Worker.")
+        return
+    progress(10, "Vérification des fichiers du module livrés avec l’agent…")
+    agent_root = Path(__file__).resolve().parents[1]
+    missing = [name for name in spec["scripts"] if not (agent_root / name).is_file()]
+    if missing:
+        raise SystemExit("Fichiers du module absents de l’agent : mets à jour le Worker, puis relance l’installation.")
+    python = _lab_module_python(comfy_root)
+    progress(40, "Vérification de Pillow et numpy dans l’environnement du moteur image…")
+    environment = {key: value for key, value in os.environ.items() if not key.upper().startswith("PYTHON") and key.upper() != "VIRTUAL_ENV"}
+    environment["PYTHONIOENCODING"] = "utf-8"
+    try:
+        result = subprocess.run([str(python), "-I", "-B", "-c", LAB_MODULE_CHECK], cwd=str(comfy_root), env=environment,
+                                stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                timeout=LAB_MODULE_CHECK_TIMEOUT,
+                                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+    except (OSError, subprocess.TimeoutExpired):
+        raise SystemExit("Contrôle de l’environnement du moteur image impossible : répare le moteur ComfyUI, puis relance.") from None
+    versions = {}
+    try:
+        versions = json.loads((result.stdout or "").strip().splitlines()[-1]) if result.returncode == 0 else {}
+    except (IndexError, ValueError):
+        versions = {}
+    if (not isinstance(versions, dict) or set(versions) != {"pillow", "numpy"}
+            or not all(isinstance(value, str) and 0 < len(value) <= 40 for value in versions.values())):
+        raise SystemExit("Pillow (avec ImageMath.lambda_eval) ou numpy manque dans l’environnement du moteur image : "
+                         "répare le moteur ComfyUI dans Mes Workers → Installations, puis relance. Rien n’a été installé.")
+    progress(80, f"Pillow {versions['pillow']} et numpy {versions['numpy']} présents ; activation du module…")
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    temporary = checked_model_path(comfy_root, marker.with_name(marker.name + ".part"))
+    temporary.write_text(json.dumps({"module": model_id, "verified": True, "pillow": versions["pillow"], "numpy": versions["numpy"],
+                                     "checked_at": time.time()}, ensure_ascii=False), encoding="utf-8")
+    os.replace(temporary, marker)
+    progress(99, "Module vérifié et installé.")
+    print(f"{model_id} installé : prérequis vérifiés (Pillow {versions['pillow']}, numpy {versions['numpy']}).")
+
+
 def _download_extra(url, target, expected_size, expected_hash, component_root):
     """Single verified file next to a snapshot (e.g. Real-ESRGAN weights for PBR paint)."""
     checked_model_path(component_root, target)
@@ -505,6 +575,12 @@ if action != "uninstall":
     progress(1, runtime_profile(hardware, tool_id)["label"])
 if tool_id == "ai3d" and model_id in HUNYUAN_CATALOG:
     manage_hunyuan(root, model_id, action)
+    if action != "uninstall":
+        legal_compliance.record_notices(root, legal_decision)
+    raise SystemExit(0)
+# Modules du Labo sans téléchargement (agent 1.46.0) : prérequis vérifiés, marqueur posé ou retiré.
+if tool_id == "image_generation" and (tool_id, model_id) in COMFYUI_LAB_MODULES:
+    manage_lab_module(root, model_id, action)
     if action != "uninstall":
         legal_compliance.record_notices(root, legal_decision)
     raise SystemExit(0)

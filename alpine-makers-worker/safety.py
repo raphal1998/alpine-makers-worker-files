@@ -595,12 +595,74 @@ def validate_face_restore_parameters(parameters):
     return copy.deepcopy(parameters)
 
 
+# Outils de cartes du Labo (image_lab_maps_v1, agent 1.46.0) : ce ne sont PAS des graphes ComfyUI. Le lanceur
+# runners/image_maps.py exécute runners/image_maps_script.py (Pillow seul) avec le Python de l'environnement du moteur
+# image, une fois le module « lab-maps-tools » installé. Le site n'envoie qu'un type de calcul fermé et ses réglages bornés
+# (mêmes bornes que image_lab.TOOLS côté site et que la table du script) : aucun chemin, aucune commande, aucun modèle.
+IMAGE_LAB_MAPS_CAPABILITY = "image_lab_maps_v1"
+IMAGE_LAB_MAPS_MODULE = "lab-maps-tools"
+IMAGE_LAB_MAPS_KEYS = frozenset({"lab_tool", "maps", "input_files", "timeout_seconds"})
+# Réglages admis par calcul : (genre, bornes) — « number » : nombre fini borné, « integer » : entier borné,
+# « choice » : une valeur de la liste (type compris), « boolean » : vrai ou faux.
+IMAGE_LAB_MAPS_SETTINGS = {
+    "properties": {},
+    "control_normal": {"relief": ("number", 0.1, 10), "resolution": ("choice", (256, 512, 1024)), "background": ("number", 0, 0.5)},
+    "control_lineart": {"detail": ("number", 0.5, 4), "intensity": ("integer", 1, 40), "cleanup": ("number", 0, 0.5),
+                        "polarity": ("choice", ("white_on_black", "black_on_white"))},
+    "control_scribble": {"simplify": ("number", 1, 8), "thickness": ("integer", 1, 24), "threshold": ("number", 0.02, 0.5)},
+    "control_tile": {"factor": ("choice", (2, 4, 8)), "blur": ("number", 0, 8)},
+    "control_color": {"block": ("integer", 4, 256)},
+    "control_gray": {"autocontrast": ("boolean",)},
+    "mask_alpha": {"white": ("choice", ("background", "subject")), "edge": ("choice", ("soft", "hard")), "grow": ("integer", 0, 64)},
+}
+IMAGE_LAB_MAPS_TOOLS = tuple(IMAGE_LAB_MAPS_SETTINGS)
+# Tout calcul du Labo image exécuté sur un Worker (graphes ComfyUI et outils de cartes) : barème des Alpine Coins.
+IMAGE_LAB_WORKER_TOOLS = tuple(IMAGE_LAB_TOOLS) + IMAGE_LAB_MAPS_TOOLS
+
+
+def is_image_maps_job(parameters):
+    return isinstance(parameters, dict) and isinstance(parameters.get("lab_tool"), str) and parameters["lab_tool"] in IMAGE_LAB_MAPS_SETTINGS
+
+
+def validate_image_maps_parameters(parameters):
+    """Demande d'un outil de cartes : clés exactes, l'image du job seule, réglages exacts et bornés, délai borné."""
+    if not isinstance(parameters, dict) or set(parameters) - IMAGE_LAB_MAPS_KEYS \
+            or not {"lab_tool", "maps", "input_files"} <= set(parameters):
+        raise ValueError("Paramètres des outils de cartes du Labo invalides.")
+    tool = parameters["lab_tool"]
+    if not isinstance(tool, str) or tool not in IMAGE_LAB_MAPS_SETTINGS:
+        raise ValueError("Outil du Labo image inconnu de ce Worker.")
+    spec, settings = IMAGE_LAB_MAPS_SETTINGS[tool], parameters["maps"]
+    if not isinstance(settings, dict) or set(settings) != set(spec):
+        raise ValueError("Réglages de l'outil de cartes invalides.")
+    for name, rule in spec.items():
+        value, kind = settings[name], rule[0]
+        if kind == "boolean":
+            valid = type(value) is bool
+        elif kind == "choice":
+            valid = any(type(value) is type(option) and value == option for option in rule[1])
+        elif kind == "integer":
+            valid = type(value) is int and rule[1] <= value <= rule[2]
+        else:
+            valid = type(value) in (int, float) and math.isfinite(value) and rule[1] <= value <= rule[2]
+        if not valid:
+            raise ValueError("Réglage de l'outil de cartes hors limites.")
+    _validated_source_inputs(parameters)      # l'image du job : la seule image copiée pour ce job
+    timeout = parameters.get("timeout_seconds")
+    if timeout is not None and (type(timeout) is not int or not 60 <= timeout <= 3600):
+        raise ValueError("Délai du Labo image hors limites.")
+    return copy.deepcopy(parameters)
+
+
 def validate_image_lab_parameters(parameters, *, output_prefix=None):
     """N'accepte que les graphes fixes du Labo image ; rend une copie dont le préfixe de sortie est celui du Worker.
 
-    La restauration des visages, qui n'est pas un graphe, a son propre validateur (aucun préfixe de sortie)."""
+    La restauration des visages et les outils de cartes, qui ne sont pas des graphes, ont leur propre validateur
+    (aucun préfixe de sortie)."""
     if is_face_restore_job(parameters):
         return validate_face_restore_parameters(parameters)
+    if is_image_maps_job(parameters):
+        return validate_image_maps_parameters(parameters)
     if not isinstance(parameters, dict) or set(parameters) - IMAGE_LAB_PARAMETER_KEYS:
         raise ValueError("Paramètres du Labo image invalides.")
     tool = parameters.get("lab_tool")

@@ -1,5 +1,19 @@
 # Historique des mises à jour
 
+## Version 1.46.0 — 2026-10-06
+
+**Labo image : propriétés, palette et cartes simples calculées sur le Worker**
+
+### Ajouté
+- Labo image, module « Outils de cartes du Labo » (capacité image_lab_maps_v1) : propriétés et palette d’une image (dimensions, rapport, transparence, niveaux de gris, couleur moyenne, empreinte visuelle, couleurs dominantes) et sept cartes — normales depuis une profondeur, trait, gribouillage, tuile / flou, grille de couleurs, niveaux de gris, masque depuis un détourage — calculées sur le Worker, avec les mêmes réglages et les mêmes résultats que l’ancien calcul du site.
+- Le calcul est un script du Worker (Pillow seul) lancé avec le Python du moteur image (ComfyUI), sans réseau, avec délai maximal et annulation ; le site n’envoie qu’un type de calcul et des réglages bornés, revérifiés par le Worker.
+
+### Modifié
+- Ces outils ne tournent plus sur le site : sans Worker équipé du module (installé et ON dans le panneau ON/OFF du Labo), le Labo explique ce qui manque et refuse le calcul.
+
+### Technique
+- Empreinte du paquet publié : `786fd5af67beeb89…` (dossier du paquet).
+
 ## Version 1.45.0 — 2026-10-06
 
 **Modèle ajouté par le responsable : installation par adresse, avec empreinte vérifiée**

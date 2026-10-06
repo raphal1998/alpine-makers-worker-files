@@ -35,13 +35,13 @@ if __package__:
     from .identity import Identity, configure as configure_identity
     from .local_control import local_loop, network_info
     from .storage_paths import WorkerStorage
-    from .safety import comfyui_queue_busy, is_link, protect_credentials, release_comfyui_vram, release_comfyui_vram_when_idle, safe_relative_name, validate_archive, validate_server_url
+    from .safety import IMAGE_LAB_MAPS_TOOLS, comfyui_queue_busy, is_link, protect_credentials, release_comfyui_vram, release_comfyui_vram_when_idle, safe_relative_name, validate_archive, validate_server_url
     from .job_state import DurableJournal, TERMINAL, atomic_json, read_json, runner_active
     from .process_control import process_identity
     from .installer_process import InstallerScope, installation_commit, scope_record
     from .hardware_profiles import detect_hardware, runtime_profile
     from .equipment_runtime import EquipmentRelay
-    from .installers.model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, COMFYUI_REQUIREMENTS, HUNYUAN_CATALOG, HUNYUAN_REQUIREMENTS, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_BACKENDS, AI3D_SNAPSHOTS
+    from .installers.model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, COMFYUI_LAB_MODULES, COMFYUI_REQUIREMENTS, HUNYUAN_CATALOG, HUNYUAN_REQUIREMENTS, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_BACKENDS, AI3D_SNAPSHOTS
     from .installers import environment_maintenance
     from . import comfyui_assets
     from .checkpoint_baseline import checkpoint_architecture
@@ -51,18 +51,18 @@ else:
     from identity import Identity, configure as configure_identity
     from local_control import local_loop, network_info
     from storage_paths import WorkerStorage
-    from safety import comfyui_queue_busy, is_link, protect_credentials, release_comfyui_vram, release_comfyui_vram_when_idle, safe_relative_name, validate_archive, validate_server_url
+    from safety import IMAGE_LAB_MAPS_TOOLS, comfyui_queue_busy, is_link, protect_credentials, release_comfyui_vram, release_comfyui_vram_when_idle, safe_relative_name, validate_archive, validate_server_url
     from job_state import DurableJournal, TERMINAL, atomic_json, read_json, runner_active
     from process_control import process_identity
     from installer_process import InstallerScope, installation_commit, scope_record
     from hardware_profiles import detect_hardware, runtime_profile
     from equipment_runtime import EquipmentRelay
-    from installers.model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, COMFYUI_REQUIREMENTS, HUNYUAN_CATALOG, HUNYUAN_REQUIREMENTS, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_BACKENDS, AI3D_SNAPSHOTS
+    from installers.model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, COMFYUI_LAB_MODULES, COMFYUI_REQUIREMENTS, HUNYUAN_CATALOG, HUNYUAN_REQUIREMENTS, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_BACKENDS, AI3D_SNAPSHOTS
     from installers import environment_maintenance
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.45.0"
+AGENT_VERSION = "1.46.0"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Maintenance des environnements (agent 1.35.17) : Python isolé et pip/wheel/setuptools des .venv gérés rafraîchis
@@ -96,6 +96,10 @@ AGENT_CAPABILITIES += ("model_key_sources_v1",)  # littéral : le site lit ces l
 # Agent 1.44.0 : Labo image, restauration des visages (GFPGAN v1.4 + détecteur YuNet) par runners/face_restore.py, qui
 # lance runners/face_restore_script.py avec le Python du moteur image ; aucun paquet installé, deux fichiers de poids.
 AGENT_CAPABILITIES += ("image_lab_face_restore_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.46.0 : Labo image, module « Outils de cartes du Labo » (lab-maps-tools) : propriétés et palette, normales,
+# trait, gribouillage, tuile, grille de couleurs, niveaux de gris et masque par runners/image_maps.py, qui lance
+# runners/image_maps_script.py (Pillow seul) avec le Python du moteur image ; module sans téléchargement.
+AGENT_CAPABILITIES += ("image_lab_maps_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -1320,6 +1324,23 @@ class Agent:
                 "status": "ready" if len(present) == len(paths) else "incomplete",
                 "size_bytes": sum(path.stat().st_size for path in present),
                 "min_vram_mb": minimum, "recommended_vram_mb": recommended,
+                "capabilities": ["utility", *spec["capabilities"]],
+            }
+        # Modules du Labo sans téléchargement (agent 1.46.0) : installés quand l'installateur a vérifié leurs prérequis
+        # dans l'environnement de ComfyUI et posé son marqueur ; un marqueur illisible vaut « incomplet ».
+        for (_, model_id), spec in COMFYUI_LAB_MODULES.items():
+            marker = comfy_root / "models" / spec["marker"][0] / spec["marker"][1]
+            if not marker.is_file():
+                continue
+            try:
+                facts = json.loads(marker.read_text(encoding="utf-8")) if marker.stat().st_size <= 16 * 1024 else None
+            except (OSError, ValueError):
+                facts = None
+            verified = isinstance(facts, dict) and facts.get("module") == model_id and facts.get("verified") is True
+            minimum, recommended = spec["vram"]
+            models[("image_generation", model_id)] = {
+                "tool_id": "image_generation", "model_id": model_id, "status": "ready" if verified else "incomplete",
+                "size_bytes": marker.stat().st_size, "min_vram_mb": minimum, "recommended_vram_mb": recommended,
                 "capabilities": ["utility", *spec["capabilities"]],
             }
         hunyuan_root = storage.component("hunyuan3d")
@@ -3868,7 +3889,10 @@ class Agent:
                     environment["LASER_ENGINE_PYTHON"] = laser_python
                 # Labo image, restauration des visages (agent 1.44.0) : lanceur dédié, pas un graphe ComfyUI.
                 face_restore = tool_id in {"image_generation", "image-generation"} and parameters.get("lab_tool") == "face_restore"
-                runner_name = "mesh_repair" if mesh_repair else "face_restore" if face_restore else TOOL_HANDLERS[tool_id]
+                # Outils de cartes du Labo (agent 1.46.0) : lanceur dédié (script Pillow), pas un graphe ComfyUI.
+                image_maps = tool_id in {"image_generation", "image-generation"} and parameters.get("lab_tool") in IMAGE_LAB_MAPS_TOOLS
+                runner_name = ("mesh_repair" if mesh_repair else "face_restore" if face_restore else "image_maps" if image_maps
+                               else TOOL_HANDLERS[tool_id])
                 handler = Path(__file__).with_name("runners") / f"{runner_name}.py"
                 if not handler.is_file():
                     raise AgentError("Runner Worker indisponible.")
