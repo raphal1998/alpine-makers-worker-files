@@ -1,0 +1,18 @@
+{
+  "sha256": "b42b09ff12ca9cd70d78aa8210f8d4577ec513fc1484a68615385b8076292639",
+  "retrievedAt": "2026-10-05T22:36:08.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/b42b09ff12ca9cd70d78aa8210f8d4577ec513fc1484a68615385b8076292639",
+  "versionId": 78676,
+  "versionName": "V4",
+  "modelId": 6755,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/6755",
+  "modelName": "Cetus-Mix",
+  "publisher": "Eagelaxis",
+  "allowNoCredit": true,
+  "allowCommercialUse": [],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "NOTICE : LET ME KNOW before you put this model on commercial usage . My twitter account: @eagelaxis :) Contact me if needed. Discord Account: Eagelaxis#7818 Version Choosing Advice : V2f,V3,Coda and V3.5 are recommended,especially CODA for first-time users. Hard to tell how many models used to merge. Check the example images to recognize this model's art style For more example images, just take a look at https://pixai.art More attention on shades and backgrounds compared with former models( Andromeda-Mix | Stable Diffusion Checkpoint | Civitai) Hands-fix is still waiting to be improved. Highres-fix(upscaler) is strongly recommended(using the SwinIR_4x,R-ESRGAN 4x+anime6B by myself) in order to not make blurry images. (Sorry for the misunderstanding caused by myself.\"Bad_prompt_v2:1.4\" is a kind of embedding recognized as collection of normal negative prompts such as\"lowres,bad anatomy\".) Recommend: Clip skip 2 Sampler:DPM++2M Karras Steps:20+ CFG scale:4-8 Vae: Pastel-Waifu-Diffusion.vae.pt (The vae used by Pastel-mix si just good enough) Highres.fix:SwinIR_4x Hires steps:10+ Denoising strength:0.4+ Upscale by: 1.5+ Loras along with embeddings on hands-fix are strongly recommended. V4.5 should be coming soon. Looking forward to your reviews!",
+  "publicUrl": "https://civitai.com/models/6755?modelVersionId=78676"
+}

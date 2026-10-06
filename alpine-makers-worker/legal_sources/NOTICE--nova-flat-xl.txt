@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : nova-flat-xl
+Modèle : Nova Flat XL (fichier novaFlatXL_v90.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Crody
+Attribution : Nova Flat XL — Crody
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML Open RAIL++-M)
+Source officielle : https://civitai.com/models/1240874/nova-flat-xl?modelVersionId=2610015
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : c236a776d04c409514adc1a780efd1339eb992a7f503ca67b668af090b81fb88
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 2610015) :
+allowCommercialUse : RentCivit, Image, Rent
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sdxl d'après la référence) : CreativeML Open RAIL++-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--1240874--2610015--author-permissions
+https://civitai.com/api/v1/models/1240874
+SHA-256 2ca430fc5dc2b58fcadf649a110840c948bd004779080ed2fe20615c2b1e0ac8
+Copie : legal_sources/Civitai--1240874--2610015--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

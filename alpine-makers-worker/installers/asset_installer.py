@@ -221,9 +221,12 @@ def validate_descriptor(value):
     allowed = {"kind", "filename", "url", "provider", "sha256", "size_bytes", "replace", "source", "upload_id"}
     if set(value) - allowed:
         raise AssetError("Descripteur de ressource invalide : champ inconnu.")
-    kind = assets.asset_kind(value.get("kind"))
+    kind = assets.install_kind(value.get("kind"))
     filename = assets.safe_asset_filename(value.get("filename"))
     provider = str(value.get("provider") or "")
+    if kind == assets.CHECKPOINT_KIND and (provider == UPLOAD_PROVIDER or not _SHA_RE.match(str(value.get("sha256") or "").lower())):
+        # Un modèle de génération ne s'installe que par téléchargement, avec une empreinte annoncée et revérifiée.
+        raise AssetError("Checkpoint : adresse de téléchargement et empreinte SHA-256 annoncée obligatoires.")
     url, upload_id = str(value.get("url") or ""), str(value.get("upload_id") or "")
     if provider == UPLOAD_PROVIDER:
         if url or not _UPLOAD_ID_RE.match(upload_id):
@@ -264,7 +267,7 @@ def upload_target(worker_root, value):
     descriptor = validate_descriptor(value)
     if descriptor["provider"] != UPLOAD_PROVIDER:
         raise AssetError("Descripteur d’import invalide.")
-    spec = assets.ASSET_KINDS[descriptor["kind"]]
+    spec = assets.INSTALL_KINDS[descriptor["kind"]]
     if descriptor["size_bytes"] > spec["max_bytes"]:
         raise AssetError(f"Fichier trop volumineux pour ce type de ressource (maximum {spec['max_bytes'] // 1024**2} Mo).")
     comfy_root = WorkerStorage(Path(worker_root)).component("comfyui")
@@ -285,6 +288,8 @@ def upload_target(worker_root, value):
 
 def _kind_mismatch(kind, detected):
     """Message de refus quand le contenu n'est pas de la nature demandée, sinon chaîne vide."""
+    if kind == assets.CHECKPOINT_KIND:
+        return "" if detected == "checkpoint" else "Le contenu du fichier n’est pas un checkpoint complet : rien n’a été installé."
     if detected == "checkpoint":
         return "Ce fichier est un checkpoint complet, pas une ressource additionnelle : installe-le comme modèle."
     accepted = {"lora": {"lora", "unknown"}, "embedding": {"embedding", "unknown"},
@@ -407,7 +412,9 @@ def install(worker_root, value, *, token="", open_url=guarded_open):
     """Télécharge, vérifie puis installe. Rend le compte rendu (ressource installée, doublon, déjà présent)."""
     descriptor = validate_descriptor(value)
     kind, filename = descriptor["kind"], descriptor["filename"]
-    spec = assets.ASSET_KINDS[kind]
+    spec = assets.INSTALL_KINDS[kind]
+    # Un checkpoint n'entre pas dans l'index des ressources : le relevé des modèles lit le dossier checkpoints/.
+    indexed = kind != assets.CHECKPOINT_KIND
     worker_root = Path(worker_root)
     comfy_root = WorkerStorage(worker_root).component("comfyui")
     if not (comfy_root / "models").is_dir():
@@ -422,7 +429,8 @@ def install(worker_root, value, *, token="", open_url=guarded_open):
         if expected_hash and existing_hash == expected_hash:
             metadata, tensors = assets.read_safetensors_header(destination)
             description = assets.describe_asset(metadata, tensors)
-            assets.record_installed(worker_root, kind, filename, destination, sha256=existing_hash, description=description, source=descriptor["source"])
+            if indexed:
+                assets.record_installed(worker_root, kind, filename, destination, sha256=existing_hash, description=description, source=descriptor["source"])
             progress(99, "Ressource déjà présente et identique : rien à télécharger.")
             return {"already_installed": True, "asset": {"kind": kind, "name": filename, "sha256": existing_hash,
                                                          "size_bytes": destination.stat().st_size, **description}}
@@ -464,7 +472,7 @@ def install(worker_root, value, *, token="", open_url=guarded_open):
     if mismatch:
         remove_worker_file(partial, temporary)
         raise AssetError(mismatch)
-    duplicate = assets.find_duplicate(worker_root, kind, actual_hash, except_name=filename)
+    duplicate = assets.find_duplicate(worker_root, kind, actual_hash, except_name=filename) if indexed else None
     if duplicate and (folder / duplicate).is_file():
         remove_worker_file(partial, temporary)
         progress(99, f"Contenu identique déjà installé sous le nom {duplicate}.")
@@ -478,7 +486,8 @@ def install(worker_root, value, *, token="", open_url=guarded_open):
         # Windows : ComfyUI garde ouvert le fichier à remplacer tant qu'une génération s'en sert.
         raise AssetError("Le fichier à remplacer est utilisé par ComfyUI en ce moment. Attends la fin de la génération en cours puis relance : "
                          "le téléchargement vérifié est conservé, rien ne sera retéléchargé.") from None
-    assets.record_installed(worker_root, kind, filename, destination, sha256=actual_hash, description=description, source=descriptor["source"])
+    if indexed:
+        assets.record_installed(worker_root, kind, filename, destination, sha256=actual_hash, description=description, source=descriptor["source"])
     progress(99, "Ressource vérifiée et installée ; ComfyUI la voit sans redémarrage.")
     return {"asset": {"kind": kind, "name": filename, "sha256": actual_hash, "size_bytes": destination.stat().st_size, **description}}
 

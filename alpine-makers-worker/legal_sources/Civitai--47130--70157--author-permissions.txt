@@ -1,0 +1,21 @@
+{
+  "sha256": "fba9027fa4bc3156dbdbf3b72c0fc2c8b379d48e2569432509cfaacaa770e6ab",
+  "retrievedAt": "2026-10-05T22:56:44.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/fba9027fa4bc3156dbdbf3b72c0fc2c8b379d48e2569432509cfaacaa770e6ab",
+  "versionId": 70157,
+  "versionName": "v4.0",
+  "modelId": 47130,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/47130",
+  "modelName": "Realisian",
+  "publisher": "Cisney_Gassai",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "▼ Recommended Settings ▼ Negative Prompt Realisian-Neg Sampling Method DPM++ SDE Karras Sampling Steps 12 (8 ≈ 16) Restore Faces Off Hires Fix ( ! Required ! ) On Upscaler: Latent (bicubic antialised) Hires Steps: 5 (4 ≈ 10) Denoising Strenght: 0.55 (0.4 ≈ 0.7) Upscale by: 2 CFG Scale 3 (2 ≈ 5) Clip Skip 1 (1 ≈ 2) VAE None (Baked) ▼ Merge Based On ▼ ChilloutMix LOFI 饭特稀 majicMIX realistic Lyriel BRA (Beautiful Realistic Asians) ReV Animated fantasticmix ▼ More Info ▼ Any questions or suggestions you can contact me through Discord Cisney Gassai#5108 or Twitter @Realisian . For donations or requests you can do it on my Ko-fi page <3. https://ko-fi.com/cisneygassai",
+  "publicUrl": "https://civitai.com/models/47130?modelVersionId=70157"
+}

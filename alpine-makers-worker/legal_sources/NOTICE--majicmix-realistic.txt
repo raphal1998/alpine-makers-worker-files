@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : majicmix-realistic
+Modèle : majicMIX realistic (fichier majicmixRealistic.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Merjic
+Attribution : majicMIX realistic — Merjic
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://civitai.com/models/43331/majicmix-realistic
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : d819c8be6bc2a15307640a7eb069fa92e4c69c84289d8309273760ee7394e5f0
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 55911) :
+allowCommercialUse : Image, RentCivit, Rent
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--43331--55911--author-permissions
+https://civitai.com/api/v1/models/43331
+SHA-256 cbd3437b0a1c4ed0a220bdeea25bc66987d6573d7192df2c2d8bf895ebd86600
+Copie : legal_sources/Civitai--43331--55911--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

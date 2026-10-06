@@ -1,0 +1,24 @@
+{
+  "sha256": "fbc9124ceb1a07d0b2551e326880cab4010557e3c70712c9251831d52aca3f97",
+  "retrievedAt": "2026-10-05T22:35:23.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/fbc9124ceb1a07d0b2551e326880cab4010557e3c70712c9251831d52aca3f97",
+  "versionId": 20840,
+  "versionName": "V5",
+  "modelId": 1221,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1221",
+  "modelName": "Anime pencil diffusion",
+  "publisher": "yehiaserag",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Originally posted to HuggingFace by yehiaserag A dreambooth finetune of stable diffusion 1.5 model that will output stuff in anime pencil concept drawing style. Usage Keep the words anime pencil concept style towards the beginning of your prompt to invoke the finetuned style. Use the #AnimePencilConceptStyle so i can see the cool stuff you make! If you enjoy the model i'd appreciate a follow on twitter If you are feeling especially generous, you can sponsor me on paypal",
+  "publicUrl": "https://civitai.com/models/1221?modelVersionId=20840"
+}

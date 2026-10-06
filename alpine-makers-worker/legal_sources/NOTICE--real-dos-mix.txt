@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : real-dos-mix
+Modèle : Real Dos Mix (fichier realdosmix.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : DiaryOfSta
+Attribution : Real Dos Mix — DiaryOfSta
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://civitai.com/models/6925/realdosmix
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 0d27c62ffac6d300014245995cee2355dc0963fc8fbad79f79586cf3ba0abd5d
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 8137) :
+allowCommercialUse : aucun
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--6925--8137--author-permissions
+https://civitai.com/api/v1/models/6925
+SHA-256 72b117080a61f9697860ca685e80a75149e6d6223943c57877c048dc06edec1e
+Copie : legal_sources/Civitai--6925--8137--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

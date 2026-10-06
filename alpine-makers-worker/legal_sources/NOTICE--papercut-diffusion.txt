@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : papercut-diffusion
+Modèle : Papercut Diffusion (fichier PaperCut_v1.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : fictiverse
+Attribution : Papercut Diffusion — fictiverse
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/Fictiverse/Stable_Diffusion_PaperCut_Model
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 8ee651e71263b685807a0cec700291843305f1e6778f94cba40d58f6f2cd663a
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 48) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Fictiverse--Stable_Diffusion_PaperCut_Model--333275515ece--README.md
+https://huggingface.co/Fictiverse/Stable_Diffusion_PaperCut_Model/raw/333275515ece0c1012d63b9c34586853f6a23d5a/README.md
+SHA-256 7f5bc7f3f2a91ca5c018c21c551e6ef0a3755e2c716a5c8fd48ef88110ae447f
+Copie : legal_sources/Fictiverse--Stable_Diffusion_PaperCut_Model--333275515ece--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--40--48--author-permissions
+https://civitai.com/api/v1/models/40
+SHA-256 f025e116cf630a692b7169752c3a7d80aca89725c65b3ef2400c966cf28a2004
+Copie : legal_sources/Civitai--40--48--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

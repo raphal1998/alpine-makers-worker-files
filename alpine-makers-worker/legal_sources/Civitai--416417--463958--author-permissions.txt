@@ -1,0 +1,20 @@
+{
+  "sha256": "674fcb56695a3d4208548db4326fcfc22a93cb4bf1816ec88d5b4b8900f369e3",
+  "retrievedAt": "2026-10-05T22:39:47.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/674fcb56695a3d4208548db4326fcfc22a93cb4bf1816ec88d5b4b8900f369e3",
+  "versionId": 463958,
+  "versionName": "v1",
+  "modelId": 416417,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/416417",
+  "modelName": "SwamPonyXL",
+  "publisher": "mmtrs",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "RentCivit"
+  ],
+  "allowDerivatives": false,
+  "allowDifferentLicense": true,
+  "description": "人物以外の生成は殆どテストしておりませんがおそらく ポンコツ です。相変わらず人物以外の生成テストは殆どしていませんが人物以外も 並 にイケるっぽいです。",
+  "publicUrl": "https://civitai.com/models/416417?modelVersionId=463958"
+}

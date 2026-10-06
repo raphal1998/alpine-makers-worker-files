@@ -1,0 +1,22 @@
+{
+  "sha256": "3e8f641d333b9df9629a2124103f2e58331eccd79c0220ee43cac4f81dc4f64e",
+  "retrievedAt": "2026-10-05T22:35:58.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/3e8f641d333b9df9629a2124103f2e58331eccd79c0220ee43cac4f81dc4f64e",
+  "versionId": 315557,
+  "versionName": "v1",
+  "modelId": 280195,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/280195",
+  "modelName": "Blank Canvas XL",
+  "publisher": "unidentified_author",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "If you like my work, feel free to buy me a coffee :) So I mashed together Fustercluck and ICBINP XL v3, and the end result is this stroke of luck, and I love it so much I'm sharing it with you all. This thing keeps the photorealism of ICBINP XL (minus the super detailed skin), while also keeping the cartoony goodness of Fustercluck. It also does a mean cgi 3d \"AniMerge\" style render, and can even dabble a bit into anime when prompted correctly For realism, use DPM++ 2M Karras and 2-4 cfg, for everything else I recommend DPM++ 3M Exponential and 5-7 CFG. 30 steps, and standard SDXL resolutions (1024x1024, 832x1216) The VAE-fix for fp16 has been baked into this model.",
+  "publicUrl": "https://civitai.com/models/280195?modelVersionId=315557"
+}

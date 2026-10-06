@@ -1,0 +1,21 @@
+{
+  "sha256": "3c5d7960a76dbc715ad1c4f2c4f948cd1f12ccd09d44cef243a7dd2cf82371bf",
+  "retrievedAt": "2026-10-05T22:35:21.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/3c5d7960a76dbc715ad1c4f2c4f948cd1f12ccd09d44cef243a7dd2cf82371bf",
+  "versionId": 261539,
+  "versionName": "v7.0",
+  "modelId": 8030,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/8030",
+  "modelName": "Analog Madness - Realistic model",
+  "publisher": "CornmeisterNL",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Check my exclusive model on Mage : Pony Madness Or try Mage for free and Unlimited!! <--- Thanks for using Analog Madness, if you like my models, please buy me a coffee ❤️ Check out my new model, Cartoon Madness !!! MANY thanks to Noneyabiz for creating an inpaint version for AMv6!!!!! [v6.0 update 2023-09-12] Another update, probably the last SD update. have fun with it! :) [v5.0 update] All images do contain meta data, but Civitai isn't showing them. Just save the image as a .jpg, and import in automatic1111 (PNG Info) Check out my other model! Chronos About Analog Madness A very versatile model, the more powerfull prompts you give, the better results. Capable of creating both NSFW and SFW images but also great scenery, both in landscape and portrait. Example prompt: hyper realistic gopro action photo of a beautiful 20yo Dutch girl with small breasts (looking at camera:1.3), windy, wearing old trashy worn torn out clothes, in a themepark, analog style, masterpiece, exposed breasts negative prompt: 3d max, grotesque, desaturated tnx to Hoblin for this negative prompt! Euler a, 25 to 35 steps, CFG7 Disclaimer: All characters on my images are 18+. No likeness to real people intended. No pixels were hurt during the production of this images.",
+  "publicUrl": "https://civitai.com/models/8030?modelVersionId=261539"
+}

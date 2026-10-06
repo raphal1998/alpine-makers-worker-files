@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : unstable-ink-dream
+Modèle : Unstable Ink Dream (fichier unstableinkdream.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Oosayam
+Attribution : Unstable Ink Dream — Oosayam
+Licence : Fiche de l'éditeur (licence déclarée : bigscience-openrail-m) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/Oosayam/UnstableSamInkDream
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 264966bd6cef691b2ae89240ceae6a9b15f9d5207a91b3cb3aa93cf418fe95fb
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Oosayam--UnstableSamInkDream--6bc2547d6f6e--README.md
+https://huggingface.co/Oosayam/UnstableSamInkDream/raw/6bc2547d6f6ef756ab943393372c77e327f49d82/README.md
+SHA-256 9c48445d239bd4bf1e8f6dc117393d673b8a3a0e9aba3787ea4c9f4bae058cd9
+Copie : legal_sources/Oosayam--UnstableSamInkDream--6bc2547d6f6e--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

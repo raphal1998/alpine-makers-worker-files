@@ -1,0 +1,21 @@
+{
+  "sha256": "bca71253f32d784d3cf4a8a334297c66fda32725a9399fedbd2ba9a8b306c5c3",
+  "retrievedAt": "2026-10-05T22:36:00.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/bca71253f32d784d3cf4a8a334297c66fda32725a9399fedbd2ba9a8b306c5c3",
+  "versionId": 541561,
+  "versionName": "v2.0",
+  "modelId": 359876,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/359876",
+  "modelName": "BlenderMix",
+  "publisher": "guy90",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "💰 Style Model Commissions Here -> CLICK ME 🖼️More Images on my Patreon -> CLICK ME 📧 Join my Discord -> CLICK ME ⭐If you like my work, leave a review. I really appreciate them!☑️ BlenderMix for Anima: https://civitai.red/models/2669019 BlenderMix for Illustrious: https://civitai.com/models/1720216 Also available on SeaArt This checkpoint should create a blender animation style look. Please read below for further instructions. Recommended settings: Sampler : Euler a, DPM++ 2S a, DPM++ 2M Karras Sampling Steps : 20+ CFG Scale: 7 I recommend using ADetailer to fix faces (Default settings should work fine, I personally use this model ) Recommended tags: Use 3d when generating for 3d results Use sidelighting , backlighting , depth of field and lens flare for better looking generations Model was merged using my loras ( Fugtrup , Nyl2 , RadRoachHD ) and AutismMix . I also added a tiny pinch of DucHaiten-GameArt to add some more consistency for 3d generations. 🌟 Please look at prompts used in example images for help!",
+  "publicUrl": "https://civitai.com/models/359876?modelVersionId=541561"
+}

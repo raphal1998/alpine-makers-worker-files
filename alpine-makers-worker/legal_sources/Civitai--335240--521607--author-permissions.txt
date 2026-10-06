@@ -1,0 +1,22 @@
+{
+  "sha256": "18b7586c94e8e410076df1b077d654e9ea07bbbd15ad8c8e14e13fd0666150ba",
+  "retrievedAt": "2026-10-05T22:39:25.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/18b7586c94e8e410076df1b077d654e9ea07bbbd15ad8c8e14e13fd0666150ba",
+  "versionId": 521607,
+  "versionName": "v2",
+  "modelId": 335240,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/335240",
+  "modelName": "Quiet Goodnight XL",
+  "publisher": "unidentified_author",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Rent",
+    "RentCivit",
+    "Image"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "[description de l'auteur non reprise ; voir la page officielle du modèle]",
+  "publicUrl": "https://civitai.com/models/335240?modelVersionId=521607"
+}

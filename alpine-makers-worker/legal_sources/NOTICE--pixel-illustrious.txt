@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : pixel-illustrious
+Modèle : Pixel Illustrious (fichier pixelIllustrious_v20.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Neural_Lens
+Attribution : Pixel Illustrious — Neural_Lens
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML Open RAIL++-M)
+Source officielle : https://civitai.com/models/1640992/pixel-illustrious
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : b5e5ab32e752a6d63f8844fc98c7da1b1b734aa0b7a8cb3ce08d4f21fd0e1135
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 2281791) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sdxl d'après la référence) : CreativeML Open RAIL++-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--1640992--2281791--author-permissions
+https://civitai.com/api/v1/models/1640992
+SHA-256 ad8f5109f1613b23913505b2466b39129ee3c0735597b3d7b35116c1bb65bee3
+Copie : legal_sources/Civitai--1640992--2281791--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

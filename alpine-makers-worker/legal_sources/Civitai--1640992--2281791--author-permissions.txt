@@ -1,0 +1,24 @@
+{
+  "sha256": "b5e5ab32e752a6d63f8844fc98c7da1b1b734aa0b7a8cb3ce08d4f21fd0e1135",
+  "retrievedAt": "2026-10-05T22:47:53.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/b5e5ab32e752a6d63f8844fc98c7da1b1b734aa0b7a8cb3ce08d4f21fd0e1135",
+  "versionId": 2281791,
+  "versionName": "v2.0",
+  "modelId": 1640992,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1640992",
+  "modelName": "Pixel Illustrious",
+  "publisher": "Neural_Lens",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Pixel Illustrious is a checkpoint that generates vivid and expressive pixel art in retro anime and cyber-fantasy styles. It’s ideal for creating striking female characters with eye-catching hairstyles, detailed costumes, futuristic accessories, and unique backgrounds—from neon-lit cities to blooming fields. This style excels at producing art reminiscent of 16- or 32-bit video games, with a soft color palette, glowing eyes, and a high level of emotional expression At certain moments the pixel does not fire. See trigger words. Samplers : Recommended: Sampler : Euler a Sampling Steps : 25-45 CFG Scale : 5-7",
+  "publicUrl": "https://civitai.com/models/1640992?modelVersionId=2281791"
+}

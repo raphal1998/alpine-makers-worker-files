@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : poison
+Modèle : Poison (fichier poison.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Fansy
+Attribution : Poison — Fansy
+Licence : Fiche de l'éditeur (licence déclarée : creativeml-openrail-m) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/Fansy/poison
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 0b25c515b9d060cb5afc5d3f4a05b039d5255fb27f65b647f7a87d49601d55e5
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Fansy--poison--ed00a1a3300e--README.md
+https://huggingface.co/Fansy/poison/raw/ed00a1a3300ecb30b15cea033f0268522ab19b51/README.md
+SHA-256 04610f59b385fb230885f6a250b511b415bf858a6ca819178816fdcd5347f3cb
+Copie : legal_sources/Fansy--poison--ed00a1a3300e--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

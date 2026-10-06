@@ -1,0 +1,25 @@
+{
+  "sha256": "b59a47e81c6b110dc02b8141928b44f2396928469f999f9228bc0920eb89de10",
+  "retrievedAt": "2026-10-05T22:38:17.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/b59a47e81c6b110dc02b8141928b44f2396928469f999f9228bc0920eb89de10",
+  "versionId": 6908,
+  "versionName": "LibertyMain",
+  "modelId": 5935,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/5935",
+  "modelName": "Liberty",
+  "publisher": "aine_captain",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "PLEASE READ DESCRIPTION Deprecated model, consider updating to: https://civitai.com/models/147363/requiem it is also licenseless Also, we now have an sponsor!! You can use Liberty model at their website without any hardware or installation requirements. You can also create fun animation on Mage with my mode !: https://www.mage.space/ Extremely NSFW biased model!!! But awesome at SFW too. Use it at your own risk of getting unprompted explicit images . This is not an easy to prompt model, nor the best one for begginers. According to one user: \" If you have the model-keyword extension make sure you uncheck it. It appends all the triggers words and results in complete nonsense results. Was getting super frustrated that even copy/pasting prompts gave me trash \". Check any info or questions at our private Discord here: https://discord.gg/z88HpDwbGq MODEL (there are two possibilities) : Liberty-Main: You should be using this model. It might not be the easiest one to prompt depending on your style. But you'll get used to it soon and is the most powerful one. Liberty-BadClip: This version uses a broken CLIP model in the same style aEros CLIP model was broken, so outputs are very different from main version. If you really know what you are doing, or you really don't want to change your prompting style from aEros and it performs bad in main version, or are getting general bad results with main one, etc... you could try this one. Keep in mind that some UIs have problems with broken CLIPS. Also that I won't continue or support this version of the model. VERSIONS (both models have 3 versions + 1 pix2pix version) : Standart: Intended for general use. It has VAE vae-ft-mse-840000-ema-pruuned.vae.pt baked in. There's no need to use any additional file. Inpainting: Intended to use in the inpainting section of the img2img tab, it is mixed with original SD 1.5 inpainting model and is much more coherent whith masking areas. Only select it for that purpose. There's no need to use any additional file. Pix2Pix: Main Version exclusive. Intended to be used as a pix2pix option of the img2img tab, it is mixed with original 1.5 pix2pix model. Only select it for that purpose. There's no need to use any additional file. Training: Intended to use in the Train tab, for embedding creation. It uses SD 1.5 original VAE baked in, so it doesn't deepfries embeddings. Only select it for that purpose. There's no need to use any additional file. All of the files are provided in ckpt and safetensors format for your convenience ;) ABOUT: Liberty is freedom. A merge with over 23 other models with a methodical, careful and genuine approach. Check 'CREDITS' section for the full list. Freedom of prompting art or photo or both, landscapes or backgrounds or interiors, people or entities or scenes, stiff poses or movement or even mouth and facial emotions, SFW or nudes or even hardcore sex. I tried to make it as versatile as possible and merged it with half CivitAI to get the most out of any free model out there. And it is free to use for any open source purpose, commercial or no t. All the models I used were licenseless when I grabbed them , although some have changed licenses afterwards. However it is also much more modular in it's development process, which means that if any problem arised, I could rebuild it much quickier to avoid getting chained to a license or other type of problems. HOW TO USE: This model does not need to use any of it's trigger words . They are a tool, and the knowledge of those trigger words is deeper known and better accesed directly. So ' a photo of a cyborg woman ' will work better than ' cyborgdiffusion, photo of a woman' , but you can also try ' cyborgdiffusion, photo of a cyborg woman ' or even ' cyborgdiffusion, photo of a knight woman ' for special and unique effects. If you want to get an idea of what they can help to achieve visit the 'CREDITS' section to check the models they come from. I mainly try natural language for my tests. You have a",
+  "publicUrl": "https://civitai.com/models/5935?modelVersionId=6908",
+  "descriptionTruncated": true
+}

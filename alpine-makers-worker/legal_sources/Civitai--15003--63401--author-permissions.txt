@@ -1,0 +1,24 @@
+{
+  "sha256": "542f61e09a006ebf72f2c348be2f13ea77bdd7c111325856a40c22cbe476bf3e",
+  "retrievedAt": "2026-10-05T22:56:11.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/542f61e09a006ebf72f2c348be2f13ea77bdd7c111325856a40c22cbe476bf3e",
+  "versionId": 63401,
+  "versionName": "v2.1",
+  "modelId": 15003,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/15003",
+  "modelName": "CyberRealistic",
+  "publisher": "Cyberdelia",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Join The Tinkerer on Whop. Membership gets you early releases, private tools and a bunch of extra stuff. 👉 Join on Whop 💬 Join the community for support, free tools and early news on Discord CyberRealistic is a flexible, easy-to-use photorealistic model built from nonstop testing, custom blends, and just the right amount of chaos. The backstory? It’s honestly a wild mashup of different checkpoints, but what really counts is what you get in the end: sharp, expressive, clean renders that just work. It’s tuned for both textual inversion and LoRA, so it’s great for anyone from total beginners to hardcore prompt wizards. If you’re making portraits, messing around with new styles, or just want a model that steps aside and does its job, CyberRealistic won’t let you down. ⚙️ Suggested Settings Sampling method: DPM++ SDE Karras / DPM++ 2M Karras VAE: is already Baked In Sampling steps: 30 Steps Resolution: 512x768 CFG: 5 Upscale: 2x Upscaler: 4x_NickelbackFS_72000_G Denoising strength: 0.3 🧠 Prompting Negative prompt examples lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry 💾 Backup & Resources backup location: huggingface ☕ Support the Project If this model helped you hit your vision faster, cleaner, or just plain better — consider [ buying me a coffee ]. It keeps the updates coming and the experiments wild. 💡 Need Better Prompts? This custom ChatGPT was made to top-tier prompts just for this model: 🔗 [ Try it now on ChatGPT ] ⚠️ Friendly Warning This model can generate mature content. Use responsibly. Respect laws, platforms, and people.",
+  "publicUrl": "https://civitai.com/models/15003?modelVersionId=63401"
+}

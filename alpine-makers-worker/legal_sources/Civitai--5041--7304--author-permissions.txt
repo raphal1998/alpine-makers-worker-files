@@ -1,0 +1,20 @@
+{
+  "sha256": "469820821518540111673d6ba590cf2010ea4bc4a758e47fcf2b1ae23408b016",
+  "retrievedAt": "2026-10-05T22:36:10.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/469820821518540111673d6ba590cf2010ea4bc4a758e47fcf2b1ae23408b016",
+  "versionId": 7304,
+  "versionName": "3.5",
+  "modelId": 5041,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/5041",
+  "modelName": "Cheese Daddy's Landscapes mix",
+  "publisher": "cheesedaddy",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Try out the Noise Offset version of the 2.0 and 3.5! Here If you like my work, consider buying me a coffee ☕ V4.1 (experimental): removed rev_animated added realistic vision fixed the model Recommendation: clip skip 1 (clip skip 2 sometimes generate weird images) 2:3 aspect ratio (512x768 / 768x512) or 1:1 (512x512) DPM++ 2M CFG 5-7 prompts that i always add: award winning photography, Bokeh, Depth of Field, HDR, bloom, Chromatic Aberration ,Photorealistic,extremely detailed, trending on artstation, trending on CGsociety, Intricate, High Detail, dramatic, art by midjourney, masterpiece, best quality, high quality,extremely detailed CG unity 8k wallpaper V4.0: added deliberate 2.0 added rev animated fixed hands with basil_mix V3.5: ADDED Pastel mix https://civitai.com/models/5414/pastel-mix-stylized-anime-model V3: ADDED AnythingV3 and fixed the model: https://civitai.com/models/66/anything-v3 RECOMMENDED VAE'S kl-f8-anime2 Anything-V3.0 RECOMMENDED LORA'S FOR BETTER RESULTS Jordan 3 dpep2 768 0.8 weight V2: ADDED Deliberate : https://civitai.com/models/4823/deliberate Roboetics: https://civitai.com/models/3738/roboetics-mix Inkpunk: https://civitai.com/models/1087/inkpunk-diffusion DreamShaper: https://civitai.com/models/4384/dreamshaper ChromaV5: https://huggingface.co/SomaMythos/ChromaV5 H&A's 3DKX 1.1: https://civitai.com/models/2504/handas-3dkx-11 Analog diffusion: https://civitai.com/models/1265/analog-diffusion The Ally's Mix: https://civitai.com/models/1202/the-allys-mix Tokens: Analog style, chromav5, nvinkpunk Chromav5 Keywords: Chromatic Aberration; Geometric Shapes; Bokeh; Depth of Field; Photorealistic; Cosmic; Detailed; Bloom; HDR",
+  "publicUrl": "https://civitai.com/models/5041?modelVersionId=7304"
+}

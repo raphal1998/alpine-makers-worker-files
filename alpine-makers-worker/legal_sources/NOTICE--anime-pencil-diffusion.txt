@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : anime-pencil-diffusion
+Modèle : Anime Pencil Diffusion (fichier AnimePencilArt.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : yehiaserag
+Attribution : Anime Pencil Diffusion — yehiaserag
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/yehiaserag/anime-pencil-diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : fbc9124ceb1a07d0b2551e326880cab4010557e3c70712c9251831d52aca3f97
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 20840) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+yehiaserag--anime-pencil-diffusion--3f9b86b54e09--README.md
+https://huggingface.co/yehiaserag/anime-pencil-diffusion/raw/3f9b86b54e092a86012df06e172f9f152c2b7edf/README.md
+SHA-256 1b4828336564a54052f51e01481583a86d4392ad6c5df3206cfaf2984f39640f
+Copie : legal_sources/yehiaserag--anime-pencil-diffusion--3f9b86b54e09--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1221--20840--author-permissions
+https://civitai.com/api/v1/models/1221
+SHA-256 114920b57719468bbcfe455ed2b9436cc14d993f07318f174af5f879f99893f8
+Copie : legal_sources/Civitai--1221--20840--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

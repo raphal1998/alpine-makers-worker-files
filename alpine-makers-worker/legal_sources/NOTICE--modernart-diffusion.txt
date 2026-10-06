@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : modernart-diffusion
+Modèle : ModernArt Diffusion (fichier ModernArt_Diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : theintuitiveye
+Attribution : ModernArt Diffusion — theintuitiveye
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/theintuitiveye/modernartstyle
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 9eb00d984c5c228651178eb8e025bef3d0be5d643851db9686083b5384d852da
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 3898) :
+allowCommercialUse : Image
+allowNoCredit : non ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+theintuitiveye--modernartstyle--1c4cf457995a--README.md
+https://huggingface.co/theintuitiveye/modernartstyle/raw/1c4cf457995addad4811392d4ace06a56833f4d1/README.md
+SHA-256 7b2feb0c5f1d99b0d613f6353cc178f1f640dafd15c1a5bb46ef1f21dfa753f2
+Copie : legal_sources/theintuitiveye--modernartstyle--1c4cf457995a--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--3519--3898--author-permissions
+https://civitai.com/api/v1/models/3519
+SHA-256 b22ac20e4b87a49870df503cda1bcfcb1bc642049534849097b6eee0c6571058
+Copie : legal_sources/Civitai--3519--3898--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

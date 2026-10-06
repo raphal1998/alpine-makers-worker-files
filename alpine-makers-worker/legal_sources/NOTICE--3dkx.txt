@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : 3dkx
+Modèle : 3DKX (fichier 3DKX.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : UNVAILai
+Attribution : 3DKX — UNVAILai
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/HavoAloe/3DKX_1.0b
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 522efa9a9b83dfe96aefaeecfb7e8c53222c5dde88ab9c37fd7bf0ea47655f14
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 4325) :
+allowCommercialUse : Image
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+unvailai--3DKX_1.0b--edd9379a654b--README.md
+https://huggingface.co/unvailai/3DKX_1.0b/raw/edd9379a654bfa740ccf8b1785f3569311dc5b89/README.md
+SHA-256 e5632fe3b986a794bacfa00cabe870d5d601b9a3f8e4e116423a7ffbf37167a1
+Copie : legal_sources/unvailai--3DKX_1.0b--edd9379a654b--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--2504--4325--author-permissions
+https://civitai.com/api/v1/models/2504
+SHA-256 1df4c02c144020220a956f9ee3ce9016ddd596358cf4efc4b8b234dbc5a849c5
+Copie : legal_sources/Civitai--2504--4325--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

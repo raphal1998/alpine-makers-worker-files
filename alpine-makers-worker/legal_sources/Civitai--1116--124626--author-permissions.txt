@@ -1,0 +1,22 @@
+{
+  "sha256": "bb7e29def5e64f1a303bf0d87195b7e88f4d463696b532c6cdfd109fbec4fd9e",
+  "retrievedAt": "2026-10-05T22:39:33.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/bb7e29def5e64f1a303bf0d87195b7e88f4d463696b532c6cdfd109fbec4fd9e",
+  "versionId": 124626,
+  "versionName": "v5",
+  "modelId": 1116,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1116",
+  "modelName": "RPG Series",
+  "publisher": "Anashel",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "[description de l'auteur non reprise ; voir la page officielle du modèle]",
+  "publicUrl": "https://civitai.com/models/1116?modelVersionId=124626"
+}

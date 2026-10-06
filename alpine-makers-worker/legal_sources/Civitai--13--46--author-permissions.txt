@@ -1,0 +1,24 @@
+{
+  "sha256": "d3c225cbc2e0ed3ac8032e05e6fabe5acfe81e2e3d18e23389e84b9cb5ce127f",
+  "retrievedAt": "2026-10-05T22:36:15.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/d3c225cbc2e0ed3ac8032e05e6fabe5acfe81e2e3d18e23389e84b9cb5ce127f",
+  "versionId": 46,
+  "versionName": "v2",
+  "modelId": 13,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/13",
+  "modelName": "Comic Diffusion",
+  "publisher": null,
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "IF YOU ARE THE CREATOR OF THIS MODEL PLEASE CONTACT US TO GET IT TRANSFERRED TO YOU! Created by ogkalu, originally uploaded to huggingface Western Comic book styles are almost non existent on Stable Diffusion. This was trained with James Daly 3's work. He is not affiliated with this. The correct token is comicmay artsyle. Originally posted on Hugging Face by ogkalu",
+  "publicUrl": "https://civitai.com/models/13?modelVersionId=46"
+}

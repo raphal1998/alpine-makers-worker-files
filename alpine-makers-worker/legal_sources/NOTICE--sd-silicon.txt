@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : sd-silicon
+Modèle : SD-Silicon (fichier SD-Silicon.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Xynon
+Attribution : SD-Silicon — Xynon
+Licence : Fiche de l'éditeur (licence déclarée : creativeml-openrail-m) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/Xynon/SD-Silicon
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 7288e03c24b76e91fea215b9fe64b87d8db44caedd4803656499c156ca3fe0a5
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Xynon--SD-Silicon--248976c6a1b7--README.md
+https://huggingface.co/Xynon/SD-Silicon/raw/248976c6a1b70526b9faebaa197ee04104bc56ef/README.md
+SHA-256 02e931f8d951bcc5d0e9c6ad0f635ef156e772208958037bb591a3fba9a0d36b
+Copie : legal_sources/Xynon--SD-Silicon--248976c6a1b7--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

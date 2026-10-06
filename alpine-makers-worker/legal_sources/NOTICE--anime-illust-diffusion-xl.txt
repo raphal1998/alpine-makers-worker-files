@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : anime-illust-diffusion-xl
+Modèle : Anime Illust Diffusion XL (fichier anime_illust_diffusion_xl.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Euge_
+Attribution : Anime Illust Diffusion XL — Euge_
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML Open RAIL++-M)
+Source officielle : https://civitai.com/models/124189
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 1813371de528253288eb8de8b2cc3674c79b6fc854ec7370583bd528706646d1
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 318932) :
+allowCommercialUse : Image, RentCivit
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sdxl d'après la référence) : CreativeML Open RAIL++-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--124189--318932--author-permissions
+https://civitai.com/api/v1/models/124189
+SHA-256 1e22f47e481ed1e1f396fe64bbf476d3e319cb5ef09213c62916856cff53f1ae
+Copie : legal_sources/Civitai--124189--318932--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,20 @@
+{
+  "sha256": "9eb00d984c5c228651178eb8e025bef3d0be5d643851db9686083b5384d852da",
+  "retrievedAt": "2026-10-05T22:38:37.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/9eb00d984c5c228651178eb8e025bef3d0be5d643851db9686083b5384d852da",
+  "versionId": 3898,
+  "versionName": "modernartstyle_v1",
+  "modelId": 3519,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/3519",
+  "modelName": "modernartstyle",
+  "publisher": "theintuitiveye",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "generate modern art style images with this model. trigger word is not needed for majority of prompts; use \"modernartst\" to force the style",
+  "publicUrl": "https://civitai.com/models/3519?modelVersionId=3898"
+}

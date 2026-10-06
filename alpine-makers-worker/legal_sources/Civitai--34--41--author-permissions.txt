@@ -1,0 +1,24 @@
+{
+  "sha256": "d7fb6396ab39b73019f37040977e15ec76a2548372daa534f9ac44b61c3d9548",
+  "retrievedAt": "2026-10-05T22:35:10.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/d7fb6396ab39b73019f37040977e15ec76a2548372daa534f9ac44b61c3d9548",
+  "versionId": 41,
+  "versionName": "v1",
+  "modelId": 34,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/34",
+  "modelName": "All in one Pixel Model",
+  "publisher": "PublicPrompts",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Originally uploaded to PublicPrompts you can support my work on Buy Me A Coffee",
+  "publicUrl": "https://civitai.com/models/34?modelVersionId=41"
+}

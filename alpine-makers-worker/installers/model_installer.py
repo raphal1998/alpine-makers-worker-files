@@ -13,7 +13,8 @@ from pathlib import Path
 
 if __package__:
     from .. import worker_legal as legal_compliance, local_sandbox
-    from .model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS
+    from .model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS, COMFYUI_KEY_SOURCES
+    from . import asset_installer
     from .transfer_progress import progress, TransferProgress, huggingface_progress_class
     from ..safety import is_link, remove_worker_file, remove_worker_tree
     from ..storage_paths import WorkerStorage
@@ -27,7 +28,8 @@ else:
     from safety import is_link, remove_worker_file, remove_worker_tree
     from storage_paths import WorkerStorage
     from hardware_profiles import detect_hardware, runtime_profile, model_hardware_error
-    from model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS
+    from model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, HUNYUAN_CATALOG, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_SNAPSHOTS, AI3D_BACKENDS, COMFYUI_KEY_SOURCES
+    import asset_installer
 
 
 def python_in(environment):
@@ -111,7 +113,56 @@ def refuse_oversized_download(partial, comfy_root, expected_size):
     raise SystemExit(message)
 
 
-def download_catalog_checkpoint(url, partial, destination, expected_size, expected_hash, comfy_root, model_id):
+KEY_SOURCE_LABELS = {"civitai": "CivitAI"}
+
+
+class _KeySourceResponse:
+    """Réponse d'une source à clé, avec l'interface dont download_catalog_checkpoint se sert (urllib)."""
+
+    def __init__(self, response):
+        self._response, self.status = response, response.status
+        self.headers = self
+
+    def get(self, name, default=None):
+        return self._response.header(name, "") or default
+
+    def read(self, amount):
+        return self._response.read(amount)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self._response.close()
+
+
+def open_key_source(url, headers, provider, token, *, open_url=None):
+    """Ouvre un fichier épinglé chez une source à clé (CivitAI) : chaque saut est revérifié par asset_installer
+    (hôte public autorisé, https) et la clé n'est envoyée qu'à l'hôte de la source, jamais au serveur de fichiers
+    vers lequel elle redirige. Un refus devient une urllib.error.HTTPError, comme pour une source ordinaire."""
+    try:
+        response = (open_url or asset_installer.guarded_open)(url, headers, provider=provider, token=token, timeout=120)
+    except asset_installer.AssetError as error:
+        raise SystemExit(f"Téléchargement {KEY_SOURCE_LABELS.get(provider, provider)} refusé : {error}") from error
+    if response.status >= 400:
+        status = response.status
+        response.close()
+        raise urllib.error.HTTPError(url, status, "refus de la source", None, None)
+    return _KeySourceResponse(response)
+
+
+def key_source_refusal(provider, code, has_token):
+    label = KEY_SOURCE_LABELS.get(provider, provider)
+    if code in (401, 403):
+        return (f"{label} refuse ce téléchargement (HTTP {code}) : vérifie ta clé {label} dans Mes APIs, puis relance l’installation."
+                if has_token else
+                f"{label} réserve ce fichier aux comptes connectés (HTTP {code}) : enregistre ta clé {label} dans Mes APIs, puis relance l’installation.")
+    if code == 404:
+        return f"{label} ne publie plus ce fichier (HTTP 404) : la version épinglée a été retirée par son auteur."
+    return f"{label} a refusé le téléchargement (HTTP {code})."
+
+
+def download_catalog_checkpoint(url, partial, destination, expected_size, expected_hash, comfy_root, model_id, *, key_provider="", token="", open_url=None):
     attempts = max(1, min(10, int(os.getenv("ALPINE_DL_RETRY_ATTEMPTS") or 4)))
     backoff = max(0.0, float(os.getenv("ALPINE_DL_RETRY_BACKOFF") or 3))
     expected_size = max(0, int(expected_size or 0))
@@ -120,9 +171,12 @@ def download_catalog_checkpoint(url, partial, destination, expected_size, expect
         wait = backoff * attempt
         offset = partial.stat().st_size if partial.is_file() else 0
         require_download_space(destination.parent, max(0, expected_size - offset))
-        request = urllib.request.Request(url, headers={"User-Agent": "AlpineMakersWorker/1.0", **({"Range": f"bytes={offset}-"} if offset else {})})
+        request_headers = {"User-Agent": "AlpineMakersWorker/1.0", **({"Range": f"bytes={offset}-"} if offset else {})}
         try:
-            download_response = urllib.request.urlopen(request, timeout=120)
+            if key_provider:
+                download_response = open_key_source(url, request_headers, key_provider, token, open_url=open_url)
+            else:
+                download_response = urllib.request.urlopen(urllib.request.Request(url, headers=request_headers), timeout=120)
         except urllib.error.HTTPError as error:
             # A crash after the final chunk but before rename leaves a complete partial
             # file. Range EOF (416) must validate/reuse it instead of failing forever.
@@ -136,6 +190,8 @@ def download_catalog_checkpoint(url, partial, destination, expected_size, expect
             if error.code in RETRYABLE_HTTP_CODES and not last:
                 progress(5, f"Service de téléchargement occupé (HTTP {error.code}) ; reprise de {model_id}…")
                 time.sleep(wait); continue
+            if key_provider:
+                raise SystemExit(key_source_refusal(key_provider, error.code, bool(token))) from error
             raise
         except (urllib.error.URLError, OSError) as error:
             if last:
@@ -502,5 +558,11 @@ if destination.is_file() and action == "install":
         print(f"{model_id} déjà installé et vérifié.")
         legal_compliance.record_notices(root, legal_decision)
         raise SystemExit(0)
-download_catalog_checkpoint(url, partial, destination, expected_size, expected_hash, comfy_root, model_id)
+# Source à clé (CivitAI) : la clé du propriétaire arrive par l'environnement du processus, lue une seule fois et
+# retirée aussitôt ; elle n'est ni journalisée ni écrite sur disque.
+key_provider = COMFYUI_KEY_SOURCES.get(model_id, "") if catalog is COMFYUI_CATALOG else ""
+key_token = os.environ.pop("ALPINE_ASSET_TOKEN", "") if key_provider else ""
+os.environ.pop("ALPINE_ASSET_TOKEN", None)
+download_catalog_checkpoint(url, partial, destination, expected_size, expected_hash, comfy_root, model_id,
+                            key_provider=key_provider, token=key_token)
 legal_compliance.record_notices(root, legal_decision)

@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : ghostmix
+Modèle : GhostMix (fichier ghostmix.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : _GhostInShell_
+Attribution : GhostMix — _GhostInShell_
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://civitai.com/models/36520/ghostmix
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : d7465e52e17ef26f6c2c77be64f569afbd849dcf111fa78cc6c577ec9c159e1d
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 59685) :
+allowCommercialUse : RentCivit, Rent
+allowNoCredit : non ; allowDerivatives : non ; allowDifferentLicense : non
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--36520--59685--author-permissions
+https://civitai.com/api/v1/models/36520
+SHA-256 a652537ac542914ac3a18c55e2d3ca061a9e3de2322705b7ed91049f0ad1f043
+Copie : legal_sources/Civitai--36520--59685--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

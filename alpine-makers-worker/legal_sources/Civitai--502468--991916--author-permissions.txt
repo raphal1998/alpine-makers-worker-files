@@ -1,0 +1,23 @@
+{
+  "sha256": "6c77be501b95da35528431c224ccfb51b0ae948857431b3556db64e213cc1edf",
+  "retrievedAt": "2026-10-05T22:35:55.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/6c77be501b95da35528431c224ccfb51b0ae948857431b3556db64e213cc1edf",
+  "versionId": 991916,
+  "versionName": "v2.0",
+  "modelId": 502468,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/502468",
+  "modelName": "bigASP 🐍",
+  "publisher": "nutbutter",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "bigASP 🐍 v2.0 A photorealistic SDXL finetuned from base SDXL on over 6 MILLION high quality photos for 40 million training samples. Every photo was captioned using JoyCaption and tagged using JoyTag . This imbues bigASP 🐍 with the ability to understand a wide range of prompts and concepts, from short and simple to long and detailed, while generating high quality photographic results. This is now the second version of bigASP 🐍. I'm excited to see how the community uses this model and to learn its strengths and weaknesses. Please share your gens and feedback! Features Both Natural Language and Tag based prompting : Version 2 now understands not only booru-style tags, but also natural language prompts, or any combination of the two! SFW and NSFW: This version of bigASP 🐍 includes 2M SFW images and 4M NSFW images. Dress to impress? Or undress to impress? You decide. Diversity : bigASP 🐍 is trained on an intentionally diverse dataset, so that it can handle generating all the colors of our beautiful species, in all shapes and sizes. Goodbye same-face ! Aspect ratio bucketing : Widescreen, square, portrait, bigASP 🐍 is ready to take it all. High quality training data : Most of the training data consists of high quality, professional grade photos with resolutions well beyond SDXL's native resolution, all downloaded in their original quality with no additional compression. bigASP 🐍 won't miss a single pixel. Large prompt support : Trained with support for up to 225 tokens in the prompt. It is BIG asp, after all. (Optional) Aesthetic/quality score : Like version 1, this model understands quality scores to help improve generations, e.g. add score_7_up , to the start of your prompt to guide the quality of generations. More details below. What's New (Version 2) Added natural language prompting , greatly expanding the ability to control the model, resolve a lot of complaints about v1, and lots, lots more concepts can now be understood by the model. Over 3X more images . 6.7M images in version 2 versus 1.5M in version 1. SFW support . I added 2M SFW images to the dataset, both so bigASP can be more useful as well as expanding its range of understanding. In my testing so far, bigASP is excellent at nature photography. Longer training . Version 1 felt a bit undertrained. Version 2 was trained for 40M samples versus 30M in version 1. This seems to have tighten up the model quite a bit. Score tags are now optional! They were randomly dropped during training, so the model will work just fine even when they aren't specified. Updated quality model. I updated the model used to score the images, both to improve it slightly and to handle the new range of data. In my experience the range of \"good\" images is now much broader, starting from score_5. So you can be much more relaxed in what scores you prompt for and hopefully get even more variety in outputs than before. More male focused data. It may come as a surprise to many, but nearly 50% of the world population is male! Kinda weird to have them so underrepresented in our models! Version 2 has added a good chunk more images focused on the male form. There's more work to be done here, but it's better than v1. Recommended Settings Sampler: DPM++ 2M SDE or DPM++ 3M SDE Schedule: Kerras or Exponential. ⚠️ WARNING ⚠️ Normal schedule will cause garbage outputs. Steps : 40 CFG : 2.0 or 3.0 Perturbed Attention Guidance (available in at least ComfyUI), can help sometimes so I recommend giving it a try. It is especially helpful for faces and more complex scenes. However it can easily overcook an image, so turn down CFG when using PAG. ⚠️ WARNING ⚠️ If you're coming from Version 1, this version has much lower recommended CFG settings. Supported resolutions (with image count for reference): 832x1216: 2229287 1216x832: 2179902 832x1152: 762149 1152x896: 430643 896x1152: 198820 1344x768: 185089 768x1344: 145989 1024x1024: 102374 1152x832: 70110 1280x768: 58728 768x1280: 42345 896x1088: 40613 1344x704: 31708 704x134",
+  "publicUrl": "https://civitai.com/models/502468?modelVersionId=991916",
+  "descriptionTruncated": true
+}

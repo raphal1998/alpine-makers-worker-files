@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : sci-fi-diffusion
+Modèle : Sci-Fi Diffusion (fichier Sci-Fi_Diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Corruptlake
+Attribution : Sci-Fi Diffusion — Corruptlake
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/Corruptlake/Sci-Fi-Diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : cd73c52cd00b9b40cad916cd1ea6f205146ece332dbeba21733902cc8c351f1b
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 4980) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Corruptlake--Sci-Fi-Diffusion--f5433aefc91c--README.md
+https://huggingface.co/Corruptlake/Sci-Fi-Diffusion/raw/f5433aefc91c57bb37a899e1e243822cedad23e6/README.md
+SHA-256 7cf26f8de3002f00b429222e55e0e0f42426862a1e2cc3a92c0bba78e4b41b65
+Copie : legal_sources/Corruptlake--Sci-Fi-Diffusion--f5433aefc91c--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--4404--4980--author-permissions
+https://civitai.com/api/v1/models/4404
+SHA-256 5579eac2d222b5f273f9776b19f9e4777e0b01467ac641282b944876325d1ecc
+Copie : legal_sources/Civitai--4404--4980--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

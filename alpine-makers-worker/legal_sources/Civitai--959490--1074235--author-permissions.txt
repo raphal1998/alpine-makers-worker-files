@@ -1,0 +1,22 @@
+{
+  "sha256": "71f6653377759bff3565e8a723ef6238f16e5c05b7613c1e93fba6d529e80802",
+  "retrievedAt": "2026-10-05T22:37:53.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/71f6653377759bff3565e8a723ef6238f16e5c05b7613c1e93fba6d529e80802",
+  "versionId": 1074235,
+  "versionName": "v1",
+  "modelId": 959490,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/959490",
+  "modelName": "Holy Mix [illustriousXL] High contrast anime checkpoint",
+  "publisher": "holostrawberry",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "🕊️ This model uses illustrious XL as a base instead of Pony XL. This comes with several advantages: A lot more characters and concepts, artist tags, and increased accuracy More varied and detailed backgrounds (pony was trained without backgrounds) Multiple characters in the same image Sadly this also means most Pony Loras won't work. Positive prompt : masterpiece, best quality Negative prompt : worst quality, low quality, lowres, jpeg artifacts, bad anatomy, bad hands, watermark CFG Scale : 6, or 5 for lower contrast Additional Information I didn't use any Loras or regional prompter in the previews. The style is different compared to Honey Mix. Flat shading was desired. The model showcases high visual fidelity (specially with hires fix). Contrast is even higher than Honey Mix, and it may be more or less vibrant depending on the image. Some people may think it's too much, but I like it. Hands are very good, but AI is AI, so it won't be perfect every time. NSFW is also great, all your kinkiest tags are probably built-in, but I didn't focus on it in the previews. ADetailer is recommended to make faces more detailed, like always. This model is a merge of WAI-NSFW 6.0 , Spatter 2DV2 , PaSanctuary 2.5 , and my own little special sauce. Thanks @PotatCat for the help. Check out my new website, a comfy place where experienced AI artists and model creators can share their work: https://arcenciel.io",
+  "publicUrl": "https://civitai.com/models/959490?modelVersionId=1074235"
+}

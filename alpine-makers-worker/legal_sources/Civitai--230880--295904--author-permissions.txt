@@ -1,0 +1,24 @@
+{
+  "sha256": "4a200332e753f71e0b432c9e32a2d1899c15d681c83f094eab00dfbd93c64421",
+  "retrievedAt": "2026-10-05T22:37:25.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/4a200332e753f71e0b432c9e32a2d1899c15d681c83f094eab00dfbd93c64421",
+  "versionId": 295904,
+  "versionName": "v2",
+  "modelId": 230880,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/230880",
+  "modelName": "Fustercluck",
+  "publisher": "unidentified_author",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "[description de l'auteur non reprise ; voir la page officielle du modèle]",
+  "publicUrl": "https://civitai.com/models/230880?modelVersionId=295904"
+}

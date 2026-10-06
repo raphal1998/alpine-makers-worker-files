@@ -1,0 +1,20 @@
+{
+  "sha256": "e31a2563f0749cb4351a4a024780c025b9242e08a3a458f3b83a4b8516bd194b",
+  "retrievedAt": "2026-10-05T22:39:18.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/e31a2563f0749cb4351a4a024780c025b9242e08a3a458f3b83a4b8516bd194b",
+  "versionId": 828380,
+  "versionName": "v3",
+  "modelId": 439889,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/439889",
+  "modelName": "Prefect Pony XL",
+  "publisher": "Goofy_Ai",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "RentCivit"
+  ],
+  "allowDerivatives": false,
+  "allowDifferentLicense": true,
+  "description": "If you like my work, drop a 5 review and hit the heart icon. it's free and keeps me motivated All my models are officially hosted and maintained by me on Tensor.art . use my Exclusive and public model for free on tensor.art v5.0 civitai onsite generation enabled : 04/01/25 v5.0 final release : 01/01/25 v5.0 pre relelase update : 25/12/24 Check tensor.art for V1,V2,V3 online generation support You can run Prefect Pony XL and use its API on SinkIn currently, only v5 and v4 are available for civitai generation. v3,v2,v1 are retired from civitai generation. check other version details for alternative on site generation service. WIP: Realistic V5 Update : onsite generation : https://tensor.art/models/815661199413897287 pre-release : https://tensor.art/models/810892802167877454 Added trained Lora Cleaned style Baked in VAE Extra trained data of 15000 steps Better Lora support. V4 Update : onsite generation : https://tensor.art/models/794513755405953653/Prefect-Pony-XL-v4 Added trained Lora Cleaned style Baked in VAE Extra trained data of 15000 steps Better Lora support. V3 Update : onsite generation https://tensor.art/models/772139385270444718 added some style to it should give better face and eyes better NSFW supports wide range of Lora support V1 lightning : 8-steps DPM++ 2M V2 update: onsite generation https://tensor.art/models/754887012743423435 has less style influence can work with wide range of loras better anatomy better color V1 update: On site generation closed for v1 on civitai for limitation of civitai. try tensor.art if you want to use the online generation for v1 https://tensor.art/models/724940954567461228/Prefect-Pony-XL-v1.0 If you like my work then drop a 5 review and hit the heart icon. it's free and keeps me motivated Suggested settings: I had CLIP skip 2 on every image I had ENSD : 31337 all of them All of them had highres.fix or img2img at higher resolution. I don't use restore faces I use afterdetailer for face details Tiled diffusion for img2img upscaling and sometimes Noise Inversion for some more extra details. 4x-Ultrasharp upscaler NOTE: if you find any prompt of the preview images look familiar it's because I've taken them from other model review images, Credits to the original authors. Thanks for the benchmark. Commission open in Patreon . Get early access and Exclusive NSFW Lora in my Patreon . Support my work by joining any one of them and get early access to all my upcoming loras and other perks such as fan requests and Discord role. Join my Discord Server",
+  "publicUrl": "https://civitai.com/models/439889?modelVersionId=828380"
+}

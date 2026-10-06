@@ -79,6 +79,22 @@ def asset_kind(value):
     return kind
 
 
+# Agent 1.45.0 : un checkpoint complet (modèle de génération) s'installe par adresse depuis une fiche ajoutée par le
+# responsable du site (Panel Admin → Gestion des modèles). Il reste hors de ASSET_KINDS : il n'entre ni dans le relevé
+# des ressources ni dans le LoRA Manager ; le relevé des modèles (agent.py) le voit comme tout fichier de checkpoints/.
+CHECKPOINT_CAPABILITY = "comfyui_checkpoint_asset_v1"
+CHECKPOINT_KIND = "checkpoint"
+INSTALL_KINDS = {**ASSET_KINDS, CHECKPOINT_KIND: {"folder": "checkpoints", "label": "Checkpoint", "max_bytes": 24 * 1024**3}}
+
+
+def install_kind(value):
+    """Type installable par descripteur : les ressources additionnelles, plus le checkpoint complet."""
+    kind = str(value or "").strip().lower()
+    if kind not in INSTALL_KINDS:
+        raise AssetError("Type de ressource inconnu.")
+    return kind
+
+
 def read_safetensors_header(path, limit=HEADER_LIMIT):
     """(métadonnées, {tenseur: forme}) d'un fichier safetensors, sans lire les poids.
 

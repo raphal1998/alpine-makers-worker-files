@@ -1,0 +1,24 @@
+{
+  "sha256": "6f63189540752b5c5bc70c7bcf4a6facd332ee3ce891ee57a6cf01dd0421aada",
+  "retrievedAt": "2026-10-05T22:56:25.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/6f63189540752b5c5bc70c7bcf4a6facd332ee3ce891ee57a6cf01dd0421aada",
+  "versionId": 39,
+  "versionName": "v1",
+  "modelId": 32,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/32",
+  "modelName": "Deep Space Diffusion",
+  "publisher": "dal_mac",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Model Created by Dallinmackay, uploaded to HuggingFace This is a fine-tuned Stable Diffusion model (based on v1.5) trained on images taken by the James Webb Space Telescope , as well as Judy Schmidt. Use the token JWST in your prompts to use the style (e.g., \"jwst, green spiral galaxy\").",
+  "publicUrl": "https://civitai.com/models/32?modelVersionId=39"
+}

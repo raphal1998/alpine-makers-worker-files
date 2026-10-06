@@ -1,0 +1,24 @@
+{
+  "sha256": "93d27720391c3028ad1dd897a17468b1c993e14bfadebcebd103672c2ca62ea1",
+  "retrievedAt": "2026-10-05T22:56:05.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/93d27720391c3028ad1dd897a17468b1c993e14bfadebcebd103672c2ca62ea1",
+  "versionId": 16,
+  "versionName": "V1",
+  "modelId": 16,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/16",
+  "modelName": "Classic Animation Diffusion",
+  "publisher": null,
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "IF YOU ARE THE CREATOR OF THIS MODEL PLEASE CONTACT US TO GET IT TRANSFERRED TO YOU! This is the fine-tuned Stable Diffusion model trained on screenshots from a popular animation studio. Use the tokens classic disney style in your prompts for the effect.",
+  "publicUrl": "https://civitai.com/models/16?modelVersionId=16"
+}

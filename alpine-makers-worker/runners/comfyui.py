@@ -137,6 +137,9 @@ def _run_job(job, workdir, state):
     state.update(prefix=prefix)
     # Génération ou Labo image (agent 1.39.0) : chaque famille de graphes a son validateur, choisi par le job.
     parameters = validate_comfyui_job_parameters(job.get("parameters"), output_prefix=prefix)
+    if "workflow" not in parameters:
+        # Restauration des visages (agent 1.44.0) : pas un graphe ComfyUI, calculée par runners/face_restore.py.
+        raise ValueError("Ce calcul du Labo image n’est pas un graphe ComfyUI : il relève du lanceur de restauration des visages.")
     workflow = parameters["workflow"]
     server = comfyui_server_url()
     root = Path(os.getenv("COMFYUI_ROOT") or workdir.parent.parent / "components" / "comfyui").resolve()

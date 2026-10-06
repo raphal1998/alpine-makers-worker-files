@@ -1,0 +1,21 @@
+{
+  "sha256": "5a8bfcfdd17c96ac2b2ee68d8a916e88bf03c426475f5524d13eb0959c66bcde",
+  "retrievedAt": "2026-10-05T22:35:51.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/5a8bfcfdd17c96ac2b2ee68d8a916e88bf03c426475f5524d13eb0959c66bcde",
+  "versionId": 82523,
+  "versionName": "v7.0",
+  "modelId": 17649,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/17649",
+  "modelName": "BB95 Furry Mix",
+  "publisher": "Bumblebee95",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "IL v2.3 : New version, more flexibility. Better than IL v1 This version don't have a baked in VAE. I recommend to use SDXL VAE Please consider supporting me so I can continue to make more models --> https://www.patreon.com/BB95FurryMix Don't forget to join the Furry Diffusion discord server --> https://discord.gg/furrydiffusion Since v3, this model uses e621 tags. This model is a mix of various furry models. It's doing well on generating photorealistic male and female anthro, SFW and NSFW. I HIGHLY recommend to use Hires Fix to have better results Below is an example prompt for the v7/v6/v5/v4/v3/v2. Positive : anthro (white wolf), male, adult, muscular, veiny muscles, shorts, tail, (realistic fur, detailed fur texture:1.2), detailed background, outside background, photorealistic, hyperrealistic, ultradetailed, Negative : I recommend to use deformityv6 and boring_e621_fluffyrock_v4, you can add bad-hands-v5 if you want Settings 1.5 : Steps: 30-150 Sampler: DPM++ 3M Karras, DDIM, UniPC or Euler A CFG scale: 7-14 Size: from 512x512 to 750x750 (only v4/v5/v6/v7/v8/v9), up to 900x900 for v10/v11/v12 Denoising strength: 0.6 Clip skip: 1 Hires upscale: 2 Hires steps: 30-150 Hires upscaler: Latent (nearest) Settings XL : Steps: Below 30 Sampler: Euler A CFG scale: 3-6 Size: 1024x1024 Denoising strength: 0.2 Clip skip: 1 Hires upscale: 2 Hires steps: Below 30 Hires upscaler: Remacri",
+  "publicUrl": "https://civitai.com/models/17649?modelVersionId=82523"
+}

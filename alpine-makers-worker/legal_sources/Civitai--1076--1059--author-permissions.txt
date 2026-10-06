@@ -1,0 +1,25 @@
+{
+  "sha256": "55e74e95128f50033d0c1306fe8768cf319fc8d3436398b86b7e852ab58fcac6",
+  "retrievedAt": "2026-10-05T22:37:17.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/55e74e95128f50033d0c1306fe8768cf319fc8d3436398b86b7e852ab58fcac6",
+  "versionId": 1059,
+  "versionName": "140k",
+  "modelId": 1076,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1076",
+  "modelName": "Fantasy Card Diffusion",
+  "publisher": null,
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Originally posted to HuggingFace by volrath50 A comprehensive Stable Diffusion model for generating fantasy trading card style art, trained on all currently available Magic: the Gathering card art (~35k unique pieces of art) to 140,000 steps, using Stable Diffusion v1.5 as a base model. Has a strong understanding of MTG Artists, planes, sets, colors, card types, creature types and much more.For a guide on using the model, scroll down belowFeatures Incorporate the styles of artists you know and love from Magic: the Gathering Produce art that looks like it is from a given MtG plane, set or year Create fantasy creatures in the style as they exist in Magic the Gathering Draw fantasy creature types that are unique to MtG (like Eldrazi) Use well known MTG characters (such as the planeswalkers) Draw real-world or non-MtG characters, in the style of MTG art Mix and match all of the above Using the Model The model was trained on MtG card information, not art descriptions. This has the effect of preserving most non-MtG learning intact, allowing you to mix MtG card terms with an art description for great customization. Each card was trained with card information pulled from Scryfall in the following format: MTG card art, [Card Name], by [Artist], [year], [colors (words)], [colors (letters)], [card type], [rarity], [set name], [set code], [plane], [set type], [watermark], [mana cost], [security stamp], [power/toughness], [keywords], [promo type], [story spotlight] A few examples of actual card data in this format: MTG card art, Ayula, Queen Among Bears, by Jesper Ejsing, 2019, Green, G, Legendary Creature - Bear, rare, Modern Horizons, mh1, draft_innovation, 1G, None, 2/2, Fight, MTG card art, Force of Will, by Terese Nielsen, 1996, Blue, U, Instant, uncommon, Alliances, all, Dominaria, Terisiare, Ice Age, expansion, 3UU, To briefly explain some of the entries: Every card art is tagged at the start with \"MTG card art\". Usually you want to use this. It does generalize the image a bit, however. Experiment with using it and not using it. Sometimes, if you are having trouble making something look distinctly \"Tarkir\" or something, taking off this tag can help de-generalize the art. In a similar fashion, the more general the tag is (ie, rarity, the word \"legendary\", etc.), the more of a generalizing effect it has on the image. Play around and find out. Artist: Every artist name is preceded in the training data with the word \"by\", as in \"by Mark Tedin\". The model has a really good understanding of the styles of MtG artists - that's actually how this project started. My exposure to art, frankly, is mostly through Magic: the Gathering, and back in August, was finding that the base Stable Diffusion model just did not have a great understanding of a lot of the artists I was trying to draw from, with some exceptions (Greg Rutkowski, of course, and Rebbecca Guay are well represented in the base Stable Diffusion model.) Even if not trying to create MtG-style art, this model should be great for using the art styles of MtG artists. It also works really well to mix artist styles. See the \"Innistrad Moon Goddess\" example below, where I used six different artist styles with varying weights to create the look I was going for. Set type: this is usually \"expansion\". Other possibilities are \"core\", \"funny\", and some other. You can check the Scryfall API documents for more information. Security stamp: I translated some of these for ease of use. The main two of note are \"acorn\" and \"universes beyond\". There are a few other rare stamps, like one for the My Little Pony cards. Story Spotlight: cards that are a story spotlight are tagged as such. This wasn't really worth including, and I'll probably take it out of a future version of the model. Pretty much every tag from normal Stable Diffusion still works as expected (ie, extremely detailed, intricate details). I've found adding \"beautiful composition\" tends to make things look nice, but I'm sure everyone has their ",
+  "publicUrl": "https://civitai.com/models/1076?modelVersionId=1059",
+  "descriptionTruncated": true
+}

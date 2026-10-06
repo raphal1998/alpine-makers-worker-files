@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : zeipher-female-model
+Modèle : Zeipher Female Model (fichier f222.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : thecollector
+Attribution : Zeipher Female Model — thecollector
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/Reachout/F222
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 9e2c6ceff3f6d6f65c6fb0e10d8e69d772871813be647fd2ea5d06e00db33c1f
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 1224) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Reachout--F222--5e6380dcdbab--README.md
+https://huggingface.co/Reachout/F222/raw/5e6380dcdbab65d9b7f2a5d9c84ae1409724a6ab/README.md
+SHA-256 2f9f8b48474a03729c7df7ddc72670ea982fc646af5f33d99ba76bc0835a2e81
+Copie : legal_sources/Reachout--F222--5e6380dcdbab--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1188--1224--author-permissions
+https://civitai.com/api/v1/models/1188
+SHA-256 c2feb5ea412c6031a3967fadea73ff6e75d22f0ebe2e75b0ed2793737bef9d97
+Copie : legal_sources/Civitai--1188--1224--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,24 @@
+{
+  "sha256": "75fd827a64e9e9d076b40cdbae95b0b8cd0b6e8a4302c02756337084e7c2ce90",
+  "retrievedAt": "2026-10-05T22:57:02.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/75fd827a64e9e9d076b40cdbae95b0b8cd0b6e8a4302c02756337084e7c2ce90",
+  "versionId": 107,
+  "versionName": "v1",
+  "modelId": 95,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/95",
+  "modelName": "Vectorartz Diffusion",
+  "publisher": null,
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "IF YOU ARE THE CREATOR OF THIS MODEL PLEASE CONTACT US TO HAVE IT TRANSFERRED TO YOU Created by coder119 Originally uploaded to HuggingFace From the Creator: Generate beautiful vector illustration",
+  "publicUrl": "https://civitai.com/models/95?modelVersionId=107"
+}

@@ -1,0 +1,18 @@
+{
+  "sha256": "f762cdef0235669136c16421e7f3affb47ab78e20890d5258347cf5ae571af76",
+  "retrievedAt": "2026-10-05T22:56:39.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/f762cdef0235669136c16421e7f3affb47ab78e20890d5258347cf5ae571af76",
+  "versionId": 4229,
+  "versionName": "Protogen x5.3",
+  "modelId": 3816,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/3816",
+  "modelName": "Protogen x5.3 (Photorealism) Official Release",
+  "publisher": "darkstorm2150",
+  "allowNoCredit": true,
+  "allowCommercialUse": [],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "ProtoGen_X5.3 - One Step Closer to Reality Research Model - How to Build Protogen Running on Apple Silicon devices ? Try this instead Live Demo at Available on Hugging Face Model Weights thanks to reddit user u/jonesaid Comprehensive guide to camera control Trigger words are available for the hassan1.4 and f222, might have to google them :) This is ProtoGen_X3.4 revised (the original cocktail mix, with different route taken) Robodiffusion has been removed and 10% Dreamlike-PhotoReal V.2 added, the result is better sampling at 768px to 1024px of humans and surroundings, The results are immediate!!! Also this bad boy comes with a license, so do please read it, thank you! Model control Now its recommended that you add nude, naked to your negative prompts, its a horny model, well 10% but still....cant be too careful! As for realism, you can use this template modelshoot style, (extremely detailed 8k wallpaper),a medium shot photo of a (what you want here), Intricate, High Detail, dramatic Please click the link below to read the license before downloading, thank you! This model is licensed under a modified CreativeML OpenRAIL-M license.",
+  "publicUrl": "https://civitai.com/models/3816?modelVersionId=4229"
+}

@@ -1,0 +1,25 @@
+{
+  "sha256": "7f96a1a9ca9b3a3242a9ae95d19284f0d2da8d5282b42d2d974398bf7663a252",
+  "retrievedAt": "2026-10-05T22:35:35.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/7f96a1a9ca9b3a3242a9ae95d19284f0d2da8d5282b42d2d974398bf7663a252",
+  "versionId": 30163,
+  "versionName": "V5.0",
+  "modelId": 9409,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/9409",
+  "modelName": "万象熔炉 | Anything XL",
+  "publisher": "Yuno779",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "下载模型之前，请仔细查看模型介绍 Please review the model introduction carefully before downloading the model モデルをダウンロードする前に、モデル紹介をよく見てください 本系列模型及衍生模型，禁止上传LiblibAI或ShakkerAI This series of models and their derivatives are prohibited from being uploaded to LiblibAI or ShakkerAI このシリーズのモデルおよびその派生モデルは、LiblibAIまたはShakkerAIにアップロードすることは禁止されています 注意： 👇下面的Anything模型为冒用名称，并非本人制作，请不要进行付费 👇This Anything model is an unauthorized use of the name and was not created by me. Please do not make any payments. ————————————————— AI art should be looked like AI, not like humans . ————————————————— Anything-XL AnythingXL β 4 is the AnythingXL here. If you download the previous model, there is no need to download it again. AnythingXLbeta4 is another product encouraged by friends in the group. The premise is the highly developed SDXL model, with the quality of the trained model getting higher and higher. The negative hint word in the display graph's embedding name is only copied, and it actually has no effect. Beta4 was created because the model with the fourth test version was the only one I could tolerate looking at. Model fusion is a dead end, with a complete mess in terms of artistic style diversity and the accuracy of some prompt words. Formula: aingdiffusionXL_V0.6 x 0.144375 animagineXLV3 x 0.144375 cutecore_xl x 0.12375 kohakuXLDelta_rev1 x 0.1375 BAXLBArtstyleXLv2 x 0.3375 ponyV6 x 0.1125 Model order only represents fusion order and has nothing to do with model quality Model merge is implemented using the Webui-Supermerge plugin. According to FairAIPublicLicense1.0-SD, the recipe needs to be publicly disclosed, and any merged models that merged this model must also disclose the merge recipe in accordance with this license. Parameters+： Prompt words are different from SD1.5, and for best results, it is recommended to follow a structured prompt template: <|special|>, <|artist|>, <|special(optional)|>, <|characters name|>, <|copyrights|>, <|quality|>, <|meta|>, <|rating|>，…… <|tags|>, special(optional):These prompt words only need to be typed once, put in the front, there is no need to put in the back Special tags： The model can still be used without these special cue words, but incorporating these special tags when necessary can help steer the generated results towards the desired direction. years: These words help guide the results towards modern and retro anime art styles, with a specific timeframe of approximately 2005 to 2023 newest 2021 to 2024 recent 2018 to 2020 mid 2015 to 2017 early 2011 to 2014 old 2005 to 2010 NSFW： These words help guide the results towards adult content, but generally do not generate adult content if rating words are not included. Of course, you can also put it in negative prompts. safe General sensitive Sensitive nsfw Questionable explicit, nsfw Explicit quality： While this model can function without quality words, in practice, these words can still be used to adjust the output. masterpiece > 95% best quality > ? great quality > ? good quality > ? normal quality > ? low quality > ? worst quality ≤ 10% Resolution： You are free to use the vast majority of reasonable resolutions, whether it is the resolution used by SD1.5 at 512*768 or higher resolutions above 2048, each will have a different effect. However, using images that are too large or too small may cause the picture to break down or the character/background structure to become distorted. Tags： If you want to generate high-quality pictures, you can use negative prompts, such as: nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry, artist name Negative tags can include common negative tags, but it is best not to assign too high of a weight to their content, for example (ugly:2.8). Because of models merge, some labels in the original model that have not been fully trained may be lost, and some labels may need to have a weight of ",
+  "publicUrl": "https://civitai.com/models/9409?modelVersionId=30163",
+  "descriptionTruncated": true
+}

@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : ghibli-diffusion
+Modèle : Ghibli Diffusion (fichier ghibli-diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : nitrosocke
+Attribution : Ghibli Diffusion — nitrosocke
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/nitrosocke/Ghibli-Diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : f886220c83f69e67456d45bc36875f065cf93f54aad60b9e60c6700409f64f3a
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 1029) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+nitrosocke--Ghibli-Diffusion--7600fd7538c9--README.md
+https://huggingface.co/nitrosocke/Ghibli-Diffusion/raw/7600fd7538c9030fb60fa7bca17bf048c86466b3/README.md
+SHA-256 a803b844379c2da29abf184a656b3863e57c0742a3f235e7e3400073f6fe2679
+Copie : legal_sources/nitrosocke--Ghibli-Diffusion--7600fd7538c9--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1066--1029--author-permissions
+https://civitai.com/api/v1/models/1066
+SHA-256 bea7e5a16ad9f30ff989ac6f391bfe4edc2bf9be25f45e50b003d95b9014b7b2
+Copie : legal_sources/Civitai--1066--1029--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

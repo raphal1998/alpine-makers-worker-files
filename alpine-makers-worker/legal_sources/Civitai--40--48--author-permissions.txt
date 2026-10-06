@@ -1,0 +1,24 @@
+{
+  "sha256": "8ee651e71263b685807a0cec700291843305f1e6778f94cba40d58f6f2cd663a",
+  "retrievedAt": "2026-10-05T22:56:33.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/8ee651e71263b685807a0cec700291843305f1e6778f94cba40d58f6f2cd663a",
+  "versionId": 48,
+  "versionName": "v1",
+  "modelId": 40,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/40",
+  "modelName": "Papercut ",
+  "publisher": "fictiverse",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "IF YOU ARE THE CREATOR OF THIS MODEL PLEASE CONTACT US TO GET IT TRANSFERRED TO YOU! Created by Fictiverse, Originally uploaded to HuggingFace",
+  "publicUrl": "https://civitai.com/models/40?modelVersionId=48"
+}

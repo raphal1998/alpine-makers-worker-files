@@ -1,0 +1,22 @@
+{
+  "sha256": "d20bc9d543b7d7d46a3ed7d91edc1880d8423f1a8a77dcf378801b5dbe211c3b",
+  "retrievedAt": "2026-10-05T22:40:18.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/d20bc9d543b7d7d46a3ed7d91edc1880d8423f1a8a77dcf378801b5dbe211c3b",
+  "versionId": 92044,
+  "versionName": "v1",
+  "modelId": 86546,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/86546",
+  "modelName": "Western Animation Diffusion",
+  "publisher": "Lykon",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Western Animation Diffusion Comicbook and Western Animation Style Model Do you like what I do? Consider supporting me on Patreon 🅿️ or feel free to buy me a coffee ☕. A ❤️, a kind comment or a review is greatly appreciated. Purpose of this model Train character loras where the dataset is mostly made of cartoon screencaps or comicbooks, allowing less style transfer and less overfitting. Add variety to mixes. Have an alternative to anime models when it comes to western stuff. Not for western style lora training. Pretty good when used with western style loras (thanks @AnteMaxx), but needs weight adjusting, as it's already closer to the lora style probably. Suggested settings Set the ETA Noise Seed Delta (ENSD) to 31337 Set CLIP Skip to 2 DISABLE face restore. It's terrible, never use it Use negative prompts and embeddings that don't ruin the style Use AnimeVideo or Foolhardy as upscalers in highres fix Use ADetailer for far away shots or full body images to avoid blurred faces Brief history This was requested by a supporter and I also wanted to see if I was capable of doing it. It was a funny little project.",
+  "publicUrl": "https://civitai.com/models/86546?modelVersionId=92044"
+}

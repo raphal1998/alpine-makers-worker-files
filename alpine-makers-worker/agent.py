@@ -62,7 +62,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.42.0"
+AGENT_VERSION = "1.45.0"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Maintenance des environnements (agent 1.35.17) : Python isolé et pip/wheel/setuptools des .venv gérés rafraîchis
@@ -75,6 +75,8 @@ AGENT_CAPABILITIES += ("comfyui_assets_v1", "comfyui_lora_v2")  # littéral : le
 # Agent 1.37.0 : import d'un fichier envoyé par le propriétaire depuis son navigateur (rapatrié du dashboard par le canal
 # signé du Worker, puis vérifié comme un téléchargement).
 AGENT_CAPABILITIES += ("comfyui_asset_upload_v1",)
+# Agent 1.45.0 : checkpoint complet installé par adresse et empreinte SHA-256 (fiche ajoutée par le responsable du site).
+AGENT_CAPABILITIES += ("comfyui_checkpoint_asset_v1",)
 # Agent 1.41.0 : Stable Cascade (graphe à deux étages, safety._comfyui_cascade_graph) et architecture réelle de chaque
 # checkpoint lue dans son en-tête (checkpoint_baseline.py), jointe au relevé : « base:<famille> », « ckpt:<nom> ».
 AGENT_CAPABILITIES += ("comfyui_cascade_v1", "image_baselines_v1")
@@ -88,6 +90,12 @@ AGENT_CAPABILITIES += ("comfyui_image_lab_v1",)  # littéral : le site lit ces l
 # Agent 1.40.0 : Assistant IA du site (site_assistant.py). Une question posée, sans outil ni exécution de code, avec le
 # compte Claude / ChatGPT que le propriétaire a connecté sur ce Worker ; rien n'en reste dans le journal durable.
 AGENT_CAPABILITIES += ("site_assistant_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.43.0 : modèles du catalogue hébergés chez une source à clé (CivitAI). La clé propre au propriétaire du Worker
+# arrive avec la commande model.install, passe par l'environnement de l'installateur et n'est jamais écrite sur disque.
+AGENT_CAPABILITIES += ("model_key_sources_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.44.0 : Labo image, restauration des visages (GFPGAN v1.4 + détecteur YuNet) par runners/face_restore.py, qui
+# lance runners/face_restore_script.py avec le Python du moteur image ; aucun paquet installé, deux fichiers de poids.
+AGENT_CAPABILITIES += ("image_lab_face_restore_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -3232,6 +3240,9 @@ class Agent:
     def _check_legal_operation(self, command, payload):
         try:
             local_sandbox.refuse_unsafe_operation(command, payload)
+            if isinstance(payload, dict) and "auth_token" in payload:
+                # Une clé d'accès remise avec la commande ne sert qu'au téléchargement : elle ne repart nulle part.
+                payload = {key: value for key, value in payload.items() if key != "auth_token"}
             return legal_compliance.check_operation(self.root, command, payload, request=self.request)
         except (ValueError, legal_compliance.LegalCheckError) as error:
             raise AgentError(str(error)) from error
@@ -3372,6 +3383,12 @@ class Agent:
             arguments = [sys.executable, str(script), known, action]
         if not script.is_file(): raise AgentError(f"Installateur contrôlé indisponible : {script.name}")
         environment = dict(os.environ); environment["ALPINE_WORKER_ROOT"] = str(self.root)
+        environment.pop("ALPINE_ASSET_TOKEN", None)
+        token = payload.get("auth_token")
+        if kind == "model" and action in {"install", "update", "repair"} and isinstance(token, str) and token and token != "«redacted»":
+            # Clé d'une source à clé (CivitAI) : l'installateur ne la lit que pour un modèle de son propre catalogue
+            # dont la source l'exige, et ne l'envoie qu'à l'hôte de cette source.
+            environment["ALPINE_ASSET_TOKEN"] = token
         self.command_progress(item.get("command_id"), 1, "Préparation de l’opération sur le Worker…")
         paused_fire_watch = None
         try:
@@ -3849,7 +3866,9 @@ class Agent:
                     if not laser_python:
                         raise AgentError("Le moteur laser n’est pas installé sur ce Worker.")
                     environment["LASER_ENGINE_PYTHON"] = laser_python
-                runner_name = "mesh_repair" if mesh_repair else TOOL_HANDLERS[tool_id]
+                # Labo image, restauration des visages (agent 1.44.0) : lanceur dédié, pas un graphe ComfyUI.
+                face_restore = tool_id in {"image_generation", "image-generation"} and parameters.get("lab_tool") == "face_restore"
+                runner_name = "mesh_repair" if mesh_repair else "face_restore" if face_restore else TOOL_HANDLERS[tool_id]
                 handler = Path(__file__).with_name("runners") / f"{runner_name}.py"
                 if not handler.is_file():
                     raise AgentError("Runner Worker indisponible.")

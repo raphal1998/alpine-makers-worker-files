@@ -1,0 +1,22 @@
+{
+  "sha256": "7ce537a0b7cca96f6862dda000b0d4054b8b996ae5859ddb2c196211447f99fc",
+  "retrievedAt": "2026-10-05T22:38:49.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/7ce537a0b7cca96f6862dda000b0d4054b8b996ae5859ddb2c196211447f99fc",
+  "versionId": 29681,
+  "versionName": "v1.1",
+  "modelId": 21616,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/21616",
+  "modelName": "Neurogen v1.1",
+  "publisher": "Em1t",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "According to the tests, this model gives a very good detail of skin and textures. Great for close-up photorealistic portraits as well as various characters and models. UPD 23.04.2023: Neurogen Art release UPD 26.03.2023: v1.1: The new version has taken a step forward in the direction of versatility. The detail of the half body planes and full body planes has been improved (don't forget to use the Hires fix). In addition to photorealism, you can use this model for digital art and anime as well. Texture detailing has been improved, and new colors have been added. Follow me: Instagram Telegram Support me: Boosty Prompt: portrait photo, close up, detailed face, detailed skin, raw, The most important Trigger Words: close up, ultra macro Euler A or DPM++ 2M Karras with 25 - 30 steps CFG Scale: 4 - 5 CLIP skip: 1 or 2",
+  "publicUrl": "https://civitai.com/models/21616?modelVersionId=29681"
+}

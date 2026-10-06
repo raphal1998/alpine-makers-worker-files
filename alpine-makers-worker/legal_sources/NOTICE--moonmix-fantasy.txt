@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : moonmix-fantasy
+Modèle : MoonMix Fantasy (fichier moonmix_fantasy.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : LEOSAM
+Attribution : MoonMix Fantasy — LEOSAM
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://civitai.com/models/43977?modelVersionId=51550
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 7458ea41046e57032a8f1bccd4dd6d3cc3c15104f16dd1198d650a0a83cc0072
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 51550) :
+allowCommercialUse : RentCivit
+allowNoCredit : non ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--43977--51550--author-permissions
+https://civitai.com/api/v1/models/43977
+SHA-256 778335b4fbbd2716fb0ce39906b365af6546778c3cdb3b97f8b5867b8a0e5de0
+Copie : legal_sources/Civitai--43977--51550--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

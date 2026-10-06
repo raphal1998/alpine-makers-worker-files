@@ -1,0 +1,21 @@
+{
+  "sha256": "22e9fa0dbc277bfddf3960bdd5791b8a5dc7305b7a2dfca4c0ee3e2f401738c5",
+  "retrievedAt": "2026-10-05T22:39:52.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/22e9fa0dbc277bfddf3960bdd5791b8a5dc7305b7a2dfca4c0ee3e2f401738c5",
+  "versionId": 621563,
+  "versionName": "v1.0 VAE",
+  "modelId": 558362,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/558362",
+  "modelName": "TUNIX · 3D Stylized Pony🔮",
+  "publisher": "ZyloO",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "🗃 Model Versions v1 Version: First release of the model. 4 Step Lightning Version: Refer to the \"About this version\" section of the version for more information. 8 Step Lightning Version: Refer to the \"About this version\" section of the version for more information. ℹ️ Model Overview Incredible detail Great SFW and NSFW Good faces at medium-close distances. Great skin detail. Great lightning Additional Information: Sometimes it adds people without wanting it (adding \"scenery\" should fix this) Use Danbooru tags. Use Clip Skip 2 Prompt Style: Positive: score_9, score_8_up, score_7_up, BREAK Negative: score_4, score_5, score_6 🌞 Final Remarks Thank you for downloading and using the model. I hope you enjoy it! ⚡️ Buzz for the Best Images ⚡️",
+  "publicUrl": "https://civitai.com/models/558362?modelVersionId=621563"
+}

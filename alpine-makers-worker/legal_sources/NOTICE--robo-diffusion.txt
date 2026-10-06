@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : robo-diffusion
+Modèle : Robo-Diffusion (fichier robo_diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : nousr
+Attribution : Robo-Diffusion — nousr
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/nousr/robo-diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 244dbe0dcb55c761bde9c2ac0e9b46cc9705ebfe5f1f3a7cc46251573ea14e16
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 50) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+nousr--robo-diffusion--f34081d7b345--README.md
+https://huggingface.co/nousr/robo-diffusion/raw/f34081d7b345032399802bde14c8944dc582788f/README.md
+SHA-256 c0817c796542fc21ef33e1db93f1c3382e96ed61d2627f25869b81b8cb40c460
+Copie : legal_sources/nousr--robo-diffusion--f34081d7b345--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--42--50--author-permissions
+https://civitai.com/api/v1/models/42
+SHA-256 f7a01f073104b27cd25bc4262fa640366fd2d16dfffe28a5d6e8fcde20aecb0d
+Copie : legal_sources/Civitai--42--50--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

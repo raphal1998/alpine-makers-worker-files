@@ -1,0 +1,22 @@
+{
+  "sha256": "fa486caafc330f133605d3c18b418d183812f14946631c6544bfb28730db6d6f",
+  "retrievedAt": "2026-10-05T22:47:44.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/fa486caafc330f133605d3c18b418d183812f14946631c6544bfb28730db6d6f",
+  "versionId": 2940478,
+  "versionName": "IL v19.0",
+  "modelId": 376130,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/376130",
+  "modelName": "Nova Anime XL",
+  "publisher": "Crody",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "RentCivit",
+    "Image",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Anima Version is Available!! Nova Anime XL Nova Anime XL is Nova Anime: Anime/2.5D/3D checkpoint model for SDXL Pony version aims to get the similar look as both Nova Anime and Nova Domain All images on example were created with diffusers with custom png tags SeaArtAI OurtAI PixAI - IL v19.0 PixAI - IL v18.0 PixAI - IL v17.0 PixAI - IL v16.0 PixAI - IL v15.0 PixAI - IL v14.0 PixAI - IL v13.0 PixAI - IL v12.5 PixAI - IL v11.0 PixAI - IL v10.0 PixAI - IL v9.0 PixAI - IL v8.0 PixAI - IL v7.0 PixAI - IL v6.0 PixAI - IL v5.5 PixAI - IL v5.0 PixAI - IL v4.0 Happy Valentine PixAI - IL v3.0 Happy New Year PixAI - Illustrious v1.0 PixAI - Illustrious v2.0 PixAI - IL v2.5 Merry Christmas PixAI - Pony v1-v2 PixAI - Pony v3 PixAI - Pony v4 PixAI - Pony v5 PixAI - Pony v6 PixAI - v7.0 Rules You cannot use the generated images for commercial use if it's not edited (or just turning it to black and white) You can share images without any restriction if you don't monetize it Advertising this model to outside is always welcome Recommend Settings Sampler: Euler a Steps: 20~30 Clip Skip: 1-2 Denoising Strength: 0.65 - 0.8 (Pony) CFG Scale: 5~7 Prompt: score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, source_anime, BREAK Negative Prompts: score_4, score_5, 3d, jpeg artifacts, username, watermark, signature, normal quality, worst quality, large head, low quality, text, error, missing fingers, extra digits, fewer digits, bad eye (Illustrious) CFG Scale: 4~6 Prompt: masterpiece, best quality, amazing quality, 4k, very aesthetic, high resolution, ultra-detailed, absurdres, newest, scenery, {Prompt}, BREAK, depth of field, volumetric lighting Negative Prompts: modern, recent, old, oldest, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured, long body, lowres, bad anatomy, bad hands, missing fingers, extra digits, fewer digits, cropped, very displeasing, (worst quality, bad quality:1.2), bad anatomy, sketch, jpeg artifacts, signature, watermark, username, signature, simple background, conjoined,bad ai-generated",
+  "publicUrl": "https://civitai.com/models/376130?modelVersionId=2940478"
+}

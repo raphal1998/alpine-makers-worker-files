@@ -1,0 +1,24 @@
+{
+  "sha256": "cd73c52cd00b9b40cad916cd1ea6f205146ece332dbeba21733902cc8c351f1b",
+  "retrievedAt": "2026-10-05T22:39:35.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/cd73c52cd00b9b40cad916cd1ea6f205146ece332dbeba21733902cc8c351f1b",
+  "versionId": 4980,
+  "versionName": "v1.0",
+  "modelId": 4404,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/4404",
+  "modelName": "Sci-Fi Diffusion v1.0",
+  "publisher": "Corruptlake",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "An early version of the upcoming generalist Sci-Fi model based on SD v2.X. This model has been trained on 26,949 high resolution and quality Sci-Fi themed images for 2 Epochs. Which equals to around 53K steps/iterations. The training resolution was 640, however it works well at higher resolutions. This model is still in developement Recommended Samplers: - Euler - Euler A - DPM++ SDE Karras",
+  "publicUrl": "https://civitai.com/models/4404?modelVersionId=4980"
+}

@@ -1,0 +1,24 @@
+{
+  "sha256": "40c6475ecb9aacee74f19a92a43d36b4485f16dda90acbdff79801e9c1798bb4",
+  "retrievedAt": "2026-10-05T22:39:15.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/40c6475ecb9aacee74f19a92a43d36b4485f16dda90acbdff79801e9c1798bb4",
+  "versionId": 1304,
+  "versionName": "PurePornPlus_1.0",
+  "modelId": 1235,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1235",
+  "modelName": "PurePornPlus (Merge)",
+  "publisher": "someone88",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "PPP is a realistic model merge, tested and tweaked for human females. Mostly based on NSFW models. Key models used: F222, BerryMix, HassanBlend1.4, And many more, including dreambooths for specific sex pose training. All example images are very basic prompts. No cherry picking (These are batch grids), No artist, No magic key words. Example.. \"a beautiful woman squatting, spread legs\" I always advise people to use a simple set of negatives. \"lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry\"",
+  "publicUrl": "https://civitai.com/models/1235?modelVersionId=1304"
+}

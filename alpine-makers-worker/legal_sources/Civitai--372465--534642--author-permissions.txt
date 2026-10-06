@@ -1,0 +1,21 @@
+{
+  "sha256": "059934ff58033c5abb606b6b98f969ffdf7e7312d352c3be47a0440ba28d303b",
+  "retrievedAt": "2026-10-05T22:39:13.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/059934ff58033c5abb606b6b98f969ffdf7e7312d352c3be47a0440ba28d303b",
+  "versionId": 534642,
+  "versionName": "🌐 v2.1",
+  "modelId": 372465,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/372465",
+  "modelName": "Pony Realism 🔮",
+  "publisher": "ZyloO",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "🌐 Main & Site-Generation | ⚡️ Ligthning/Hyper | 🌀 Alt version | 🖌 Inpaint | 📦 Old ✨ v2.3 U L T R A is a distinct variant of the standard v2.3. While it technically improves overall output, my intention is to treat this version as experimental , exploring potential directions for future updates. This release brings more natural and balanced lighting (also darkness), enhanced skin detail and an increased realism. If you're using this model for Furry or Fur-based prompts , make sure to use the \"Furry\" trigger , or pair it with my Fur Enhancer LoRA for best results. v2.3: (Latest) ✨ Main Version ULTRA Version v2.2: Main Version 4 Step Hyper Version 8 Step Hyper Version I have written an article that explains and provides some useful resources to help you achieve great generation results. You can check it out for detailed insights and recommendations. 🔁 Samplers DPM++ 2M SDE Karras DPM++ 2S a Karras DPM++ SDE Karras DPM++ 2M SDE Exponential DPM2 a DPM++ 2S a DPM++ 3M * Euler A ⚙️ Generation Settings Steps: 30 or more CFG Scale: 6–7 Clip Skip: 2 Resolution: Greater than 1024px 🗒️ Notes Use Danbooru tags Keep individual prompt weights ≤ 1.5 Use \" female / male \" instead of \" woman / man \" for better tagging compatibility 🖋️ Prompt Style Positive Prompt Tags: score_9 , score_8_up , score_7_up , BREAK Negative Prompt Tags: score_4 , score_5 , score_6 ⚠️ Avoid DPM++ 2M Karras (Not recommended for generation) ✅ Recommended Samplers Euler A DPM2 A (Best for detail) Pony Amateur ✨ Pony Realism Enhancer ✨ Pony Skin Enhancer ✨ Pony Fur Enhancer ✨ Background Detail Enhancer✨ Cinematic Shot✨ Pony Realism v2.2 Style/Support Blend ✨ Read the following article for tips and my training preset ⚡️ Buzz for the Best Images ⚡️",
+  "publicUrl": "https://civitai.com/models/372465?modelVersionId=534642"
+}

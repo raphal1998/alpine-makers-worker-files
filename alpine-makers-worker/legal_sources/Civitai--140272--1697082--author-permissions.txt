@@ -1,0 +1,22 @@
+{
+  "sha256": "9ece21c3526a6985f564e589df99a1452ed8c3c10068a1d14553a8a2877e6d0b",
+  "retrievedAt": "2026-10-05T22:37:48.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/9ece21c3526a6985f564e589df99a1452ed8c3c10068a1d14553a8a2877e6d0b",
+  "versionId": 1697082,
+  "versionName": "v2.2",
+  "modelId": 140272,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/140272",
+  "modelName": "Hassaku XL (Illustrious)",
+  "publisher": "Ikena",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "RentCivit",
+    "Rent",
+    "Image"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Hassaku aims to be a anime model with a bright and distinct anime style. My Discord for everything related to anime models and art. If you'd like to support my work, you can do so at: SubscribeStar , every bit helps and is truly appreciated! ____________________________________________________________ Supporters: Thanks to my supporters tamashiicolle, pttcot , SETI and Kodokuna ____________________________________________________________ Using the model: The model was trained primarily on images with minimal disruptive elements, such as floating text, logos, speech bubbles, or signatures. If any of these elements appear in an image, please include \"signature\" in your negative prompt. Danbooru Metadata and franchise tags are not used in training, so please avoid using them in prompts. Metadata such as \"highres\" and franchise tags like \"re:zero kara hajimeru isekai seikatsu\" are not used in training. A CFG scale between 3 and 7 is recommended. For best results, use CFG 6 with the Euler a sampler. Refer to the example images, to understand, how the model should be used. The model is designed to be simple and straightforward to prompt. Use the following tag order: Number of characters Character Tags All remaining tags Example: 1girl, rem \\(re:zero\\), standing, masterpiece, upper body Here are some resolution options for SDXL: 1536 x 640 1344 x 768 1216 x 832 1152 x 896 1024 x 1024 896 x 1152 832 x 1216 (most recommended) 768 x 1344 640 x 1536 Lora use: NoobAIs Loras working for the most part better in compare to Illustrious loras Versions 2 and 3 is less compatible to most loras trained on Illustrious or Noob, because it got further trained away of both. Style A is still the most compatible for it. ______________________________________________________ Version and License info : Below V1 merges ANIMAGINE XL 3.0 Version V1 use Illustrious-XL & WAI-illustrious-SDXL with additional training V2 is trained on its own and don't include any extra merge. Base was V1 , it is trained to include newer or missing characters. It was also used for further training tests V3 is a merge of Illustrious-XL and V2.2, to fix some issues and was also trained to include newer or missing characters All Models using the Fair AI Public License 1.0-SD license .",
+  "publicUrl": "https://civitai.com/models/140272?modelVersionId=1697082"
+}

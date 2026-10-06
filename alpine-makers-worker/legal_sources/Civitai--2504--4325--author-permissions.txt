@@ -1,0 +1,20 @@
+{
+  "sha256": "522efa9a9b83dfe96aefaeecfb7e8c53222c5dde88ab9c37fd7bf0ea47655f14",
+  "retrievedAt": "2026-10-05T22:55:57.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/522efa9a9b83dfe96aefaeecfb7e8c53222c5dde88ab9c37fd7bf0ea47655f14",
+  "versionId": 4325,
+  "versionName": "3DKX_1.1",
+  "modelId": 2504,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/2504",
+  "modelName": "Unvail AI 3DKX v2",
+  "publisher": "UNVAILai",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Model Guide / Cheat sheet Changelog: V2: Extensive upgrade, check the guide above ! V1.1: Minor update based on feedback, containing the following fixes: - “ nsfw ”, “ nudity ” , and “ erotica ” have been trained into the model and work as Negatives to greatly reduce unintended NSFW content. - CFG can be pushed a bit higher before the images become burnt. As a result, the model can accommodate more complicated prompts now. - Oversaturated images will be encountered less often V1.0b: Initial version. Description: SFW model with limited nsfw capabilities (suggestive nsfw) that is highly versatile for 3D renders. The model has the particularity of splitting itself into two different well balanced styles. If you'd like to have your 3D characters have a more \"Cartoony\" face, you simply start your prompt with \"3d cartoon of\", and if you want the classic 3D render style, you write \"a 3d render of\". Note that this model has an embedded vae, do not use one with this model! Might produce weird results. If you want to chat with us and join our community visit our discord: https://discord.gg/unvailai https://www.patreon.com/unvailai Dataset: between 140 and 180 pictures of 3D render of all kind Has a high success rate at: sfw portraits, full body poses, close ups, etc high versatility in terms of outputs, it isn't locked to perform well on portraits Landscapes, cyberpunk, steampunk, natural, scifi, fantasy, animated film, etc. 2B Nier Automata (Don't ask us why) different body types - different ethnicity nsfw portraits, full body poses, close ups, etc What it \"In theory\" shouldn't exceed at: anything outside the scope of portraits, people, landscapes, game artworks, 3D sculptures, 3D fantasy, 3D film stills, etc celebrities highly specific animated cartoon characters multiple subjects highly specific video-game characters pornography, genitalia and highly explicit materials",
+  "publicUrl": "https://civitai.com/models/2504?modelVersionId=4325"
+}

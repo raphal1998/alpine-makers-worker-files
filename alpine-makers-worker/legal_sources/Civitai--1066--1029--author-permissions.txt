@@ -1,0 +1,24 @@
+{
+  "sha256": "f886220c83f69e67456d45bc36875f065cf93f54aad60b9e60c6700409f64f3a",
+  "retrievedAt": "2026-10-05T22:37:30.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/f886220c83f69e67456d45bc36875f065cf93f54aad60b9e60c6700409f64f3a",
+  "versionId": 1029,
+  "versionName": "V1",
+  "modelId": 1066,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1066",
+  "modelName": "Ghibli Diffusion",
+  "publisher": null,
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Originally posted to HuggingFace by nitrosocke This is the fine-tuned Stable Diffusion model trained on images from modern anime feature films from Studio Ghibli. Use the tokens ghibli style in your prompts for the effect. If you enjoy my work and want to test new models before release, please consider supporting me Characters rendered with the model: Cars and Animals rendered with the model: Landscapes rendered with the model: ghibli style beautiful Caribbean beach tropical (sunset) - Negative prompt: soft blurry ghibli style ice field white mountains ((northern lights)) starry sky low horizon - Negative prompt: soft blurry Prompt and settings for the Strom Trooper: ghibli style (storm trooper) Negative prompt: (bad anatomy) Steps: 20, Sampler: DPM++ 2M Karras, CFG scale: 7, Seed: 3450349066, Size: 512x704 Prompt and settings for the VW Beetle: ghibli style VW beetle Negative prompt: soft blurry Steps: 30, Sampler: Euler a, CFG scale: 7, Seed: 1529856912, Size: 704x512 This model was trained using the diffusers based dreambooth training by ShivamShrirao using prior-preservation loss and the train-text-encoder flag in 15.000 steps.",
+  "publicUrl": "https://civitai.com/models/1066?modelVersionId=1029"
+}

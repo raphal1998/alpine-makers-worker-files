@@ -1,0 +1,20 @@
+{
+  "sha256": "ce4d987a0e8bcf5253d2d0b045f9b12b1264dd440f4d4b05be6b56f646995b0f",
+  "retrievedAt": "2026-10-05T22:36:44.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/ce4d987a0e8bcf5253d2d0b045f9b12b1264dd440f4d4b05be6b56f646995b0f",
+  "versionId": 50724,
+  "versionName": "DucHaitenAIart-v4.5.3",
+  "modelId": 3079,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/3079",
+  "modelName": "DucHaitenAIart",
+  "publisher": "DucHaiten",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Big update of DucHaitenAIart, v4 is able to receive more diverse, more detailed prompts with gorgeous colors and more realistic shadows. The image has the breath of 3D anime, but the material is much more realistic. If you like my content, support me at: https://linktr.ee/Duc_Haiten https://ko-fi.com/duchaiten for those who don't have a powerful enough GPU, or are just too lazy to install enough complex software to run the model. mage.space will be a great site for you, with the number of models increasing every month, including my model of course. Especially for only $15 per month you can have unlimited photo creation for yourself, no credit score, no time, absolutely truly unlimited photo creation in a month. https://www.mage.space ***** All sample images only use text to image, no editing, no image to image, no restore face no highres fix no extras. DPM++ 2S a Karras cfg 11 negative prompt: illustration, painting, cartoons, sketch, (worst quality:2), (low quality:2), (normal quality:2), lowres, bad anatomy, bad hands, ((monochrome)), ((grayscale)), collapsed eyeshadow, multiple eyeblows, vaginas in breasts, (cropped), oversaturated, extra limb, missing limbs, deformed hands, long neck, long body, imperfect, (bad hands), signature, watermark, username, artist name, conjoined fingers, deformed fingers, ugly eyes, imperfect eyes, skewed eyes, unnatural face, unnatural body, error",
+  "publicUrl": "https://civitai.com/models/3079?modelVersionId=50724"
+}

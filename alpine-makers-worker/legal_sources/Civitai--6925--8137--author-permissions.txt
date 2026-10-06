@@ -1,0 +1,18 @@
+{
+  "sha256": "0d27c62ffac6d300014245995cee2355dc0963fc8fbad79f79586cf3ba0abd5d",
+  "retrievedAt": "2026-10-05T22:39:28.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/0d27c62ffac6d300014245995cee2355dc0963fc8fbad79f79586cf3ba0abd5d",
+  "versionId": 8137,
+  "versionName": "RealDosMix",
+  "modelId": 6925,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/6925",
+  "modelName": "RealDosMix",
+  "publisher": "DiaryOfSta",
+  "allowNoCredit": true,
+  "allowCommercialUse": [],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "!!pruned fp16 replaced with no ema. The change in quality is less than 1 percent, and we went from 7 GB to 2 GB. See example picture for prompt.There are recurring quality prompts. vae-ft-mse-840000-ema-pruned or kl f8 amime2 img2img SD upscale method: scale 20-25, denoising 0.2-0.3 After selecting SD Upscale at the bottom, tile overlap 64, scale factor2 caution! Sampler must be DPM++SDE karras. clip skip 2 https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.ckpt https://huggingface.co/AIARTCHAN/aichan_blend/tree/main/vae Apply VAE. You will get better color results. We recommend hiring and upscaling only the pictures whose faces are damaged from being far away. As it is a semi-realistic model, we do not recommend inappropriate exposure. There are other dos series as well. https://civitai.com/models/6250/dosmix https://civitai.com/models/6437/anidosmix https://civitai.com/models/8437/ddosmix",
+  "publicUrl": "https://civitai.com/models/6925?modelVersionId=8137"
+}

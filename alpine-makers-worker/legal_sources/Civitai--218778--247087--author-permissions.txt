@@ -1,0 +1,21 @@
+{
+  "sha256": "a45ad8b3865aa11a6de9e35b435628792c66782064926939c8e21db48fc647b7",
+  "retrievedAt": "2026-10-05T22:37:27.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/a45ad8b3865aa11a6de9e35b435628792c66782064926939c8e21db48fc647b7",
+  "versionId": 247087,
+  "versionName": "Redux-v1.0",
+  "modelId": 218778,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/218778",
+  "modelName": "Galena Mix [Legacy]",
+  "publisher": "DreamExplorer",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Description Old Legacy versions of a model mix that got purged - restoring it for the community. Why was it Removed? Drama. Prompting Info Works really effortlessly with out too much hand holding or complexity. Very thirsty checkpoint - you need to tone down nsfw in the negative prompt. Negative Prompt Pretty standard - nothing too crazy required. (worst quality, low quality:1.4), EasyNegative Credits Model Mixer: Schneed (Account Deactivated)",
+  "publicUrl": "https://civitai.com/models/218778?modelVersionId=247087"
+}

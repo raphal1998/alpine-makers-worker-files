@@ -1,0 +1,24 @@
+{
+  "sha256": "37f020bd8bf29d341e7b5a8de8036c21dc3ffce809a44a307ba12dfffdc2ce77",
+  "retrievedAt": "2026-10-05T22:47:55.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/37f020bd8bf29d341e7b5a8de8036c21dc3ffce809a44a307ba12dfffdc2ce77",
+  "versionId": 2732179,
+  "versionName": "v11",
+  "modelId": 1491577,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1491577",
+  "modelName": "Rag Illustrious mix",
+  "publisher": "ragnarock30",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Update 9.6: Improved sharpness and overall look of the model, however prompting works better with a more token base than natural language now. Prompts also seems to be influenced heavily by the order of the tokens. For instance \"long wavy hair\" will be wavy hair while \"wavy long hair\" will be long hair and \"long hair, wavy hair\" will be both wavy and long. Still a good overall general checkpoint that can make feminine men or boyish girls quite well. Update 9.2: Much better eyes, hands, and a return to base anime style. It also follows the prompt much better than in previous versions. The model requires a little harder prompting for male characters but not too bad. This is a general all around model capable of men, women, furry, backgrounds, explicit, and good facial emotions. Update 8.1: The hands and eyes are much improved with this model, however the model now has a tendency to produce semi-realistic anime images as the default style. This can be prevented by adding \"realistic\" into the negative prompt. This version is very good as a generic model capable of producing male, female, furry, landscapes and explicit images well. Update 7.3: Can handle natural language prompts as well as segmented prompts. Has a more consistent look to the generations. Still struggles with eyes or hands sometimes with no negative prompting, but it is vastly reduced. This is a personal merge I did based on the Illustrious model. The main feature is being able to do both male and female characters with an anime style well with minimal need of positive or negative word soup. I specifically wanted a model that could do a man in a typically feminine outfit without the face being overly feminine. It does furry characters decently as well. The hands and eyes aren't always great, but with a few re-rolls it is tolerable. Prompt suggestions: Steps: 20-30 but it can handle more CFG scale: 3 - 7 Sampler: Euler a, but others seem to work as well VAE: none needed, baked in",
+  "publicUrl": "https://civitai.com/models/1491577?modelVersionId=2732179"
+}

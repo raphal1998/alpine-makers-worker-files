@@ -1,0 +1,21 @@
+{
+  "sha256": "266b879d3a9c386a93fade088c386b96058aae2e92951a27db98157ff7229e96",
+  "retrievedAt": "2026-10-05T22:48:00.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/266b879d3a9c386a93fade088c386b96058aae2e92951a27db98157ff7229e96",
+  "versionId": 2811854,
+  "versionName": "Ri-mix Ω v2",
+  "modelId": 996495,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/996495",
+  "modelName": "Ri-mix - [Illustrious + Anima]",
+  "publisher": "phinjo",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "My RI-MIX Style Lora based on this model - Ri-mix - Style LORA Settings for Anima Workflow: Text-to-image Hi-res fix CFG Scale: 3 Sampler: er_sde Steps: 30-40 Settings for CIVITAI On-site Generation (Illustrious) Workflow: Text-to-image Hi-res fix CFG Scale: 7 Sampler: Euler a Steps: 30-40 Denoise: 0.35-0.40 My settings for ForgeUI (Illustrious) Generation Sampling method - Euler a Schedule type - Automatic Sampling steps - 20 Dimensions - 768 x 1152 CFG Scale - 6 Highres. fix Upscaler - None (works for me) Hires steps - 10 Denoising strength - 0.1 Upscale by - 1.5 ADetailer ADetailer detector - Anzhc Face seg 640 v2 y8n.pt / face_ yolov8n.pt Inpaint denoising strength - 0.35 ADetailer steps - 20 ADetailer VAE - sdxl_vae.safetensors ADetailer sampler - DPM++ 2M",
+  "publicUrl": "https://civitai.com/models/996495?modelVersionId=2811854"
+}

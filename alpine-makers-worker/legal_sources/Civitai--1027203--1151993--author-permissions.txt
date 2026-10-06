@@ -1,0 +1,20 @@
+{
+  "sha256": "dd5c095cac4277bc0b5b6599dab30a9b20346fdc3922cc0ff0cf0cb63e5827bf",
+  "retrievedAt": "2026-10-05T22:38:52.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/dd5c095cac4277bc0b5b6599dab30a9b20346fdc3922cc0ff0cf0cb63e5827bf",
+  "versionId": 1151993,
+  "versionName": "v0.5.1",
+  "modelId": 1027203,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1027203",
+  "modelName": "noob_v_pencil-XL",
+  "publisher": "blue_pen5805",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Noobier than NoobAI-XL . (but difficult to get started with) Notice: This is a v-prediction model. Read \"How to Use the Model\" section on NoobAI-XL model page . License : NoobAI-XL License (Modified Fair AI Public License 1.0-SD) You MUST share the merge recipe if you release a model merged with noob_v_pencil-XL . This license prohibits any form of commercialization . For more details, please see the license section of NoobAI-XL model page . Please see the \"About this Version\" section for information on each version. Recommended Settings Sampling method : Euler / Euler a (Other sampling methods are not supported by this v-prediction model.) Schedule Type : Automatic CFG : 4 - 5 Prompt : masterpiece, best quality, newest Negative Prompt : worst quality, bad quality, old, early",
+  "publicUrl": "https://civitai.com/models/1027203?modelVersionId=1151993"
+}

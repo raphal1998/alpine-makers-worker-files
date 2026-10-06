@@ -1,0 +1,24 @@
+{
+  "sha256": "20d02efae7f8e1803b1e6679abba754f0893f5eddade092e1bd00e271544fe5e",
+  "retrievedAt": "2026-10-05T22:36:03.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/20d02efae7f8e1803b1e6679abba754f0893f5eddade092e1bd00e271544fe5e",
+  "versionId": 69868,
+  "versionName": "BweshMixA2",
+  "modelId": 65242,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/65242",
+  "modelName": "BweshMix",
+  "publisher": "Bwesh12",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Forgot password to my old account. Thankfully, I deleted the borked model but I think this one should work now. Should be able to do very good anime 2.5D illustration style by default. And also accepts artist and style prompts easily. So you can make more 2d or artistic styles. Please don't expect super clean anime style. Merge of some anime and realistic models that I like and have now forgotten which ones made it in. Check my included images for the diverse prompts. No Loras, textual inversions, or post processing so you can see the model as is. Most are done with hi-res fix 2x, 320x480 If you like it, kindly consider sending a small tip so I can hopefully improve this with a local setup instead of online. 🙏 https://shorturl.at/muNV7",
+  "publicUrl": "https://civitai.com/models/65242?modelVersionId=69868"
+}

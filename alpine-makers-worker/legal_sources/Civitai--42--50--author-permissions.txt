@@ -1,0 +1,24 @@
+{
+  "sha256": "244dbe0dcb55c761bde9c2ac0e9b46cc9705ebfe5f1f3a7cc46251573ea14e16",
+  "retrievedAt": "2026-10-05T22:56:47.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/244dbe0dcb55c761bde9c2ac0e9b46cc9705ebfe5f1f3a7cc46251573ea14e16",
+  "versionId": 50,
+  "versionName": "V1",
+  "modelId": 42,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/42",
+  "modelName": "Robo-Diffusion",
+  "publisher": null,
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "A dreambooth-method finetune of stable diffusion that will output cool looking robots when prompted. Originally posted by nousr on HuggingFace",
+  "publicUrl": "https://civitai.com/models/42?modelVersionId=50"
+}

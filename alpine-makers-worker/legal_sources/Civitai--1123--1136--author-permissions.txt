@@ -1,0 +1,24 @@
+{
+  "sha256": "c3a8bdee04d7f0b28c18dd5f1debb260a7069002b22e01f0c7d3ea8773397da5",
+  "retrievedAt": "2026-10-05T22:38:30.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/c3a8bdee04d7f0b28c18dd5f1debb260a7069002b22e01f0c7d3ea8773397da5",
+  "versionId": 1136,
+  "versionName": "mdjrny pntrt",
+  "modelId": 1123,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1123",
+  "modelName": "Midjourney v4 PaintArt",
+  "publisher": "shadowxshinigami",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Originally posted to HuggingFace by ShadoWxShinigamI Use Token - mdjrny-pntrt illustration style at the beginning of your prompt; If some object doesn't work, provide more context in your prompt [eg:- 'ocean,ship,waves' instead of just 'ship']",
+  "publicUrl": "https://civitai.com/models/1123?modelVersionId=1136"
+}

@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : aio-pixel-art
+Modèle : AIO Pixel Art (fichier AIO-Pixel-Art.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : PublicPrompts
+Attribution : AIO Pixel Art — PublicPrompts
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/PublicPrompts/All-In-One-Pixel-Model
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : d7fb6396ab39b73019f37040977e15ec76a2548372daa534f9ac44b61c3d9548
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 41) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+PublicPrompts--All-In-One-Pixel-Model--b4330356edc9--README.md
+https://huggingface.co/PublicPrompts/All-In-One-Pixel-Model/raw/b4330356edc9eaeb98571c144e8bbabe8bb15897/README.md
+SHA-256 211bd8674f69a078afd1a5090be398b8f20772b2cdc815cfa22e581ea8d88bf7
+Copie : legal_sources/PublicPrompts--All-In-One-Pixel-Model--b4330356edc9--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--34--41--author-permissions
+https://civitai.com/api/v1/models/34
+SHA-256 06e6eb769df4725036af8da4939c4738a9308a4c018a4616f018af98a500bc67
+Copie : legal_sources/Civitai--34--41--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

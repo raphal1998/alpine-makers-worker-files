@@ -1,0 +1,24 @@
+{
+  "sha256": "2182245415908822cbac065128a4c5144cc547d0701feb21241cb4e70bb5cf56",
+  "retrievedAt": "2026-10-05T22:38:05.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/2182245415908822cbac065128a4c5144cc547d0701feb21241cb4e70bb5cf56",
+  "versionId": 1138,
+  "versionName": "v2",
+  "modelId": 1087,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1087",
+  "modelName": "Inkpunk Diffusion",
+  "publisher": "Envvi",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Originally posted to HuggingFace by Envvi Finetuned Stable Diffusion model trained on dreambooth. Vaguely inspired by Gorillaz, FLCL, and Yoji Shinkawa.",
+  "publicUrl": "https://civitai.com/models/1087?modelVersionId=1138"
+}

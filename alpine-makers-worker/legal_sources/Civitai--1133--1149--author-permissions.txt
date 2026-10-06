@@ -1,0 +1,24 @@
+{
+  "sha256": "64e242ae67cb1fc85110a68242c936fa6f3e33077f2bfed48c4769959dff6c61",
+  "retrievedAt": "2026-10-05T22:40:25.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/64e242ae67cb1fc85110a68242c936fa6f3e33077f2bfed48c4769959dff6c61",
+  "versionId": 1149,
+  "versionName": "E18",
+  "modelId": 1133,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1133",
+  "modelName": "Yiffy",
+  "publisher": "thecollector",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "From here . No samples to share right now. Merge Recommended IMPORTANT NOTE: during training explicit was misspelled as explict. Using the misspelled version results in better cocks.",
+  "publicUrl": "https://civitai.com/models/1133?modelVersionId=1149"
+}

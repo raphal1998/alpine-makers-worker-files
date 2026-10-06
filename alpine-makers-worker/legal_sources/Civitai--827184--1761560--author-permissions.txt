@@ -1,0 +1,21 @@
+{
+  "sha256": "bdb59bac77d94ae7a55ff893170f9554c3f349e48a1b73c0c17c0b7c6f4d41a2",
+  "retrievedAt": "2026-10-05T22:40:15.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/bdb59bac77d94ae7a55ff893170f9554c3f349e48a1b73c0c17c0b7c6f4d41a2",
+  "versionId": 1761560,
+  "versionName": "v14.0",
+  "modelId": 827184,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/827184",
+  "modelName": "WAI-illustrious-SDXL",
+  "publisher": "WAI0731",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "If you want to use more my checkpoint online generation, please visit here. https://tensor.art/u/762555264535746522 WAI-NSFW-illustrious-SDXL - SeaArt AI Model WAI_NSFW-illustrious-SDXL_NSFW-illustrious-SDXL_NSFW-illustrious-SDXL_NSFW-illustrious-SDXL-Checkpoint-WAI-Shakker Character Select SAA This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support. Now supports 5058 (includes multiple costumes) Character list. https://github.com/mirabarukaso/character_select_stand_alone_app One-Click embedded package In case you don't know how to build your own Python enverment, try the embeded_env_for_SAA Down and unzip to your computer Db-click #run_XX.bat https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip 下载解压到任意目录，运行 #run_CN Download and extract to any directory. Run #run_CN or #run_EN Online Quick search character Character Select Saa - a Hugging Face Space by flagrantia Please do not add too many quality and aesthetic-related tags, nor overly long negative prompts, as this will actually reduce image quality and make it more blurry. v17 Fixed issues where some characters had inconsistent color tones with the background. Attempted to fix the issue where the background had low relevance to the characters. The overall coloring in this version is slightly smoother and cleaner than before. Attempted to improve the high-resolution fix’s ability to correct limbs; using it has a high chance of automatically fixing issues with arms, legs, and hands/feet. If you're not satisfied with the default character age, try adding (aged up:1.0–2.0) or (mature female:1.0–2.0) at the beginning and adjust as needed. ps Regarding model updates: I create models purely as a hobby, not as my main job. So I work on them in my spare time, and the update frequency depends on my availability. Recently, my computer suffered hardware damage—both the GPU and hard drive were affected. As a result, updates will likely be slower for quite some time. Thank you for your understanding. Recommended software: forge-neo. Recommended settings: Steps: 15-30 CFG scale: 5-7 Sampler: Euler a The VAE is already integrated, please do not ask such questions anymore. use size larger than1024x1024 for the original dimensions. Example images use 1024×1344. Hires upscale: 1.5, Hires steps: 20, Hires upscaler: R-ESRGAN 4x+ Anime6B,Denoising strength: 0.35~0.5 There are four safety rating tags: general, sensitive, nsfw,explicit . Users are expected to consciously add \"nsfw\" to negative prompts to filter inappropriate content. Positive Prompt ,masterpiece,best quality,amazing quality, Negative Prompt bad quality,worst quality,worst detail,sketch,censor, V5-V15 User Manual V1-V4 are outdated,please do not download them anymore. This is a list of characters that have been tested and are implementable on V11. sieecc/WAI-NSFW-illustrious-SDXL at main These are just temporary and not all tests have been completed yet; more will be added subsequently. Recommended settings: Steps: 25-40 CFG scale: 5-7 Sampler: Euler a The VAE is already integrated, please do not ask such questions anymore. use size larger than1024x1024 for the original dimensions. Hires upscale: 1.5, Hires steps: 20, Hires upscaler: R-ESRGAN 4x+ Anime6B,Denoising strength: 0.35~0.5 There are four safety rating tags: general, sensitive, nsfw,explicit . Users are expected to consciously add \"nsfw\" to negative prompts to filter inappropriate content. Positive Prompt masterpiece,best quality,amazing quality, Negative Prompt bad quality,worst quality,worst detail,sketch,censor,",
+  "publicUrl": "https://civitai.com/models/827184?modelVersionId=1761560"
+}

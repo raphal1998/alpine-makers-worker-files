@@ -6,7 +6,7 @@ leur langue d'origine. Certains fichiers .txt contiennent le HTML officiel
 intégral : les servir comme texte brut avec nosniff, jamais comme HTML exécuté.
 
 INDEX.json répertorie les URL, dates de collecte et empreintes SHA-256.
-legal_evidence.json relie ces documents aux 100 références du catalogue et
+legal_evidence.json relie ces documents aux 256 références du catalogue et
 précise les éventuels manques. Les permissions Civitai sont des métadonnées
 publiées rattachées au SHA-256 d'un artefact, pas un contrat signé avec Alpine.
 

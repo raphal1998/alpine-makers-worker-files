@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : wai-cute-pony
+Modèle : WAI-CUTE Pony (fichier waiCUTE_v80.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : WAI0731
+Attribution : WAI-CUTE Pony — WAI0731
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML Open RAIL++-M)
+Source officielle : https://civitai.com/models/451486?modelVersionId=915200
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 5db3bcc019f0eba2b913b80187b29d5636c3ab79df6910adb95eab5beaa10cc5
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 915200) :
+allowCommercialUse : Image, RentCivit
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sdxl d'après la référence) : CreativeML Open RAIL++-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--451486--915200--author-permissions
+https://civitai.com/api/v1/models/451486
+SHA-256 1ac75a16d5a8d3db7e875a76b3f98103094e30869098bf6c5b921e162d200b0d
+Copie : legal_sources/Civitai--451486--915200--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

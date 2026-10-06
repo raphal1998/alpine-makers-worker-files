@@ -1,0 +1,21 @@
+{
+  "sha256": "ed4f26c284bc9baaeee63f10ad823486bcc0dd6fcc03c9472fd8c44e508889a1",
+  "retrievedAt": "2026-10-05T22:36:05.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/ed4f26c284bc9baaeee63f10ad823486bcc0dd6fcc03c9472fd8c44e508889a1",
+  "versionId": 48859,
+  "versionName": "V2",
+  "modelId": 44219,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/44219",
+  "modelName": "CamelliaMIx_2.5D",
+  "publisher": "Mods13",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "use vae : vae-ft-mse-840000-ema-pruned.safetensors , orangemix.vae.pt V3 is closer to 3D than another version Face shape and texture have been changed ▼Please check settings and prompts▼ I recommend using [dddetailer] - (Face correction extention) Recommended setting Sampling method : DPM++2M Karras, DPM++ SDE Karras, DPM++ 3M SDE Karras Clip skip : 2 Hires steps : 13 Hires.fix upscaler : 4x-UltreaSharp CFG Scale : 6~11 VAE : ft-mse-840000, orangemix.vae.pt Recommended prompt Prompt : [please refer to exmple images] Negative : (worst quality, low quality:1.3) Textual Inversion : negative_hand-neg , verybadimagenegative",
+  "publicUrl": "https://civitai.com/models/44219?modelVersionId=48859"
+}

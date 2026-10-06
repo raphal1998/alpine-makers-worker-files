@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : acertainthing
+Modèle : ACertainThing (fichier ACertainThing.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : JosephusCheung
+Attribution : ACertainThing — JosephusCheung
+Licence : Fiche de l'éditeur (licence déclarée : creativeml-openrail-m) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/JosephusCheung/ACertainThing
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 866946217b513157b12ff9b1eae2279e98ae34ece178e34eac536f2e831c101c
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+JosephusCheung--ACertainThing--f29dbc8b2737--README.md
+https://huggingface.co/JosephusCheung/ACertainThing/raw/f29dbc8b2737fa20287a7ded5c47973619b5c012/README.md
+SHA-256 aca76a05c1887e620077be78893cd14e907da9f12370f3ce5ce63a997874a197
+Copie : legal_sources/JosephusCheung--ACertainThing--f29dbc8b2737--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

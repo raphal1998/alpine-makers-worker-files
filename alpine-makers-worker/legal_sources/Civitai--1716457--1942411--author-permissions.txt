@@ -1,0 +1,21 @@
+{
+  "sha256": "5dd4a9c289dbf72e62c2fb9b932cd710c85c839b5f63c3a6be9bf11a1c917d68",
+  "retrievedAt": "2026-10-05T22:47:37.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/5dd4a9c289dbf72e62c2fb9b932cd710c85c839b5f63c3a6be9bf11a1c917d68",
+  "versionId": 1942411,
+  "versionName": "v1.0",
+  "modelId": 1716457,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1716457",
+  "modelName": "Hidden Canvas",
+  "publisher": "Neural_Lens",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": false,
+  "allowDifferentLicense": true,
+  "description": "Hidden Canvas is a gateway to a realm where art demands sacrifice, and mastery — time. Built on Illustrious, this model does not tolerate haste. Its genius awakens only in the hands of those who dare to think, search, fail, and create again. Each render is not a result, but a journey. Beneath deceptive simplicity lies a second layer — a silent challenge to the artist. You won’t get a masterpiece by accident. It must be earned. Hidden Canvas is not a tool, but a rite of passage. Only perseverance, precision, and inspiration will reveal its hidden depths. Annotation: Think you know how to make great renders? Hidden Canvas will put that to the test. Here, you can’t just drop in a prompt and expect a wow effect. To see the real magic, you’ll need to invest: in the idea, in the details, in the effort. Challenge yourself. Try to create not just an image — but a masterpiece. If you succeed, you’ll feel it. If not — the model stays silent. For the face, it is necessary to use ADetailer Watch video example - https://civitai.com/images/70459219 For full-length works or long-range plans. The examples use Img2img - Inpaint Samplers : Recommended: Sampler : DPM++ SDE + Karras Sampling Steps : 25-45 CFG Scale : 5-7 (For portraits: 5-6)",
+  "publicUrl": "https://civitai.com/models/1716457?modelVersionId=1942411"
+}

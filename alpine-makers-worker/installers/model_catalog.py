@@ -203,6 +203,27 @@ COMFYUI_UTILITY_MODELS = {
                    "https://huggingface.co/Comfy-Org/Qwen3.5/resolve/5d50a2252bf1bcd49e5fee9b5f296986d442682b/text_encoders/qwen3.5_2b_bf16.safetensors?download=true",
                    "aa33250c4fc64891ddfaba3a314fd9542ea371843c387178b425fbcc5ed680b1"),),
     },
+    # Restauration des visages (agent 1.44.0, capacité image_lab_face_restore_v1) : deux fichiers .pth lus par
+    # runners/face_restore_script.py, jamais par ComfyUI. Dossier propre « alpine_face_restore » : surtout pas
+    # upscale_models/, où UpscaleModelLoader proposerait GFPGAN comme agrandisseur (spandrel l'appelle en 0–1 au lieu
+    # de −1–1 : résultat faux). Le script relit les octets, vérifie le SHA-256, puis charge en weights_only=True.
+    # GFPGAN v1.4 : publication officielle TencentARC (aucun safetensors officiel) ; SHA-256 mesuré sur le fichier
+    # de cette source le 2026-10-06, identique à l'oid LFS de deux miroirs Hugging Face (gmk123/GFPGAN, leonelhs/gfpgan).
+    ("image_generation", "lab-gfpgan-v14"): {
+        "tool": "face_restore", "capabilities": ("face-restore",), "vram": (0, 2000),
+        "files": (("alpine_face_restore", "GFPGANv1.4.pth", 348632874,
+                   "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth",
+                   "e2cd4703ab14f4d01fd1383a8a8b266f9a5833dacee8e6a79d3bf21a1b6be5ad"),),
+    },
+    # Détecteur YuNet de Shiqi Yu, chez l'auteur (libfacedetection.train, révision 74f3aa77, tasks/task1/weights/) :
+    # même fichier, octet pour octet, que la copie chargée par kornia (kornia/data@e541bd88 ; même SHA-1 de blob Git
+    # d741e65a selon l'API GitHub, même SHA-256 mesuré sur les deux téléchargements le 2026-10-06).
+    ("image_generation", "lab-yunet-face"): {
+        "tool": "face_restore", "capabilities": ("face-detect",), "vram": (0, 500),
+        "files": (("alpine_face_restore", "yunet_final.pth", 405729,
+                   "https://github.com/ShiqiYu/libfacedetection.train/raw/74f3aa77c63234dd954d21286e9a60703b8d0868/tasks/task1/weights/yunet_final.pth",
+                   "ee0a3035c5cbfc9484a31332223c9fd9c0ddcdb7c46b6a19e558ed393b6f2c67"),),
+    },
 }
 for (_tool_id, _utility_id), _utility in COMFYUI_UTILITY_MODELS.items():
     COMFYUI_REQUIREMENTS[_utility_id] = tuple(_utility["vram"])
@@ -296,6 +317,12 @@ AI3D_SNAPSHOTS = {
 # SD1.5/SDXL, épinglés par SHA-256 ; un identifiant déjà présent ci-dessus prime. Une taille absente (null)
 # devient 0 : model_installer borne alors le téléchargement à la taille annoncée par le serveur (plafond 16 Gio).
 EXTERNAL_CHECKPOINT_SUFFIXES = (".safetensors", ".ckpt")
+# Agent 1.43.0 : un modèle du référentiel hébergé sur CivitAI (fichier réservé aux comptes) se télécharge avec la clé
+# CivitAI PROPRE au propriétaire du Worker, remise avec la commande et jamais écrite sur disque. Seule l'adresse de
+# téléchargement officielle d'une version est acceptée, en .safetensors, toujours épinglée par SHA-256.
+import re as _re
+CIVITAI_DOWNLOAD_URL = _re.compile(r"https://civitai\.com/api/download/models/[0-9]{1,12}")
+COMFYUI_KEY_SOURCES = {}
 
 
 def _external_image_sources():
@@ -311,7 +338,11 @@ def _external_image_sources():
 for _model_id, _spec in _external_image_sources().items():
     if not isinstance(_spec, dict) or not str(_spec.get("filename", "")).lower().endswith(EXTERNAL_CHECKPOINT_SUFFIXES) or not _spec.get("sha256"):
         continue
-    if not str(_spec.get("url", "")).startswith("https://huggingface.co/"):
+    _url = str(_spec.get("url", ""))
+    _key_source = "civitai" if CIVITAI_DOWNLOAD_URL.fullmatch(_url) else ""
+    if _key_source and not str(_spec["filename"]).lower().endswith(".safetensors"):
+        continue
+    if not _key_source and not _url.startswith("https://huggingface.co/"):
         continue
     try:
         _size = max(0, int(_spec.get("size_bytes") or 0))
@@ -319,3 +350,5 @@ for _model_id, _spec in _external_image_sources().items():
         _size = 0
     COMFYUI_CATALOG.setdefault(("image_generation", str(_model_id)), (str(_spec["filename"]), _size, str(_spec["url"]), str(_spec["sha256"])))
     COMFYUI_REQUIREMENTS.setdefault(str(_model_id), (int(_spec.get("min_vram_mb") or 6000), int(_spec.get("recommended_vram_mb") or 8000)))
+    if _key_source and COMFYUI_CATALOG[("image_generation", str(_model_id))][2] == _url:
+        COMFYUI_KEY_SOURCES[str(_model_id)] = _key_source

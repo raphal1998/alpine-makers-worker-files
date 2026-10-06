@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : vectorartz
+Modèle : vectorartz (fichier Vectorartz.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : coder119
+Attribution : vectorartz — coder119
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/coder119/Vectorartz_Diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 75fd827a64e9e9d076b40cdbae95b0b8cd0b6e8a4302c02756337084e7c2ce90
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 107) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+coder119--Vectorartz_Diffusion--348533929099--README.md
+https://huggingface.co/coder119/Vectorartz_Diffusion/raw/3485339290993cf67cc4101c1e0fc03b72be3e78/README.md
+SHA-256 3a762a24c4fd8c5e0bede910f56d67d295ac99711c6077fae0ef546d30dfa59e
+Copie : legal_sources/coder119--Vectorartz_Diffusion--348533929099--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--95--107--author-permissions
+https://civitai.com/api/v1/models/95
+SHA-256 68f6e95b0f0f6293d3bc0944814955218261c4bb358f821e60824a417dccc227
+Copie : legal_sources/Civitai--95--107--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

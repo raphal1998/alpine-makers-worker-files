@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : eimis-anime-diffusion
+Modèle : Eimis Anime Diffusion (fichier eimis_anime-diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : eimiss
+Attribution : Eimis Anime Diffusion — eimiss
+Licence : Fiche de l'éditeur (licence déclarée : creativeml-openrail-m) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/eimiss/EimisAnimeDiffusion_1.0v
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 39ee30561fb851b682a081fd8a59a9db71aa33fff3db1d24632d6b68921d2d5b
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+eimiss--EimisAnimeDiffusion_1.0v--e0ff075fad64--README.md
+https://huggingface.co/eimiss/EimisAnimeDiffusion_1.0v/raw/e0ff075fad646119bbbdb8c2d5f6fbb41f5c34a8/README.md
+SHA-256 fcaedefdab3a2ef54d715597097de515f4779fa018a572d3558e7f54a15f2fc0
+Copie : legal_sources/eimiss--EimisAnimeDiffusion_1.0v--e0ff075fad64--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

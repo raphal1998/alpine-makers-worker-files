@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : dreamlike-diffusion
+Modèle : Dreamlike Diffusion (fichier dreamlike-diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : sviasem
+Attribution : Dreamlike Diffusion — sviasem
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/dreamlike-art/dreamlike-diffusion-1.0
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 0aecbcfa2cbe01bb44f7c0e4f413022ab25b35057b85507d55ba15e2d5db35da
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 1356) :
+allowCommercialUse : Image
+allowNoCredit : non ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+dreamlike-art--dreamlike-diffusion-1.0--9fb5a6463bf7--README.md
+https://huggingface.co/dreamlike-art/dreamlike-diffusion-1.0/raw/9fb5a6463bf79d81152e715e8d2a8b988f96c790/README.md
+SHA-256 f0b98c4c312f0dfe4e4cf3866c27436b6bb32055af3ed994510808c05bbd63a6
+Copie : legal_sources/dreamlike-art--dreamlike-diffusion-1.0--9fb5a6463bf7--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1274--1356--author-permissions
+https://civitai.com/api/v1/models/1274
+SHA-256 9d72ca6d1f89a247a46bf80ef74b08f405937768c41d189f2c6645e30124ca5a
+Copie : legal_sources/Civitai--1274--1356--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

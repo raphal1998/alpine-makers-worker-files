@@ -1,0 +1,22 @@
+{
+  "sha256": "8a952cafe958f5033a3b436804e2268281c13b5f72aa2d98cd8c599cace809ed",
+  "retrievedAt": "2026-10-05T22:35:30.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/8a952cafe958f5033a3b436804e2268281c13b5f72aa2d98cd8c599cace809ed",
+  "versionId": 29792,
+  "versionName": "bakedVae ftMse fp16 NOT-PRUNED",
+  "modelId": 23900,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/23900",
+  "modelName": "AnyLoRA - Checkpoint",
+  "publisher": "Lykon",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "AnyLoRA Add a ❤️ to receive future updates. Do you like what I do? Consider supporting me on Patreon 🅿️ or feel free to buy me a coffee ☕ For LCM read the version description. Available on the following websites with GPU acceleration: Sinkin.ai Remember to use the pruned version when training (less vram needed). Also this is mostly for training on anime, drawings and cartoon. I made this model to ensure my future LoRA training is compatible with newer models, plus to get a model with a style neutral enough to get accurate styles with any style LoRA. Training on this model is much more effective compared to NAI, so at the end you might want to adjust the weight or offset (I suspect that's because NAI is now much diluted in newer models). I usually find good results at 0.65 weigth that I later offset to 1 (very easy to do with ComfyUI). This is good for inference (again, especially with styles) even if I made it mainly for training. It ended up being super good for generating pics and it's now my go-to anime model. It also eats very little vram. Get the pruned versions for training, as they consume less VRAM. Make sure you use CLIP skip 2 and booru style tags when training. Remember to use a good vae when generating, or images wil look desaturated. Or just use the baked vae versions.",
+  "publicUrl": "https://civitai.com/models/23900?modelVersionId=29792"
+}

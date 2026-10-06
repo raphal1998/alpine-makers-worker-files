@@ -1,0 +1,24 @@
+{
+  "sha256": "a617570008118be201c1b96b80cd3f27f54a5541485436448f1418e374849f96",
+  "retrievedAt": "2026-10-05T22:36:30.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/a617570008118be201c1b96b80cd3f27f54a5541485436448f1418e374849f96",
+  "versionId": 1167,
+  "versionName": "v2",
+  "modelId": 1146,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1146",
+  "modelName": "Double Exposure for SD 1.x",
+  "publisher": "joachim_s",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Originally posted to HuggingFace by joachimsallstrom and shared on Reddit This is version 2 of the Double Exposure Diffusion model, trained specifically on images of people and a few animals. Example prompts and settings available on images.",
+  "publicUrl": "https://civitai.com/models/1146?modelVersionId=1167"
+}

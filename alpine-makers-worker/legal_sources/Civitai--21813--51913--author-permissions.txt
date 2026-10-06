@@ -1,0 +1,18 @@
+{
+  "sha256": "7f6146b8a9ad2a92b739954c1d5ef34e26fb0b65eef2d70ffd128e6046a3d0ab",
+  "retrievedAt": "2026-10-05T22:36:59.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/7f6146b8a9ad2a92b739954c1d5ef34e26fb0b65eef2d70ffd128e6046a3d0ab",
+  "versionId": 51913,
+  "versionName": "EOR v2.0 fp16 Baked VAE",
+  "modelId": 21813,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/21813",
+  "modelName": "Edge Of Realism",
+  "publisher": "AreThoseLevel4Plates",
+  "allowNoCredit": false,
+  "allowCommercialUse": [],
+  "allowDerivatives": false,
+  "allowDifferentLicense": false,
+  "description": "A spin off from Level4. Built to produce high quality photos. Sometimes photos will come out as uncanny as they are on the edge of realism.",
+  "publicUrl": "https://civitai.com/models/21813?modelVersionId=51913"
+}

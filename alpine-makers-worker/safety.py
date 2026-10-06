@@ -557,8 +557,50 @@ def _same_fixed_value(actual, expected):
     return actual == expected
 
 
+# Restauration des visages (image_lab_face_restore_v1, agent 1.44.0) : ce n'est PAS un graphe ComfyUI. Le lanceur
+# runners/face_restore.py exécute runners/face_restore_script.py (GFPGAN v1.4 + détecteur YuNet) avec le Python de
+# l'environnement du moteur image. Le site n'envoie qu'un type de calcul fermé et deux réglages bornés : aucun nom de
+# fichier de poids (fixés par le catalogue épinglé, installers/model_catalog.py), aucun chemin, aucune commande.
+IMAGE_LAB_FACE_RESTORE_TOOL = "face_restore"
+IMAGE_LAB_FACE_RESTORE_CAPABILITY = "image_lab_face_restore_v1"
+IMAGE_LAB_FACE_RESTORE_KEYS = frozenset({"lab_tool", "face_restore", "input_files", "timeout_seconds"})
+IMAGE_LAB_FACE_RESTORE_MAX_FACES = 8
+# Modèles utilitaires (identifiants du catalogue) : GFPGAN v1.4 restaure, YuNet détecte les visages et leurs repères.
+IMAGE_LAB_FACE_RESTORE_MODELS = ("lab-gfpgan-v14", "lab-yunet-face")
+
+
+def is_face_restore_job(parameters):
+    return isinstance(parameters, dict) and parameters.get("lab_tool") == IMAGE_LAB_FACE_RESTORE_TOOL
+
+
+def validate_face_restore_parameters(parameters):
+    """Demande de restauration des visages : clés exactes, l'image du job seule, force 0–1, 1 à 8 visages, délai borné."""
+    if not isinstance(parameters, dict) or set(parameters) - IMAGE_LAB_FACE_RESTORE_KEYS \
+            or not {"lab_tool", "face_restore", "input_files"} <= set(parameters):
+        raise ValueError("Paramètres de la restauration des visages invalides.")
+    if parameters["lab_tool"] != IMAGE_LAB_FACE_RESTORE_TOOL:
+        raise ValueError("Outil du Labo image inconnu de ce Worker.")
+    settings = parameters["face_restore"]
+    if not isinstance(settings, dict) or set(settings) != {"strength", "max_faces"}:
+        raise ValueError("Réglages de la restauration des visages invalides.")
+    strength, faces = settings["strength"], settings["max_faces"]
+    if type(strength) not in (int, float) or not math.isfinite(strength) or not 0 <= strength <= 1:
+        raise ValueError("Force de la restauration hors limites (0 à 1).")
+    if type(faces) is not int or not 1 <= faces <= IMAGE_LAB_FACE_RESTORE_MAX_FACES:
+        raise ValueError(f"Nombre de visages hors limites (1 à {IMAGE_LAB_FACE_RESTORE_MAX_FACES}).")
+    _validated_source_inputs(parameters)      # l'image du job : la seule image copiée pour ce job
+    timeout = parameters.get("timeout_seconds")
+    if timeout is not None and (type(timeout) is not int or not 60 <= timeout <= 3600):
+        raise ValueError("Délai du Labo image hors limites.")
+    return copy.deepcopy(parameters)
+
+
 def validate_image_lab_parameters(parameters, *, output_prefix=None):
-    """N'accepte que les graphes fixes du Labo image ; rend une copie dont le préfixe de sortie est celui du Worker."""
+    """N'accepte que les graphes fixes du Labo image ; rend une copie dont le préfixe de sortie est celui du Worker.
+
+    La restauration des visages, qui n'est pas un graphe, a son propre validateur (aucun préfixe de sortie)."""
+    if is_face_restore_job(parameters):
+        return validate_face_restore_parameters(parameters)
     if not isinstance(parameters, dict) or set(parameters) - IMAGE_LAB_PARAMETER_KEYS:
         raise ValueError("Paramètres du Labo image invalides.")
     tool = parameters.get("lab_tool")

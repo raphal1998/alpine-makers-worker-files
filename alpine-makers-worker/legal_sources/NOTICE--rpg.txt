@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : rpg
+Modèle : RPG (fichier rpg_v5.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Anashel
+Attribution : RPG — Anashel
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://civitai.com/models/1116?modelVersionId=124626
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : bb7e29def5e64f1a303bf0d87195b7e88f4d463696b532c6cdfd109fbec4fd9e
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 124626) :
+allowCommercialUse : Image, RentCivit, Rent
+allowNoCredit : non ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1116--124626--author-permissions
+https://civitai.com/api/v1/models/1116
+SHA-256 73a432f729afdd6aaa7058b4e463bf84ef93a487ec00f8f2c02fb3ac8c209822
+Copie : legal_sources/Civitai--1116--124626--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

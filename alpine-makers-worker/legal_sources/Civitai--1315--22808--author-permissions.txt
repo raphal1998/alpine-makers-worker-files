@@ -1,0 +1,22 @@
+{
+  "sha256": "99fd5c4b6f6c8e1a1873f378d04fc219c4f441abd0cc8c59a35d960cea0ac54f",
+  "retrievedAt": "2026-10-05T22:56:52.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/99fd5c4b6f6c8e1a1873f378d04fc219c4f441abd0cc8c59a35d960cea0ac54f",
+  "versionId": 22808,
+  "versionName": "MEGA 2.0",
+  "modelId": 1315,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1315",
+  "modelName": "seek.art MEGA",
+  "publisher": "coreco",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Seek.art MEGA is a general use \"anything\" model that significantly improves on 1.5 across dozens of styles. Created by Coreco at seek.art This model no longer carries any commercial restrictions! Please do provide a link to seek.art and refer to the model as \" seek.art MEGA\" should you decide to host this model. Support seek.art! Getting everything together to create this model required hundreds of hours of work and many weeks of combined training time. If you find this model useful and enjoyable please consider supporting us with a $5 seek.art subscription. You get to use our latest, greatest unreleased models, search tens of thousands of prompts, and keep all your art easily organized. And BONUS! I don't have to pay a cut to Patreon for your support. Seek.art Marketplace Are you an advanced prompt ninja, AI Artist, or Artist transitioning to AI? We want to work with you to help you turn your passion for AI art into real income! With our marketplace you can: Create interactive art experiences showcasing your own unique style offering true one-of-one artworks for purchase in digital or print. Retain total control of your prompts, models, and pricing. Keep 85% of the revenue your artworks generate. You can apply to be one of our Alpha artists here . About the model This model was trained on nearly 50k high-quality digital artworks and photographs on top of the base SD 1.5. No merges or blends. We find the model to be highly flexible in its ability to mix various styles, subjects, and details. We also believe this model could serve as a very useful base for future merges and we are excited to see what the community comes up with! Settings for the portrait from the sample images: https://seek.art/images/8690926503829fb0883658f856de2424 Tips: use resolutions above 640px use the vae-ft-mse-840000-ema VAE use negatives to omit unwanted styles. This works well for more photo realistic outputs: \"bad anime crayon scribble\" Be very specific in your prompts. The Auto1111 Dynamic CFG Thresholding extension is amazing and works very well with this model \"sd-dynamic-thresholding\". Follow the recommended advanced settings.",
+  "publicUrl": "https://civitai.com/models/1315?modelVersionId=22808"
+}

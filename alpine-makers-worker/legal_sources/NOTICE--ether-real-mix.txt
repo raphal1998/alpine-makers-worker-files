@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : ether-real-mix
+Modèle : Ether Real Mix (fichier etherRealMix_etherRealMix4.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : gamerdan69
+Attribution : Ether Real Mix — gamerdan69
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://civitai.com/models/18207?modelVersionId=538928
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 081c0d5fa113b01fb5eb2e9ade24c05491325a983099b0afc4813c9eeb7e6c13
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 538928) :
+allowCommercialUse : Image, RentCivit, Rent
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--18207--538928--author-permissions
+https://civitai.com/api/v1/models/18207
+SHA-256 a64a83c8ae50a2986e1a299f2aaf62c0e9bcfb98546bce64a4640a300622f26d
+Copie : legal_sources/Civitai--18207--538928--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

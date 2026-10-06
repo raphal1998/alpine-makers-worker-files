@@ -1,0 +1,21 @@
+{
+  "sha256": "bb307bfc22ec0455e3eb37af25d93c451e55a5c4f29d548c36560decffb9359e",
+  "retrievedAt": "2026-10-05T22:36:50.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/bb307bfc22ec0455e3eb37af25d93c451e55a5c4f29d548c36560decffb9359e",
+  "versionId": 692973,
+  "versionName": "UnrealEngine_V1.0",
+  "modelId": 388321,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/388321",
+  "modelName": "DucHaiten-GameArt",
+  "publisher": "DucHaiten",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Note: the different model versions in this post are completely different, each has its own pros and cons, so it's not necessarily the earliest version that's the best, perhaps there are some later versions that would be better, but that will not be the general situation. Updated August 3, 2024 This is another 3D model version but enhanced with the AAA game quality of Unreal Engine 5. I have experimented multiple times with different settings, and here are the recommended settings for those using automatic1111: - Sampling method : DPM++ SDE (If you want cleaner and smoother images, use Euler a, but it will lack quite a bit of detail) - Schedule type : Karras (This is very important; other types can cause unwanted errors) - Sampling steps : 30 - CFG Scale : 8-9 April 19 update: DucHaiten-G3D-R34_v2.0 has added 8000 high quality images from the rule34 community, with many famous game characters. Vivid 3D graphics, with beautiful effects, looks like the game is made from unreal engine 5. April 14 update: G3D-R34 version is trained on 4000 3D images from porn games, to make the pony model more realistic. April 12 update: added Visual-Novel-3D version trained with 6000 images from 3d visual novel games in the most meticulous way so as not to lose the diverse and accurate NSFW nature of pony This is not actually a model but the start of a series of models inspired by visual novel games and possibly other games as well. those will be models trained on my original DucHaiten-Pony-XL-no_score model. This means that there will be many different models inspired by art styles from different games. If you like the art style of any game and want me to train it as a model, please contact me and provide me with at least 1000 data images of that game, preferably from game cutscenes, Of course, then I still have to consider a few more issues before actually training a model according to your requirements. Because it is trained from game data, the model can create very good images in horizontal frames. Recommended for use with my lora Since this model is trained on my merge pony model, it also has the feature of adding tag_score to the prompt, but you may not necessarily need to use it. Currently I'm lacking data about medieval, fantasy or sci-fi cyberpunk games, I'd be very grateful if anyone could provide it for me. f you like my content, support me at: https://ko-fi.com/duchaiten Patreon in here: https://linktr.ee/Duc_Haiten If you want to use my models to create unlimited images at a small cost without having to install anything, mage.space will be a good choice, i have some models that are exclusively available on there.",
+  "publicUrl": "https://civitai.com/models/388321?modelVersionId=692973"
+}

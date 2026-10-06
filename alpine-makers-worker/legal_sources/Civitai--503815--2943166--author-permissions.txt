@@ -1,0 +1,22 @@
+{
+  "sha256": "56d4db7a9e925a53ce7ca32cb14107a8cc3e967b70df0da23a27351cdb68157f",
+  "retrievedAt": "2026-10-05T22:38:57.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/56d4db7a9e925a53ce7ca32cb14107a8cc3e967b70df0da23a27351cdb68157f",
+  "versionId": 2943166,
+  "versionName": "IL v18.0 A",
+  "modelId": 503815,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/503815",
+  "modelName": "Nova Furry XL",
+  "publisher": "Crody",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Anima version is available! Nova Furry XL A 2d/2.5d furry checkpoint model that can have great details on any type of furs, scales and feathers, which aims to be XL-fied Peaki Furry SeaArtAI OurtAI PixAI - IL v18.0B PixAI - IL v18.0A PixAI - IL v17.0 PixAI - IL v16.0 PixAI - IL v15.5 PixAI - IL v15.0 PixAI - IL v14.0 PixAI - IL v13.5 PixAI - IL v13.0 PixAI - IL v12.0 PixAI - Illustrious v11.0 PixAI - Illustrious v10.0 PixAI - Illustrious v9B PixAI - Illustrious v9A PixAI - Illustrious v8B PixAI - Illustrious v8A PixAI - Illustrious v7B PixAI - Illustrious v7A PixAI - Illustrious v6B PixAI - Illustrious v6A PixAI - Illustrious v5.0 PixAI - Illustrious v4.0 PixAI - Illustrious v3.0 PixAI - Illustrious v0.8 PixAI - Illustrious v1.0 PixAI - Illustrious v2.0 PixAI - v1.0 PixAI - v2.0 PixAI - v3.0 PixAI - v4.0 PixAI - v5.0 PixAI - v6.0 tensorART Rules You cannot use the generated images for commercial use if it's not edited (or just turning it to black and white) Advertising is always welcome Recommended settings : Sampler: Euler a for best performance Steps: 20-50 steps (Pony) CFG Scale: 6-7 Prompt: score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, source_furry, BREAK, furry, anthro, detailed face eyes and fur, {Animal Type} Negative Prompt: blurry, jpeg artifacts, username, watermark, signature, normal quality, worst quality, large head, low quality, text, error, missing fingers, extra digits, fewer digits, bad eye (Illustrious) CFG Scale: 3-5 Prompt: masterpiece, best quality, amazing quality, very aesthetic, high resolution, ultra-detailed, absurdres, newest, scenery, furry, anthro, {Prompt}, BREAK, depth of field, detailed fluffy fur, volumetric lighting Negative Prompt: human, multiple tails, modern, recent, old, oldest, graphic, cartoon, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured, long body, lowres, bad anatomy, bad hands, missing fingers, extra digits, fewer digits, cropped, very displeasing, (worst quality, bad quality:1.2), bad anatomy, sketch, jpeg artifacts, signature, watermark, username, simple background, conjoined, bad ai-generated",
+  "publicUrl": "https://civitai.com/models/503815?modelVersionId=2943166"
+}

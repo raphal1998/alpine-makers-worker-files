@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : zavychromaxl
+Modèle : ZavyChromaXL (fichier zavychromaxl_v100.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Zavy
+Attribution : ZavyChromaXL — Zavy
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML Open RAIL++-M)
+Source officielle : https://civitai.com/models/520661?modelVersionId=1656707
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : ff5b69c9a197ee7e577d72e0e73c826c8dd8b83d88289f93bb78b53a258acc7c
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 916744) :
+allowCommercialUse : Image, RentCivit
+allowNoCredit : oui ; allowDerivatives : non ; allowDifferentLicense : non
+Licence du modèle de base (famille sdxl d'après la référence) : CreativeML Open RAIL++-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--119229--916744--author-permissions
+https://civitai.com/api/v1/models/119229
+SHA-256 65fda59dd0c99b0bf68866dfca42581fc8bd79a8ce88394f99f274e4819b8e4e
+Copie : legal_sources/Civitai--119229--916744--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

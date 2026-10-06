@@ -1,0 +1,24 @@
+{
+  "sha256": "9f90c59f3aa99d9160b5652c4c68215fdc27399e5d1c692429abf2407bb909d1",
+  "retrievedAt": "2026-10-05T22:36:20.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/9f90c59f3aa99d9160b5652c4c68215fdc27399e5d1c692429abf2407bb909d1",
+  "versionId": 1346181,
+  "versionName": "v8",
+  "modelId": 443821,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/443821",
+  "modelName": "CyberRealistic Pony",
+  "publisher": "Cyberdelia",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Join The Tinkerer on Whop. Membership gets you early releases, private tools and a bunch of extra stuff. 👉 Join on Whop 💬 Join the community for support, free tools and early news on Discord CyberRealistic Pony blends all the charm of Pony Diffusion with the striking realism of CyberRealistic. The vibe? You get everything from adorable to bold (sometimes both at once) with crazy-detailed textures, moody cinematic lighting, and a hint of AI flair. 📘 New to Pony? Read the Pony Prompting: Master Guide - score chains, control tags, structure, and ready-to-use templates. 🧠 How to Use It Sampling method: DPM++ SDE Karras / DPM++ 2M Karras / Euler a Sampling steps: 30+ Steps Resolution: 896x1152 / 832x1216 CFG: 5 Clip Skip: 2 ✅ Recommended Prompts score_9, score_8_up, score_7_up, (SUBJECT), Negative Prompt examples: score_6, score_5, score_4, (worst quality:1.2), (low quality:1.2), (normal quality:1.2), lowres, bad anatomy, bad hands, signature, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, error, extra limb, missing limbs it's also possible to remove the normal pony tags: (SUBJECT), Negative Prompt examples: (worst quality:1.2), (low quality:1.2), (normal quality:1.2), lowres, bad anatomy, bad hands, signature, watermarks, ugly, imperfect eyes, skewed eyes, unnatural face, unnatural body, error, extra limb, missing limbs 🛠 ADetailer Settings Adetailer model: face_yolov9c.pt If you only want the main face being refined set 'Mask only the top k largest' to 1. ☕ Support Enjoying the ride? [ Buy me a coffee ] – but only if the Pony delivered something you actually like. ⚠️ Disclaimer This model might generate sensitive content. Whatever you make with it is on you. Don’t do anything weird and try to blame the horse. 🔗 Links Backup location: huggingface 💡 Need Better Prompts? This custom ChatGPT was made to whip up top-tier prompts just for this model: 🔗 [ Try it now on ChatGPT ]",
+  "publicUrl": "https://civitai.com/models/443821?modelVersionId=1346181"
+}

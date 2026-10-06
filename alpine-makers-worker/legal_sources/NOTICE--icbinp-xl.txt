@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : icbinp-xl
+Modèle : ICBINP XL (fichier icbinp_xl.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : unidentified_author
+Attribution : ICBINP XL — unidentified_author
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML Open RAIL++-M)
+Source officielle : https://civitai.com/models/229002/icbinp-xl
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : b54e38a6bdaf010179bcaf4ca8637598a5b0b7587bab3b6ebd1cdff699d8863d
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 551129) :
+allowCommercialUse : Image, RentCivit, Rent
+allowNoCredit : non ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sdxl d'après la référence) : CreativeML Open RAIL++-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--229002--551129--author-permissions
+https://civitai.com/api/v1/models/229002
+SHA-256 6421271b81e374bc7be0f0c3f4562002a69c3a17471df12be311cbddd499f9e6
+Copie : legal_sources/Civitai--229002--551129--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

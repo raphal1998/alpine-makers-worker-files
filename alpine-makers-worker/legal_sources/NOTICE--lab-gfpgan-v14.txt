@@ -1,0 +1,24 @@
+Alpine Makers — notice documentaire : lab-gfpgan-v14
+Auteur/éditeur : TencentARC (Tencent) ; auteurs de GFPGAN
+Attribution : GFPGAN (Xintao Wang, Yu Li, Honglun Zhang, Ying Shan — Tencent ARC Lab)
+Licence : Usage non commercial : code GFPGAN Apache-2.0, mais composants tiers non commerciaux (StyleGAN2 : NVIDIA Source Code License-NC ; DFDNet : CC BY-NC-SA 4.0) et visages d'entraînement FFHQ (jeu CC BY-NC-SA 4.0)
+Source officielle : https://github.com/TencentARC/GFPGAN
+État : official_release_and_license_collected
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+TencentARC--GFPGAN--77df6e4fad3b--LICENSE
+https://raw.githubusercontent.com/TencentARC/GFPGAN/77df6e4fad3bbd735bd54dff1a08405522c6a4b0/LICENSE
+SHA-256 b916d19bf894eb43409866adf17c9f71cbb17aefd9cd105117c4a32598ef6a46
+Copie : legal_sources/TencentARC--GFPGAN--77df6e4fad3b--LICENSE.txt
+Apache-2.0-full-license
+https://www.apache.org/licenses/LICENSE-2.0.txt
+SHA-256 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+Copie : legal_sources/Apache-2.0-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,22 @@
+{
+  "sha256": "aea4ec6c4d248fb9cdc3209bcbf3fccb05acb1a2a901d3f1e805e39810ed0b09",
+  "retrievedAt": "2026-10-05T22:47:50.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/aea4ec6c4d248fb9cdc3209bcbf3fccb05acb1a2a901d3f1e805e39810ed0b09",
+  "versionId": 2805032,
+  "versionName": "v9.0",
+  "modelId": 24350,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/24350",
+  "modelName": "PerfectDeliberate",
+  "publisher": "Desync",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "PerfectDeliberate An Illustrious-based checkpoint built to hold its footing across anime, semi-real and 3D-leaning styles. ⚙️ Recommended Settings Resolution 832×1216 960×1440 1024×1024 1024×1536 CFG Scale 5–8 Sampler Euler a or DPM++ 2M Karras Steps 20–50 VAE baked in Trigger words none 💬 Community Questions, prompt help, or just want to show what you made. → Join the Discord ☕ Support the model PerfectDeliberate is free and stays free. If it has earned a coffee: → ko-fi.com/desyncai Patreon was disabled in 2025 and Buy Me a Coffee banned the account in April 2026 — Ko-fi is the only working link. 📌 About the pinned images I try rotate the pins every 1–3 weeks to keep the gallery fresh. If yours gets unpinned it is not a demotion it is just making room. :3",
+  "publicUrl": "https://civitai.com/models/24350?modelVersionId=2805032"
+}

@@ -1,0 +1,24 @@
+{
+  "sha256": "ec6f68ea6388951d53d6c8178c22aecfd1b4fedfe31f5a5814ddd7638c4eff37",
+  "retrievedAt": "2026-10-05T22:38:20.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/ec6f68ea6388951d53d6c8178c22aecfd1b4fedfe31f5a5814ddd7638c4eff37",
+  "versionId": 72396,
+  "versionName": "v1.6",
+  "modelId": 22922,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/22922",
+  "modelName": "Lyriel",
+  "publisher": null,
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "The creator of this resource has been found to be manipulating their reviews and the reviews of others. As such they have been banned from the platform and their resource delisted By popular demand, we've brought back the resource availability to download. but locked discussion and further reviews from being posted. We've opened the images back up by popular demand, as a lot of users want to see the metadata for images. However, to ensure this resource does not receive an unfair advantage from its false reviews, we've excluded all reviews and comments on the resource. This ensures it has a fresh start. Hello, the model was created as an artistic style, the model can do almost anything, the main thing is to follow the promt, hands and eyes looks good for the most cases Model Information: This model is generally designed for portraits and full-length anime style photos. Fantastic landscapes are quite decent. And it doesn't require kilometer-long queries to get a high-quality result. Recommend: DPM++2M Karras, Clip skip 2 Sampler, Steps: 25-35+ This model would not have come out without XpucT's help, which made Deliberate If you have the desire and means to support future models, here you go: Advanced Cash - U 1281 8592 6885 , E 8642 3924 9315 , R 1339 7462 2915 PEYEER - P1075963156 I hope you like it, thanks for the feedback",
+  "publicUrl": "https://civitai.com/models/22922?modelVersionId=72396"
+}

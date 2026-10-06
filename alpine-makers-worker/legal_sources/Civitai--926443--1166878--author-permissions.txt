@@ -1,0 +1,24 @@
+{
+  "sha256": "1207404b1705a026eaa2896b66953dbef8be5ccde5340e4fd940b674aecb8cf8",
+  "retrievedAt": "2026-10-05T22:38:59.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/1207404b1705a026eaa2896b66953dbef8be5ccde5340e4fd940b674aecb8cf8",
+  "versionId": 1166878,
+  "versionName": "XIII",
+  "modelId": 926443,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/926443",
+  "modelName": "NTR MIX | illustrious-XL | Noob-XL",
+  "publisher": "tkio",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "This model is recommended for use with Comfyui compatibility with Reforge is not guaranteed. RECOMMEND setting (NTR MIX Xiii) {your Prompt} masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, you can add tag scenery, (volumetric lighting), To make the background more distinctive. Use dpm ++ 2m sgm uniform or karras (Sometimes euler is okay...?) Step 25, cfg 5 (can up to 5.8 by looking at the situation) If you not use LoRA, author tags, etc., up the step to 28 EXTREAM (very scenery) setting (NTR MIX Xii) masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, (scenery, volumetric lighting), {your Prompt} masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, (scenery, volumetric lighting) Use dpm ++ 2m karras or sgm uniform Step 28, cfg 5.8 (can take it down to 5 by looking at the situation) SOFT (char only, simple background) setting (NTR MIX Xii) Quality tags (please put Bottom of the tag) {your Prompt} masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, Use dpm ++ 2m beta or karras or sgm uniform Step 20, cfg 5 (up to 5.8 by looking at the situation) EXTREAM (very scenery) setting (NTR MIX Xi) Use dpm ++ 2m SDE (recommend SGM UNIFORM or Karras or BETA, choose your own!) Step 28, cfg 5.8 (can take it down to 5.5 by looking at the situation) this need Two Quality tags, bottom and top (refers to the beginning and end of the prompt.) Quality tags (please put Bottom and Top of the tag) masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, (scenery, volumetric lighting), {your Prompt} masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, (scenery, volumetric lighting) SOFT (char only, simple background) setting (NTR MIX Xi) Use dpm ++ 2m karras Step 28, cfg 5.8 (can take it down to 5 by looking at the situation) Quality tags (please put Bottom of the tag) masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, volumetric lighting {your Prompt} masterpiece, best quality, amazing quality, very aesthetic, absurdres, newest, volumetric lighting Negative Tags (all setting) lowres, (worst quality, bad quality:1.2), bad anatomy, sketch, jpeg artifacts, signature, watermark, old, oldest, censored, bar_censor, (pregnant), chibi, loli, simple background, Recommendation setting (under NTR MIX 777) Use dpm ++ 2m Karras (in i2i, use BETA and cfg 5) Step 28, cfg 7 Quality tags (please put Bottom of the tag) masterpiece, best quality, amazing quality, very aesthetic, absurdres, Negative tags lowres, (worst quality, bad quality:1.2), bad anatomy, sketch, jpeg artifacts, signature, watermark, old, oldest, censored, bar_censor, (pregnant), chibi, loli, simple background, conjoined, futanari,",
+  "publicUrl": "https://civitai.com/models/926443?modelVersionId=1166878"
+}

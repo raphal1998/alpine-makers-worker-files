@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : dungeons-and-diffusion
+Modèle : Dungeons and Diffusion (fichier Dungeons-and-Diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : 0xJustin
+Attribution : Dungeons and Diffusion — 0xJustin
+Licence : Fiche de l'éditeur (licence déclarée : creativeml-openrail-m) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/0xJustin/Dungeons-and-Diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 00f5bb5b294aede41a08402b2973ccf6c1663d0f2810580458f61c4c70e7bd4b
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+0xJustin--Dungeons-and-Diffusion--5f3dc2e54780--README.md
+https://huggingface.co/0xJustin/Dungeons-and-Diffusion/raw/5f3dc2e54780002eba1ffe77a8868b31a506e4b3/README.md
+SHA-256 a8e2897181469d9f826203f8b1bb9a67600e64af33499b3b8d57abfd776e0b48
+Copie : legal_sources/0xJustin--Dungeons-and-Diffusion--5f3dc2e54780--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

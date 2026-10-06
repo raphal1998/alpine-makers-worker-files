@@ -1,0 +1,24 @@
+{
+  "sha256": "fe95063ba60bc9298d60eb252f98d057039d9a882158afe042f266bdc1b1e528",
+  "retrievedAt": "2026-10-05T22:37:22.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/fe95063ba60bc9298d60eb252f98d057039d9a882158afe042f266bdc1b1e528",
+  "versionId": 266360,
+  "versionName": "v4.5-sharp",
+  "modelId": 35960,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/35960",
+  "modelName": "Flat-2D Animerge",
+  "publisher": "bigbeanboiler",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Description (for best results, read the full description - usage guide below) This is a merge of some random anime based and cartoon based models to achieve a somewhat cartoony anime style, more similar to what you would actually see in anime as opposed to the more common hyper-detailed anime models. Versions 3, 4, and 4.5 include some custom training to further enhance the style. More details available in \"About this Version\" on the sidebar. Most positive prompts for the v3 sample images were randomly generated. Usage Guide (highly recommended) Use a negative embedding for best results I use verybadimagenegative_v1.3 (all examples use this) verybadimagenegative_v1.3 https://civitai.com/models/11772/verybadimagenegative Place the downloaded file into the \"embeddings\" folder of the SD WebUI In the negative prompt, paste \"verybadimagenegative_v1.3\" (highly recommended) Upscaling at 2x (or more) is important to getting a good result. I would recommend the following settings: Denoising strength of 0.45 Use the \"R-ESRGAN 4x+ Anime6B\" upscaler for a flatter look, or use \"Latent\" for a bit more detail Leave hires steps at default of 0 (equal to your generation steps) (highly recommended) Use DPM++2M Karas as the sampler. Other samplers can yield odd artifacts, though your mileage may vary depending on your specific setup. (only for version 3 and below) Use the dynamic thresholding plugin (all example images do with cfg scale 10 mimic 7): https://github.com/mcmonkeyprojects/sd-dynamic-thresholding Set the CFG scale to 10.0 Click the checkbox \"Enable Dynamic Thresholding (CFG Scale Fix)\" Set the Mimic CFG Scale to 7 If you don't want to use this plugin, then set the config scale to 5 or 6 This model is very easy to prompt, and does not require a ton of prompt engineering to get good results. The following format will yield decent results: Prompt: (best-quality:0.8), perfect anime illustration, <normal description of the image, e.g. a woman running in tokyo at night, a flaming meteor, etc.> Negative: (worst quality:0.8), verybadimagenegative_v1.3, (surreal:0.8), (modernism:0.8), (art deco:0.8), (art nouveau:0.8) The model is capable of NSFW",
+  "publicUrl": "https://civitai.com/models/35960?modelVersionId=266360"
+}

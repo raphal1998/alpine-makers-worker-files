@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : double-exposure-diffusion
+Modèle : Double Exposure Diffusion (fichier dublex-diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : joachim_s
+Attribution : Double Exposure Diffusion — joachim_s
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/joachimsallstrom/Double-Exposure-Diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : a617570008118be201c1b96b80cd3f27f54a5541485436448f1418e374849f96
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 1167) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+joachimsallstrom--Double-Exposure-Diffusion--09345645f60a--README.md
+https://huggingface.co/joachimsallstrom/Double-Exposure-Diffusion/raw/09345645f60a85a46cc554e6c2fe5d49fd704966/README.md
+SHA-256 7980efbf3620a51db68fa11127dbf6f37cab96e83b82ce12c6e03d5c650a2da4
+Copie : legal_sources/joachimsallstrom--Double-Exposure-Diffusion--09345645f60a--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1146--1167--author-permissions
+https://civitai.com/api/v1/models/1146
+SHA-256 29fea34346ac0f6fcfdca5ecc7f071f5d1851e3fbda38593abfd108d1122923c
+Copie : legal_sources/Civitai--1146--1167--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

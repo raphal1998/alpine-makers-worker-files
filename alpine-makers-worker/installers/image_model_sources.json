@@ -8,6 +8,14 @@
       "size_bytes": 6938050106,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/2dn_latentlensV1.safetensors"
     },
+    "3dkx": {
+      "filename": "3DKX.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "522efa9a9b83dfe96aefaeecfb7e8c53222c5dde88ab9c37fd7bf0ea47655f14",
+      "size_bytes": 2300165166,
+      "url": "https://huggingface.co/HavoAloe/3DKX_1.0b/resolve/edd9379a654bfa740ccf8b1785f3569311dc5b89/3DKX_v1.1.ckpt"
+    },
     "526mix-animated": {
       "filename": "526mixAnimated.safetensors",
       "min_vram_mb": 6000,
@@ -79,6 +87,14 @@
       "sha256": "3c5d7960a76dbc715ad1c4f2c4f948cd1f12ccd09d44cef243a7dd2cf82371bf",
       "size_bytes": 2132650982,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/analogMadness_v70.safetensors"
+    },
+    "anime-illust-diffusion-xl": {
+      "filename": "anime_illust_diffusion_xl.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "1813371de528253288eb8de8b2cc3674c79b6fc854ec7370583bd528706646d1",
+      "size_bytes": 6938042954,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/anime_illust_diffusion_xl.safetensors"
     },
     "anime-pencil-diffusion": {
       "filename": "AnimePencilArt.ckpt",
@@ -240,6 +256,14 @@
       "size_bytes": 6775433578,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/cheyenne.safetensors"
     },
+    "classic-animation-diffusion": {
+      "filename": "classic-anim-diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "93d27720391c3028ad1dd897a17468b1c993e14bfadebcebd103672c2ca62ea1",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/nitrosocke/classic-anim-diffusion/resolve/2a87c712e950fd8b77b2b702a8b707adddf5fa69/classicAnim-v1.ckpt"
+    },
     "comic-diffusion": {
       "filename": "comic-diffusion-v2.ckpt",
       "min_vram_mb": 6000,
@@ -247,6 +271,14 @@
       "sha256": "d3c225cbc2e0ed3ac8032e05e6fabe5acfe81e2e3d18e23389e84b9cb5ce127f",
       "size_bytes": 2132887713,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/comic-diffusion-v2.ckpt"
+    },
+    "cyberrealistic": {
+      "filename": "cyberrealistic.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "542f61e09a006ebf72f2c348be2f13ea77bdd7c111325856a40c22cbe476bf3e",
+      "size_bytes": 2132651162,
+      "url": "https://civitai.com/api/download/models/63401"
     },
     "cyberrealistic-pony": {
       "filename": "cyberrealisticPony_v8.safetensors",
@@ -272,6 +304,14 @@
       "size_bytes": 4265327278,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/DanMumford.ckpt"
     },
+    "dark-sushi-mix": {
+      "filename": "darkSushiMix.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "969673ad74a431348739cfc8b94fdfb1098dcc95127dad3e7edce706a5aa22ab",
+      "size_bytes": 2132625438,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/darkSushiMix.safetensors"
+    },
     "deliberate-3-0": {
       "filename": "deliberate_v3.safetensors",
       "min_vram_mb": 6000,
@@ -279,6 +319,14 @@
       "sha256": "aadddd3d7579de79db91f4ac03f2fbad4e9b71216bbebb50c338cae74b77cb27",
       "size_bytes": null,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/deliberate_v3.safetensors"
+    },
+    "dnd-item": {
+      "filename": "DnDItem.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "ed44d16de7a187effe1dc0368250f81f92bd9f538f21a3ad23c636ab58f031c8",
+      "size_bytes": 4265327726,
+      "url": "https://huggingface.co/stale2000/sd-dnditem/resolve/c812078b0928ea60e987b481b231cbd5e5cf1e76/dnditem-v1.ckpt"
     },
     "double-exposure-diffusion": {
       "filename": "dublex-diffusion.ckpt",
@@ -295,6 +343,14 @@
       "sha256": "0aecbcfa2cbe01bb44f7c0e4f413022ab25b35057b85507d55ba15e2d5db35da",
       "size_bytes": 2132856686,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/dreamlike-diffusion.ckpt"
+    },
+    "dreamlike-photoreal": {
+      "filename": "Dreamlike_Photoreal.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "fc52756a74d5f371422ff99a7268cb6abb14bfc4a4de3569382cf0bd75e55d36",
+      "size_bytes": 2132856686,
+      "url": "https://huggingface.co/dreamlike-art/dreamlike-photoreal-2.0/resolve/d9e27ac81cfa72def39d74ca673219c349f0a0d5/dreamlike-photoreal-2.0.ckpt"
     },
     "dreamlikesamkuvshinov": {
       "filename": "DreamLikeSamKuvshinov.ckpt",
@@ -504,6 +560,14 @@
       "size_bytes": 2132981728,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/hentai-diffusion.ckpt"
     },
+    "hidden-canvas": {
+      "filename": "hiddenCanvas_v10.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "5dd4a9c289dbf72e62c2fb9b932cd710c85c839b5f63c3a6be9bf11a1c917d68",
+      "size_bytes": 6938052202,
+      "url": "https://civitai.com/api/download/models/1942411"
+    },
     "holymix-ilxl": {
       "filename": "holyMixIllustriousxl_v1.safetensors",
       "min_vram_mb": 10000,
@@ -544,6 +608,14 @@
       "size_bytes": 2132857836,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/icomix.ckpt"
     },
+    "illuminati-diffusion": {
+      "filename": "Illuminati.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "1cd89acd67160b32dee7e61125d8c1f0221370bf18ba021c93b7a75b2af36856",
+      "size_bytes": 2607610189,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/Illuminati.ckpt"
+    },
     "inkpunk-diffusion": {
       "filename": "inkpunk-diffusion.ckpt",
       "min_vram_mb": 6000,
@@ -559,6 +631,14 @@
       "sha256": "41c0eafdf04ad6bffd2fa698f06371676daa10bab57bb8aa0c33ff06106a5778",
       "size_bytes": 2132857262,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/JimEidomode.ckpt"
+    },
+    "jwst-deep-space-diffusion": {
+      "filename": "JWST-Deep-Space.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "6f63189540752b5c5bc70c7bcf4a6facd332ee3ce891ee57a6cf01dd0421aada",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/dallinmackay/JWST-Deep-Space-diffusion/resolve/774475adc0d65536f83d3e268371f02e2880c431/JWST-Deep-Space.ckpt"
     },
     "kaynegillustriousxl": {
       "filename": "kaynegillustriousxl_v10.safetensors",
@@ -616,6 +696,14 @@
       "size_bytes": 6938046564,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/mhxlAventisHorizon_v30.safetensors"
     },
+    "microworlds": {
+      "filename": "microworld_PublicPrompts.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "bfbfd3f27a0b0311594bdd50fcc36209be2a39e775125ad83b3138781bce7f38",
+      "size_bytes": 2132862927,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/microworld_PublicPrompts.ckpt"
+    },
     "midjourney-paintart": {
       "filename": "mdjrny-pntrt.ckpt",
       "min_vram_mb": 6000,
@@ -672,6 +760,14 @@
       "size_bytes": 2132625431,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/neurogen.safetensors"
     },
+    "new-era": {
+      "filename": "newERANewEstheticRetro_newErav50NAIEpsilon.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "0c623bce42e5ca31be648350bc764f4861d7f9a9738c6f9995472e0813a57ac6",
+      "size_bytes": 6938040416,
+      "url": "https://civitai.com/api/download/models/1502081"
+    },
     "noob-v-pencil-xl": {
       "filename": "noobVPencilXL_v051.safetensors",
       "min_vram_mb": 10000,
@@ -688,6 +784,22 @@
       "size_bytes": 6938042794,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/noobevo_v1.safetensors"
     },
+    "nova-anime-xl": {
+      "filename": "novaAnimeXL_ilV190.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "fa486caafc330f133605d3c18b418d183812f14946631c6544bfb28730db6d6f",
+      "size_bytes": 6939105596,
+      "url": "https://civitai.com/api/download/models/2940478"
+    },
+    "nova-flat-xl": {
+      "filename": "novaFlatXL_v90.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "c236a776d04c409514adc1a780efd1339eb992a7f503ca67b668af090b81fb88",
+      "size_bytes": 6938504356,
+      "url": "https://civitai.com/api/download/models/2610015"
+    },
     "nova-furry-pony": {
       "filename": "novaFurryPony_v60.safetensors",
       "min_vram_mb": 10000,
@@ -696,6 +808,14 @@
       "size_bytes": 6938063064,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/novaFurryPony_v60.safetensors"
     },
+    "nova-furry-xl": {
+      "filename": "novaFurryXL_ilV180A.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "56d4db7a9e925a53ce7ca32cb14107a8cc3e967b70df0da23a27351cdb68157f",
+      "size_bytes": 6939104724,
+      "url": "https://civitai.com/api/download/models/2943166"
+    },
     "ntr-mix-il-noob-xl": {
       "filename": "ntrMIXIllustriousXL_xiii.safetensors",
       "min_vram_mb": 10000,
@@ -703,6 +823,14 @@
       "sha256": "1207404b1705a026eaa2896b66953dbef8be5ccde5340e4fd940b674aecb8cf8",
       "size_bytes": 6938050106,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ntrMIXIllustriousXL_xiii.safetensors"
+    },
+    "papercut-diffusion": {
+      "filename": "PaperCut_v1.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "8ee651e71263b685807a0cec700291843305f1e6778f94cba40d58f6f2cd663a",
+      "size_bytes": 4265531936,
+      "url": "https://huggingface.co/Fictiverse/Stable_Diffusion_PaperCut_Model/resolve/333275515ece0c1012d63b9c34586853f6a23d5a/PaperCut_v1.ckpt"
     },
     "pastel-mix": {
       "filename": "PastelMix.ckpt",
@@ -720,6 +848,14 @@
       "size_bytes": 2132857262,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/PerfectWorld.ckpt"
     },
+    "perfectdeliberate": {
+      "filename": "perfectDeliberate_v90.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "aea4ec6c4d248fb9cdc3209bcbf3fccb05acb1a2a901d3f1e805e39810ed0b09",
+      "size_bytes": 6938040682,
+      "url": "https://civitai.com/api/download/models/2805032"
+    },
     "photon": {
       "filename": "photon.safetensors",
       "min_vram_mb": 6000,
@@ -727,6 +863,14 @@
       "sha256": "ec41bd2a8271acde4ae81cac004d9f3300e7fb0870eae8cbfe0bbc4ef8e27f91",
       "size_bytes": 2132631552,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/photon.safetensors"
+    },
+    "pixel-illustrious": {
+      "filename": "pixelIllustrious_v20.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "b5e5ab32e752a6d63f8844fc98c7da1b1b734aa0b7a8cb3ce08d4f21fd0e1135",
+      "size_bytes": 6938052266,
+      "url": "https://civitai.com/api/download/models/2281791"
     },
     "poison": {
       "filename": "poison.ckpt",
@@ -784,6 +928,14 @@
       "size_bytes": 4265678851,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/ProjectUnreal5.ckpt"
     },
+    "protogen": {
+      "filename": "ProtoGen.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "f762cdef0235669136c16421e7f3affb47ab78e20890d5258347cf5ae571af76",
+      "size_bytes": 4265327916,
+      "url": "https://huggingface.co/darkstorm2150/Protogen_v5.3_Official_Release/resolve/9c70c6edf4ed07460b9d6859d42340c3b9c22a83/ProtoGen_X5.3.ckpt"
+    },
     "quiet-goodnight-xl": {
       "filename": "quietGoodnightXL_v2.safetensors",
       "min_vram_mb": 10000,
@@ -791,6 +943,14 @@
       "sha256": "18b7586c94e8e410076df1b077d654e9ea07bbbd15ad8c8e14e13fd0666150ba",
       "size_bytes": 6939226112,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/quietGoodnightXL_v2.safetensors"
+    },
+    "rag-illustrious-mix": {
+      "filename": "ragIllustriousMix_v11.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "37f020bd8bf29d341e7b5a8de8036c21dc3ffce809a44a307ba12dfffdc2ce77",
+      "size_bytes": 6938059730,
+      "url": "https://civitai.com/api/download/models/2732179"
     },
     "real-dos-mix": {
       "filename": "realdosmix.safetensors",
@@ -807,6 +967,38 @@
       "sha256": "0f3eb9f4a299e3928c68e43b21390f7e621e651c56cb424f9aa3284913adfb60",
       "size_bytes": 2132857198,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/RealBiter.ckpt"
+    },
+    "realisian": {
+      "filename": "realisian.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "fba9027fa4bc3156dbdbf3b72c0fc2c8b379d48e2569432509cfaacaa770e6ab",
+      "size_bytes": 2132625614,
+      "url": "https://civitai.com/api/download/models/70157"
+    },
+    "realism-engine": {
+      "filename": "RealismEngine.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "b84d40bfc66990445f448ddb749673ae986598a135531f5b1bd40da1681d6be2",
+      "size_bytes": 2607610253,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/RealismEngine.ckpt"
+    },
+    "ri-mix": {
+      "filename": "riMixPONYIllustrious_riMixV2.safetensors",
+      "min_vram_mb": 10000,
+      "recommended_vram_mb": 12000,
+      "sha256": "266b879d3a9c386a93fade088c386b96058aae2e92951a27db98157ff7229e96",
+      "size_bytes": 6938040784,
+      "url": "https://civitai.com/api/download/models/2811854"
+    },
+    "robo-diffusion": {
+      "filename": "robo_diffusion.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "244dbe0dcb55c761bde9c2ac0e9b46cc9705ebfe5f1f3a7cc46251573ea14e16",
+      "size_bytes": 4265477985,
+      "url": "https://huggingface.co/nousr/robo-diffusion/resolve/f34081d7b345032399802bde14c8944dc582788f/models/robo-diffusion-v1.ckpt"
     },
     "rpg": {
       "filename": "rpg_v5.safetensors",
@@ -832,6 +1024,14 @@
       "size_bytes": 2132857708,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/SD-Silicon.ckpt"
     },
+    "seek-art-mega": {
+      "filename": "seekArtMEGA_mega20.safetensors",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "99fd5c4b6f6c8e1a1873f378d04fc219c4f441abd0cc8c59a35d960cea0ac54f",
+      "size_bytes": 2132625431,
+      "url": "https://civitai.com/api/download/models/22808"
+    },
     "something": {
       "filename": "Something.ckpt",
       "min_vram_mb": 6000,
@@ -855,6 +1055,14 @@
       "sha256": "e8d456c42e12841e6036ab283f976bb8eff873b8ad6b893945863eed4f80db33",
       "size_bytes": 2299933946,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/toonyou_beta6.safetensors"
+    },
+    "trinart-characters": {
+      "filename": "Trinart_Characters.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "42d3f359b02c944cb2e8f666b10bda05015792f10bfd4e9deee44bb66969ce3d",
+      "size_bytes": 4265481056,
+      "url": "https://huggingface.co/naclbit/trinart_derrida_characters_v2_stable_diffusion/resolve/8be0b8a638c17ed3820e5026928c26fa0d75f85e/derrida_final.ckpt"
     },
     "tunix-pony": {
       "filename": "tunix3DStylizedPony_v10VAE.safetensors",
@@ -903,6 +1111,22 @@
       "sha256": "ce9f23b04771e636b37b7d52ff0d0f20f176f170af1ebbe9203d2b3e4a88522e",
       "size_bytes": 2132867300,
       "url": "https://huggingface.co/mirroring/horde_models/resolve/main/URPM.ckpt"
+    },
+    "vector-art": {
+      "filename": "vector_art.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "360d741263d05dd2fc3efe42c057a6e1faf84b30e634934fac5febfcd632f5d6",
+      "size_bytes": 2607614519,
+      "url": "https://huggingface.co/mirroring/horde_models/resolve/main/vector_art.ckpt"
+    },
+    "vectorartz": {
+      "filename": "Vectorartz.ckpt",
+      "min_vram_mb": 6000,
+      "recommended_vram_mb": 8000,
+      "sha256": "75fd827a64e9e9d076b40cdbae95b0b8cd0b6e8a4302c02756337084e7c2ce90",
+      "size_bytes": 2132856622,
+      "url": "https://huggingface.co/coder119/Vectorartz_Diffusion/resolve/3485339290993cf67cc4101c1e0fc03b72be3e78/Vectorartz.ckpt"
     },
     "wai-ani-nsfw-ponyxl": {
       "filename": "waiANINSFWPONYXL_v80.safetensors",

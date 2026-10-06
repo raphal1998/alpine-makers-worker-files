@@ -1,0 +1,20 @@
+{
+  "sha256": "e8d456c42e12841e6036ab283f976bb8eff873b8ad6b893945863eed4f80db33",
+  "retrievedAt": "2026-10-05T22:39:50.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/e8d456c42e12841e6036ab283f976bb8eff873b8ad6b893945863eed4f80db33",
+  "versionId": 125771,
+  "versionName": "Beta 6 🌟",
+  "modelId": 30240,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/30240",
+  "modelName": "ToonYou",
+  "publisher": "Bradcatt",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "ToonYou - Beta 6 is up! Silly, stylish, and.. kind of cute? 😅 A bit of detail with a cartoony feel, it keeps getting better! With your support, ToonYou has come this far, Thx! ⬇Please read the information below🙏 1️⃣Recommended Settings - VAE is included starting with Alpha2 (840000) - Clip skip: 2 - CFG scale: 8 - Sampler: DPM++ SDE Karras Sampling Steps : 30+ - Upscaler (Hires. fix): R-ESRGAN 4x+ Anime6B Hires steps: 14 Denoising strength: 0.35 Upscale by: 1.5+ - Default prompts Pos: (best quality, masterpiece), ... Neg: (worst quality, low quality, letterboxed), ... 2️⃣Using Adetailer - Main UI > Extensions > Install from URL This fixes problems with the character's eyes and face in most situations The default usage is to simply enable it and leave it alone ✅Now you're good to go! For more information, please continue below ℹ️Why is my image different from yours? I can't give you any technical help, sorry Keep your prompts simple and correct Tag auto complete extension to find the appropriate tags Tags like 'Realistic, 8k, ...' sometimes ruin an image Also These tags are often more useless than you might think Neg Tags like 'mutated arms' are useless than you might think Neg embedding can have a significant impact on the characteristics of a model These are not as perfect as you might think 💝Contact & Support [adresse e-mail retirée] A cup of coffee would be nice! 😉 ⚠️Warning You are solely responsible for any legal liability resulting from unethical use of this model Don't use my model as bait to drive people to your paid generation service without permission For anything other than general personal use, please be sure to contact me",
+  "publicUrl": "https://civitai.com/models/30240?modelVersionId=125771"
+}

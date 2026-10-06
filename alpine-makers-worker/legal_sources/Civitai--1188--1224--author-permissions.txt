@@ -1,0 +1,24 @@
+{
+  "sha256": "9e2c6ceff3f6d6f65c6fb0e10d8e69d772871813be647fd2ea5d06e00db33c1f",
+  "retrievedAt": "2026-10-05T22:40:30.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/9e2c6ceff3f6d6f65c6fb0e10d8e69d772871813be647fd2ea5d06e00db33c1f",
+  "versionId": 1224,
+  "versionName": "V1",
+  "modelId": 1188,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1188",
+  "modelName": "F222",
+  "publisher": "thecollector",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent",
+    "Sell",
+    "SellMerge"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Classic NSFW diffusion model. I'm just collecting these.",
+  "publicUrl": "https://civitai.com/models/1188?modelVersionId=1224"
+}

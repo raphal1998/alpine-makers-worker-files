@@ -1,0 +1,23 @@
+{
+  "sha256": "360d741263d05dd2fc3efe42c057a6e1faf84b30e634934fac5febfcd632f5d6",
+  "retrievedAt": "2026-10-05T22:48:03.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/360d741263d05dd2fc3efe42c057a6e1faf84b30e634934fac5febfcd632f5d6",
+  "versionId": 5265,
+  "versionName": "vector-art-beta",
+  "modelId": 4618,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/4618",
+  "modelName": "vector-art",
+  "publisher": "pmejna",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "About model: Style model for Stable Diffusion mimicking \"vector style\". This model is open source so you can share, merge or use for monetization as you like (that will apply to other versions as well) License and support: If you like what I am doing and you want to support my current and upcoming projects: here is my coffee jar You can use this model as you like. I love open source so have fun with it. :) If you like it I appreciate your support ^^ Cheers! Installation: As it is model based on 2.1 to make it work you need to use .yaml file with name of a model (vector-art.yaml). The yaml file is included here as well to download. Simply copy paste to the same folder as selected model file. Usually this is the models/Stable-diffusion one. Versions: There are two versions of this model - they both give a bit different output. Pulp one is great for \"oldschool poster\" stuff and comic book related. The vector-beta vanilla is more focused on mimicing vector style. (tshirt design, vector-style posters and stickers). I am working on tshirt and sticker model now -so this one will get a general update next time to be more vector-focused but giving more versatile results and styles as well. Black images issue: 2.1 models need to have a web-ui config modified - if you are getting black images - go to your config file and add to COMMANDLINE_ARGS= --no-half - potentially it could work with --xformers instead (if supported). This line might slow your generations a bit but will not affect negatively your output. Other: The model has been trained the way it is not overfitted and same time give you it's strong style. Try-out some prompts below, dont be afraid to use different encoders: Example prompts: portrait of a very handsome man made of fruit by guiseppe arcimboldo and greg rutkowski, donato giancola, joseph christian leyendecker, wlop, boris vallejo, breathtaking, 8 k resolution, extremely detailed, beautiful, establishing shot, artistic, hyperrealistic, beautiful face, octane render, cinematic lighting, dramatic lighting, masterpiece by vector-art `e-sport logo illustration of a spectral gorilla-punk in astronaut suit by guiseppe arcimboldo and greg rutkowski, donato giancola, joseph christian leyendecker, wlop, boris vallejo, breathtaking, 8 k resolution, extremely detailed, beautiful, establishing shot, artistic, hyperrealistic, beautiful face, octane render, cinematic lighting, dramatic lighting, masterpiece by vector-art` Negative prompt: low poly, tetric, mosaic, disfigured, kitsch, ugly, oversaturated, grain, low-res, Deformed, blurry, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, poorly drawn hands, missing limb, blurry, floating limbs, disconnected limbs, malformed hands, blur, out of focus, long neck, long body, ugly, disgusting, poorly drawn, mutilated, mangled, old, surreal, pixel-art, black and white, childish, watermark Separated subjects: `die-cut sticker illustration of monk skateboarding, full body on black background, standing, cinematic lighting, dramatic lighting, masterpiece by vector-art, apparel artwork style by vector-art` `black eagle on a light background vector-art, cinematic lighting, dramatic lighting, masterpiece by vector-art, apparel artwork style by vector-art` Negative Prompt: low poly, tetric, mosaic, disfigured, kitsch, ugly, oversaturated, grain, low-res, Deformed, blurry, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, poorly drawn hands, missing limb, blurry, floating limbs, disconnected limbs, malformed hands, blur, out of focus, long neck, long body, ugly, disgusting, poorly drawn, mutilated, mangled, old, surreal, pixel-art, black and white, childish, (((watermark))), (((dreamstime))), (((stock image))) Stickers: ((die_cut sticker)) colored punk animal illustration, die_cut sticker in style of vector-art ((die_cut sticker)) colored tiger illustration on white background, centered, die_cut sticker in style of vector-art Negative p",
+  "publicUrl": "https://civitai.com/models/4618?modelVersionId=5265",
+  "descriptionTruncated": true
+}

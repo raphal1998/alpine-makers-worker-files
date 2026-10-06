@@ -1,0 +1,22 @@
+{
+  "sha256": "b54e38a6bdaf010179bcaf4ca8637598a5b0b7587bab3b6ebd1cdff699d8863d",
+  "retrievedAt": "2026-10-05T22:38:00.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/b54e38a6bdaf010179bcaf4ca8637598a5b0b7587bab3b6ebd1cdff699d8863d",
+  "versionId": 551129,
+  "versionName": "v6",
+  "modelId": 229002,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/229002",
+  "modelName": "ICBINP XL",
+  "publisher": "unidentified_author",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "[description de l'auteur non reprise ; voir la page officielle du modèle]",
+  "publicUrl": "https://civitai.com/models/229002?modelVersionId=551129"
+}

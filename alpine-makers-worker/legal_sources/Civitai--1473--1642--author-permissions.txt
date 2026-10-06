@@ -1,0 +1,18 @@
+{
+  "sha256": "d43a0899eb8be52939b612189e6e93d99722888fd74999baae214cfb78192188",
+  "retrievedAt": "2026-10-05T22:36:39.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/d43a0899eb8be52939b612189e6e93d99722888fd74999baae214cfb78192188",
+  "versionId": 1642,
+  "versionName": "ckpt",
+  "modelId": 1473,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/1473",
+  "modelName": "DreamLikeSamKuvshinov",
+  "publisher": "mattgroy",
+  "allowNoCredit": false,
+  "allowCommercialUse": [],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "A mixture of Dreamlike Diffusion 1.0 , SamDoesArt V3 and Kuvshinov style models. Created mostly for exploring different character concepts with a focus on drawings, but the mix happened to be pretty good at realistic-ish images, all thanks to wonderful models that it uses.",
+  "publicUrl": "https://civitai.com/models/1473?modelVersionId=1642"
+}

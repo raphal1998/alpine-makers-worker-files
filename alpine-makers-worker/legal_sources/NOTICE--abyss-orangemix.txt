@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : abyss-orangemix
+Modèle : Abyss OrangeMix (fichier AbyssOrangeMix.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : WarriorMama777
+Attribution : Abyss OrangeMix — WarriorMama777
+Licence : Fiche de l'éditeur (licence déclarée : creativeml-openrail-m) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/WarriorMama777/OrangeMixs
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 587e4cedae0cd5549986a6774e2e9c7cdde32018d2d4fbe67d4b7236e07af39c
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+WarriorMama777--OrangeMixs--ec9df50045e9--README.md
+https://huggingface.co/WarriorMama777/OrangeMixs/raw/ec9df50045e9687fd7ea8116db84c4ad5c4a4358/README.md
+SHA-256 4b6a25110a8d96329932a38b64fab29cc49e0d6e308308c693c224f552c1ac2c
+Copie : legal_sources/WarriorMama777--OrangeMixs--ec9df50045e9--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

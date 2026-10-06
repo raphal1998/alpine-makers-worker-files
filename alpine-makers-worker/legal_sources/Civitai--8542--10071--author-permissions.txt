@@ -1,0 +1,18 @@
+{
+  "sha256": "95f931b25daa871edd0170887e9dd22a57ee449371a2ebb6dd6f622224a45b13",
+  "retrievedAt": "2026-10-05T22:36:47.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/95f931b25daa871edd0170887e9dd22a57ee449371a2ebb6dd6f622224a45b13",
+  "versionId": 10071,
+  "versionName": "DH_ClassicAnime_v1.0",
+  "modelId": 8542,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/8542",
+  "modelName": "DucHaitenClassicAnime",
+  "publisher": "DucHaiten",
+  "allowNoCredit": true,
+  "allowCommercialUse": [],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "I don't know about you, but in my opinion this is the best anime model I've ever created. With a bit of romance, a little bit of classic and indispensable NSFW, this is my favorite anime model. I even intended to sell it but changed my mind in the end, it wouldn't be good if it couldn't be used by everyone. If you like my content, support me at: https://linktr.ee/Duc_Haiten For those who don't have a powerful enough GPU, or are just too lazy to install enough complex software to run the model. mage.space will be a great site for you, with the number of models increasing every month, including my model of course. Especially for only $15 per month you can have unlimited photo creation for yourself, no credit score, no time, absolutely truly unlimited photo creation in a month. https://www.mage.space After studying this model for a while, I have learned some experiences to create better images: 1/ always add the keyword (80s anime style) at the beginning of the prompt. added gta style, the trigger keyword is (gtav style) note only one keyword can be added in the prompt, gta no anime, anime no gta 2/ use this negative prompt “illustration, painting, cartoons, sketch, (worst quality:2), (low quality:2), (normal quality:2), lowres, bad anatomy, bad hands, ((monochrome)), ((grayscale)), collapsed eyeshadow, multiple eyeblows, vaginas in breasts, (cropped), oversaturated, extra limb, missing limbs, deformed hands, long neck, long body, imperfect, (bad hands), signature, watermark, username, artist name, conjoined fingers, deformed fingers, ugly eyes, imperfect eyes, skewed eyes, unnatural face, unnatural body, error” 3/ CFG Scale to range from 12.5 to 15 Note that my sample image has no VAE",
+  "publicUrl": "https://civitai.com/models/8542?modelVersionId=10071"
+}

@@ -1,0 +1,20 @@
+Alpine Makers — notice documentaire : lab-yunet-face
+Auteur/éditeur : Shiqi Yu (libfacedetection) ; même fichier copié par kornia
+Attribution : YuNet / libfacedetection.train — Copyright (c) 2017 Max deGroot, Ellis Brown ; (c) 2019 Zisian Wong, Shifeng Zhang ; (c) 2020 Shiqi Yu (MIT) ; (c) 2022-2026 Shiqi Yu (BSD-3-Clause) ; chargé par kornia (Kornia Team, Apache-2.0)
+Licence : MIT (dépôt libfacedetection.train à la révision du fichier) ; BSD-3-Clause depuis la version 3 du dépôt
+Source officielle : https://github.com/ShiqiYu/libfacedetection.train
+État : standard_license_text_author_files_identified
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+MIT-full-license-template
+https://raw.githubusercontent.com/spdx/license-list-data/main/text/MIT.txt
+SHA-256 b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5
+Copie : legal_sources/MIT-full-license-template.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

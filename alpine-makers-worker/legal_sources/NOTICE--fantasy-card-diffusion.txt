@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : fantasy-card-diffusion
+Modèle : Fantasy Card Diffusion (fichier fantasy-card-diffusion.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : volrath50
+Attribution : Fantasy Card Diffusion — volrath50
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/volrath50/fantasy-card-diffusion
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 55e74e95128f50033d0c1306fe8768cf319fc8d3436398b86b7e852ab58fcac6
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 1059) :
+allowCommercialUse : Image, RentCivit, Rent, Sell, SellMerge
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : oui
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+volrath50--fantasy-card-diffusion--a55f183e9ac8--README.md
+https://huggingface.co/volrath50/fantasy-card-diffusion/raw/a55f183e9ac8dfefb6b98b4ea4d0c5e2ca04ed17/README.md
+SHA-256 5d2e974d4c9514b4a818722169382bb7b3e8ddca8f00f5ef0b7487fd6bd8f368
+Copie : legal_sources/volrath50--fantasy-card-diffusion--a55f183e9ac8--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1076--1059--author-permissions
+https://civitai.com/api/v1/models/1076
+SHA-256 03fad50d62daee802c678bffc1124c89f84e36a5f86c6f0b498b1f43903145cd
+Copie : legal_sources/Civitai--1076--1059--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

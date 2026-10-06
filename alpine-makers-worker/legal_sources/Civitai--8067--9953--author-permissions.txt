@@ -1,0 +1,22 @@
+{
+  "sha256": "5a08f9d89c51cc5f0f43d27d6ff5c242679f5f1ada6e0f73a3aafe10c1cf4e1b",
+  "retrievedAt": "2026-10-05T22:38:44.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/5a08f9d89c51cc5f0f43d27d6ff5c242679f5f1ada6e0f73a3aafe10c1cf4e1b",
+  "versionId": 9953,
+  "versionName": "V1.2",
+  "modelId": 8067,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/8067",
+  "modelName": "Movie Diffusion v1.2",
+  "publisher": "Dalle2Pictures",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "Movie Diffusion is SD 1.5 trained on 35mm film stills from popular movies. Get a custom captioned model or donate towards the compute for the training of even larger models in the future: https://ko-fi.com/dalle2pictures Token : 35mmstyle The visual look of 35mm film is often considered superior to other formats due to its ability to capture rich, nuanced details with a natural, organic feel. Compared to digital cameras or smaller film formats, 35mm film produces a unique texture and grain structure that is difficult to replicate with modern technology, so I fine-tuned a model to replicate the 35mm style. Base Sd doesn't fully understand the concept of 35mm, so I finetuned a model + captions. Add the word \" photo \" for most photorealism . Yes , it can more than just the face (*UPDATE : Version 1.2 was trained on more captioned full body shots / NSFW film stills (with more steps) *Note : may have to use some light negative prompting to get your desired result, but most of the time, it will give you what you're looking for. * 2/11/2023 : v1.0 released * 2/13/2023 : v1.2 released * 2/13/2023 : Safetensors added This model was trained on 512x512px images but can work with higher resolutions. Let me know what improvements can be made, Enjoy! @Dalle2Pictures (Twitter)",
+  "publicUrl": "https://civitai.com/models/8067?modelVersionId=9953"
+}

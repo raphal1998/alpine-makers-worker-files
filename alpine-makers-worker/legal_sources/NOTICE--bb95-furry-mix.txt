@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : bb95-furry-mix
+Modèle : BB95 Furry Mix (fichier bb95FurryMix.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Bumblebee95
+Attribution : BB95 Furry Mix — Bumblebee95
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://civitai.com/models/17649/bb95-furry-mix
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 5a8bfcfdd17c96ac2b2ee68d8a916e88bf03c426475f5524d13eb0959c66bcde
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 82523) :
+allowCommercialUse : Image, RentCivit
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--17649--82523--author-permissions
+https://civitai.com/api/v1/models/17649
+SHA-256 d5ebed94283d8a30e246caab7739971975eef90c70fbcf0f94daeaea55043a8a
+Copie : legal_sources/Civitai--17649--82523--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

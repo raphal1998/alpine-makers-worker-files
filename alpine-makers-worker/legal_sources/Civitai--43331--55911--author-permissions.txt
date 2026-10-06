@@ -1,0 +1,22 @@
+{
+  "sha256": "d819c8be6bc2a15307640a7eb069fa92e4c69c84289d8309273760ee7394e5f0",
+  "retrievedAt": "2026-10-05T22:38:22.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/d819c8be6bc2a15307640a7eb069fa92e4c69c84289d8309273760ee7394e5f0",
+  "versionId": 55911,
+  "versionName": "v4",
+  "modelId": 43331,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/43331",
+  "modelName": "majicMIX realistic 麦橘写实",
+  "publisher": "Merjic",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "V7 is here. So far so good for me. ASIAN ALERT! 推荐参数 Recommended Parameters for V7: Sampler: Euler a, Euler, restart Steps: 20~40 Hires upscaler: ESRGAN 4x or 4x-UltraSharp or 8x_NMKD-Superscale_150000_G Hires upscale: 2+ Hires steps: 15+ Hires denoising strength: 0.05~0.5 clip skip 2 如果要修复脸部，请使用after detailer. If your face comes out badly, use after detailer instead of face restoration. https://github.com/Bing-su/adetailer 我习惯开启Dynamic Thresholding来更好控制cfg值，1~20都可以尝试一下。 Use Dynmaic Thresholding to control CFG. You can try from 1~20. https://github.com/mcmonkeyprojects/sd-dynamic-thresholding 如果要添加滤镜效果、噪点，请使用BMAB. If you want to add noise like me, use BMAB. GitHub - portu-sim/sd-webui-bmab: Auto masking and inpainting for person, face, hand. Resizing image using detection model. v2.5 is here . Note that this is not v7, but an upgrade for v2. V7 may need to address more issues, which I am still trying to do. In the process, I have created a model worth sharing. This model can restore the light and shadow of the original majicmix v2, but with increased realism while still keeping the basic aesthetic of the face. I have tested other face loras and they work fine. Please use adetailer and put the face lora in it. 请注意，这不是v7，而是对v2的修缮。v7可能需要突破更多问题，这个目前我还在尝试。在这个过程中我融合出一个模型，我认为也值得分享。 本模型可以还原初代majicmix的光影，但是增加写实度，脸部还是保持基本调性的审美，我测试了其他脸部lora都没问题。请使用adetailer然后把脸部lora放在里面使用。 v5对我来说不够好，对你们来说也是的，而且不够写实。所以v6很迫切需要。用Euler画特写，用euler a 画其他的。不要！不要！不要开脸部修复！用adetailer来修脸。我的例图都用了。 v6 is here . v5 is not good as I played for a while and see the results from yours. Therefore a v6 is urgent. Use Euler for close up, and Euler a for others. Again, don't use facial restoration, use After detailer instead! All my samples used adetailer without lora. 第五版先行版来了，先把赛博永生小姐姐娜乌斯嘉融进来做个例子，也算是公测吧。 5th edtion is coming soon. I've posted a preview version with the face of nwsj. 推荐使用Euler作为采样器。 Use Euler as sampler. 听我一句劝，不要开脸部修复！ Please don't use Face Restoration! 如果要修复脸部，请使用after detailer. If your face comes out badly, use after detailer instead. https://github.com/Bing-su/adetailer 我习惯开启Dynamic Thresholding来更好控制cfg值，1~20都可以尝试一下。 Use Dynmaic Thresholding to control CFG. You can try from 1~20. https://github.com/mcmonkeyprojects/sd-dynamic-thresholding 很抱歉在之前的例图中我使用了分层的lora让大家困惑，也让大家复刻我的例图变得困难。所以新一版的例图我没有使用任何lora。想了解lora分层的可以参考： GitHub - hako-mikan/sd-webui-lora-block-weight I apologize for using lora block weight in the example images of the previous edition, which confused most of you and made it difficult for you to replicate my examples. Therefore, in the newer editions, I did not use any lora in my showcase. If you would like to learn about lora block weight, please refer to: https://github.com/hako-mikan/sd-webui-lora-block-weight 融合了多种模型，可以生成好看的脸部，也能有效应对暗部处理。远距离脸部需要inpaint以达成最好效果。也可以使用after detailer. A good looking model, suitable for NSFW and dark scene (because I added noiseoffset). long-range facial detail require inpainting to achieve the best results. You can also use after detailer. 推荐关键词 recommended positive prompts: Best quality, masterpiece, ultra high res, (photorealistic:1.4), 1girl 如果想要更暗的图像 if you want darker picture, add: in the dark, deep shadow, low key , etc. 负面关键词 use ng_deepnegative_v1_75t and badhandv4 in negative prompt I've used a bug-fixed version of DPM++ 2M Karras, you can check this out: https://civitai.com/models/35966/dpm-2m-alt-karras-sampler 推荐参数Recommended Parameters: Sampler: Euler a, Euler, DPM++ 2M Karras (bug-fixed) or DPM++ SDE Karras Steps: 20~40 Hires upscaler: R-ESRGAN 4x+ or 4x-UltraSharp Hires upscale: 2 Hires steps: 15 Denoising strength: 0.2~0.5 CFG scale: 6-8 clip skip 2 basic formula: KanPiroMix + XSMix + ChikMix 关注我的TG频道看更多例图： https://t.me/majic_NSFW",
+  "publicUrl": "https://civitai.com/models/43331?modelVersionId=55911"
+}

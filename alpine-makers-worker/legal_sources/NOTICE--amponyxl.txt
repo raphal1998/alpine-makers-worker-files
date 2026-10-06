@@ -1,0 +1,31 @@
+Alpine Makers — notice documentaire : amponyxl
+Modèle : AMPonyXL (fichier amponyxl.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : Autismix_anon
+Attribution : AMPonyXL — Autismix_anon
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML Open RAIL++-M)
+Source officielle : https://civitai.com/models/288584?modelVersionId=324619
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 821aa5537f8ddafdbf963827551865c31c5bbfab1abe7925cb5f006c8f71e485
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 324619) :
+allowCommercialUse : Image, RentCivit
+allowNoCredit : oui ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sdxl d'après la référence) : CreativeML Open RAIL++-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md
+https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/raw/462165984030d82259a11f4367a4eed129e94a7b/LICENSE.md
+SHA-256 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+Copie : legal_sources/stabilityai--stable-diffusion-xl-base-1.0--462165984030--LICENSE.md.txt
+Civitai--288584--324619--author-permissions
+https://civitai.com/api/v1/models/288584
+SHA-256 815171148e2c45cc2aa6392435ee7266cd495ce2cbd5d877eba32b16e0d74e5c
+Copie : legal_sources/Civitai--288584--324619--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

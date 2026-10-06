@@ -1,0 +1,22 @@
+{
+  "sha256": "1b5f8211ec04926035ac81033518c802db9964e93630ab4698b6365b9811c7eb",
+  "retrievedAt": "2026-10-05T22:35:46.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/1b5f8211ec04926035ac81033518c802db9964e93630ab4698b6365b9811c7eb",
+  "versionId": 45601,
+  "versionName": "v1.0",
+  "modelId": 40199,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/40199",
+  "modelName": "Aurora",
+  "publisher": "Luna",
+  "allowNoCredit": false,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit",
+    "Rent"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "“Explore the New Horizons.... Don't let indecision limit your potential, The world is full of possibilities.” Aurora is a Stable Diffusion model, similar to its predecessor Kenshi , with the goal of capturing my own feelings towards the anime styles I desire.The name Aurora, which means 'dawn' in Latin, represents the idea of a new beginning and a fresh start. All these Examples don't use any styles Embeddings or Loras, all results are from the model itself. HuggingFace for Easier to Read ⚙️ Usage These are the settings I always use it is recommended but not essential; Settings | Value Steps | 20+ CFG Sampler | DPM++ 2M Karras CFG scale | 2-7 Size | 600x800 Clip skip | 2 ENSD | 31337 Hires Fix : Enabled Upscale by : 1.5-2 Upscaler Fix : https://de-next.owncube.com/index.php/s/x99pKzS7TNaErrC Hires Fix : Enabled (install it as an extension on Automatic1111 WebUI) : https://github.com/DominikDoom/a1111-sd-webui-tagcomplete 🚨 Must Have These are the Embeddings I always use with Aurora, you are free to mix with others Negative Embedding however; Installation; 1.Download KHFB and AuroraNegatives here. 2.Put these files inside this directory \"(LocationThatYouInstallSD):\\(Main SD Folder)\\stable-diffusion-webui\\embeddings\" 3.Open Auto1111 4.Put them in Negative Prompt like this (KHFB, AuroraNegative),(Worst Quality, Low Quality:1.4), (multiple_girls:1.2),border, nsfw, skimpy, grayscale, umbrella, loli ✅ VAE ⚠️ I recommend kl-f8-anime2.ckpt VAE from waifu-diffusion-v1-4 which is made by hakurei. VAE is important, please download it. 🌏 Demo You can try Aurora for FREE on Discord TXT2IMG channel ✨ Merge Recipes Here is my Cookbook that you can check out. 💛 Donate I've been working hard to complete my college education. The thing is, paying for college is no joke and I've been feeling the pressure of the mounting bills.I know times are tough for everyone, but if you're able to help in any way, I would be forever grateful.Considering supporting me on Patreon License This embedding is open access and available to all, with a CreativeML OpenRAIL-M license further specifying rights and usage. The CreativeML OpenRAIL License specifies: 1. You can't use the model to deliberately produce nor share illegal or harmful outputs or content 2. The authors claims no rights on the outputs you generate, you are free to use them and are accountable for their use which must not go against theprovisions set in the license 3. You may re-distribute the weights and use the model commercially and/or as a service. If you do, please be aware you have to include the same use restrictions as the ones in the license and share a copy of the CreativeML OpenRAIL-M to all your users (please read the license entirely and carefully) Please read the full license here TLDR; You're free to do whatever you want except selling my model . CivitAI doesn't have this option, I couldn't care less what you do with the model after it's been merged. It's yours, not mine. I don't want my model to be put in shady websites so please understand why I put this settings. So if you are kind enough, please share my recipe or yours to make the AI community a better place to learn, don't gatekeep to yourself. Thank you 💛 Disclaimer The use of this learning model is entirely at the discretion of the user, and they have the freedom to choose whether or not to create NSFW content. This is important to note that the model itself does not contain any explicit or inappropriate imagery that can be easily accessed with a single click. The purpose of sharing this model is not to showcase obscene material in a public forum, but rather to provide a tool for users to utilize as they see fit. The decision of whether to engage with SFW or NSFW content lies with the user and their own personal preferences.",
+  "publicUrl": "https://civitai.com/models/40199?modelVersionId=45601"
+}

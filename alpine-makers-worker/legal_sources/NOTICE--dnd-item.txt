@@ -1,0 +1,29 @@
+Alpine Makers — notice documentaire : dnd-item
+Modèle : DnD Item (fichier DnDItem.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : stale2000
+Attribution : DnD Item — stale2000
+Licence : Fiche de l'éditeur (licence déclarée : other) + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/stale2000/sd-dnditem
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : ed44d16de7a187effe1dc0368250f81f92bd9f538f21a3ad23c636ab58f031c8
+
+Conditions de l'auteur : voir la fiche de l'éditeur jointe (révision épinglée) ; aucune permission CivitAI retrouvée par empreinte.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+stale2000--sd-dnditem--c812078b0928--README.md
+https://huggingface.co/stale2000/sd-dnditem/raw/c812078b0928ea60e987b481b231cbd5e5cf1e76/README.md
+SHA-256 e8a174d63b8f9ac9d5c5c79647d6ff10cf7f8f7959c8cf546f1aaa4e543abfc4
+Copie : legal_sources/stale2000--sd-dnditem--c812078b0928--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

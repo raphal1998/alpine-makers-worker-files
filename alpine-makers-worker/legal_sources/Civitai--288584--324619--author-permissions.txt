@@ -1,0 +1,21 @@
+{
+  "sha256": "821aa5537f8ddafdbf963827551865c31c5bbfab1abe7925cb5f006c8f71e485",
+  "retrievedAt": "2026-10-05T22:35:18.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/821aa5537f8ddafdbf963827551865c31c5bbfab1abe7925cb5f006c8f71e485",
+  "versionId": 324619,
+  "versionName": "AutismMix_pony",
+  "modelId": 288584,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/288584",
+  "modelName": "AutismMix SDXL",
+  "publisher": "Autismix_anon",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": false,
+  "description": "Mix of pony with some stuff. It's an attempt at making pony more predictable and less dependent on schizo negatives without removing its comprehension and artist knowledge. Personally I'm using AutismMix_confetti for general use and AutismMix_pony for certain loras. If you want to train a lora on top of autism I recommend doing so in the AutismMix_pony version for better compatibility. The Lightning versions require specific settings to work, read the \"about model\" information under download. What is the difference between the models: AutismMix_confetti is a small amount of AnimeConfettiTune and AutismMix_pony. Has less style swing than pony and better hands. I prefer this one. AutismMix_pony is a merge of ponyv6 with loras, its more compatible with certain styles made for the base ponydiffusion model. AutismMix_DPO is AutismMix_confetti+DPO lora, made by request. Very similar to confetti version. Add 3d to negs if you want a more traditional anime style. Quality tags should be same as ponyv6, but feel free to experiment: \"score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, source_anime, BREAK\" From my testing schizo negatives and those negative embeds made for SDXL/pony make it worse, but do whatever you want. If you have any issues running this model I suggest using this webui: https://github.com/lllyasviel/stable-diffusion-webui-forge As well as this extension if you get noise outputs: https://github.com/hako-mikan/sd-webui-prevent-artifact",
+  "publicUrl": "https://civitai.com/models/288584?modelVersionId=324619"
+}

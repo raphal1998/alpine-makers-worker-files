@@ -1,0 +1,21 @@
+{
+  "sha256": "5db3bcc019f0eba2b913b80187b29d5636c3ab79df6910adb95eab5beaa10cc5",
+  "retrievedAt": "2026-10-05T22:40:13.000Z",
+  "lookupUrl": "https://civitai.com/api/v1/model-versions/by-hash/5db3bcc019f0eba2b913b80187b29d5636c3ab79df6910adb95eab5beaa10cc5",
+  "versionId": 915200,
+  "versionName": "v8.0",
+  "modelId": 451486,
+  "hashMatches": true,
+  "modelUrl": "https://civitai.com/api/v1/models/451486",
+  "modelName": "WAI-CUTE",
+  "publisher": "WAI0731",
+  "allowNoCredit": true,
+  "allowCommercialUse": [
+    "Image",
+    "RentCivit"
+  ],
+  "allowDerivatives": true,
+  "allowDifferentLicense": true,
+  "description": "If you want to use more my checkpoint online generation, please visit here. https://tensor.art/u/762555264535746522 V8 Strengthened background training for better composition. Recommended Setting Steps: 30 CFG scale: 7 Sampler: DPM++ 2M Karras OR Euler a ADetailer face_yolov8n/ s.pt use can fix eyes Positive Prompt score_9, score_8_up, score_7_up, masterpiece, best quality, Negative Prompt worst quality,bad quality,bad hands,very displeasing,extra digit,fewer digits,jpeg artifacts, source_cartoon, 3d, (censor),monochrome,blurry, lowres,watermark, __________________________________________________________________________________________________ V7 Added materials for mechas, cute characters, and more special effects along with camera training. v5->v6 hand and eye fixed Add more cute and furry material Point: High contrast and cute face Recommended Setting Steps: 30 CFG scale: 7 Sampler: DPM++ 2M Karras OR Euler a ADetailer face_yolov8n/ s.pt use can fix eyes Positive Prompt score_9, score_8_up, score_7_up,source_anime,BREAK Negative Prompt score_6, score_5, score_4, source_cartoon, 3d, (censor),monochrome,blurry, lowres,watermark,",
+  "publicUrl": "https://civitai.com/models/451486?modelVersionId=915200"
+}

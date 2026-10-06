@@ -1,0 +1,25 @@
+Alpine Makers — notice documentaire : expmix-line
+Modèle : ExpMix Line (fichier expmix.ckpt, signalé par un référentiel public de modèles image)
+Auteur/éditeur : À vérifier
+Attribution : ExpMix Line (auteur à vérifier)
+Licence : À vérifier
+Source officielle : https://civitai.com/models/12865/expmixline
+État : base_license_text_publisher_terms_not_found
+SHA-256 du fichier : 4924272be3d1947eb8b049489e236f5c57da75ac87e5ef76302eb2722a1b91ee
+
+Conditions de l'auteur non retrouvées à la source ; à vérifier.
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -1,0 +1,35 @@
+Alpine Makers — notice documentaire : seek-art-mega
+Modèle : Seek.art MEGA (fichier seekArtMEGA_mega20.safetensors, signalé par un référentiel public de modèles image)
+Auteur/éditeur : coreco
+Attribution : Seek.art MEGA — coreco
+Licence : Conditions auteur Civitai + licence du modèle de base (CreativeML OpenRAIL-M)
+Source officielle : https://huggingface.co/coreco/seek.art_MEGA
+État : license_text_and_publisher_declaration
+SHA-256 du fichier : 99fd5c4b6f6c8e1a1873f378d04fc219c4f441abd0cc8c59a35d960cea0ac54f
+
+Conditions de l'auteur relevées sur CivitAI pour ce fichier exact (empreinte SHA-256 identique, version 22808) :
+allowCommercialUse : Image, RentCivit, Rent
+allowNoCredit : non ; allowDerivatives : oui ; allowDifferentLicense : non
+Licence du modèle de base (famille sd15 d'après la référence) : CreativeML OpenRAIL-M, texte complet joint.
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Conserver et transmettre les restrictions d'usage de la licence OpenRAIL applicable au modèle et à ses éléments amont ; ne pas substituer la variante M à ++.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+coreco--seek.art_MEGA--99f2cc89b15c--README.md
+https://huggingface.co/coreco/seek.art_MEGA/raw/99f2cc89b15c566d941c627938894d932ee45150/README.md
+SHA-256 67d37fbb0f07abdd1f53e98078d0bc8712db573174f78aa08f02c2bb469d3fe6
+Copie : legal_sources/coreco--seek.art_MEGA--99f2cc89b15c--README.md.txt
+CreativeML-OpenRAIL-M-full-license
+https://raw.githubusercontent.com/CompVis/stable-diffusion/main/LICENSE
+SHA-256 be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef
+Copie : legal_sources/CreativeML-OpenRAIL-M-full-license.txt
+Civitai--1315--22808--author-permissions
+https://civitai.com/api/v1/models/1315
+SHA-256 74f62adef9552014e6f150cd4dc8af6f2b632e9f3faa179b77edc6f2f43ccf0c
+Copie : legal_sources/Civitai--1315--22808--author-permissions.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.
