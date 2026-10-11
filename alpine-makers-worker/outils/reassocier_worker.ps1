@@ -265,6 +265,7 @@ try {
     switch ($mode.Mode) {
         'service' { Write-Etat -Libelle 'Mode de lancement' -Valeur ('service Windows AlpineWorker : ' + $mode.Service.Etat + ', démarrage ' + $mode.Service.Demarrage) }
         'tache'   { Write-Etat -Libelle 'Mode de lancement' -Valeur 'tâche planifiée à l''ouverture de session' }
+        'session' { Write-Etat -Libelle 'Mode de lancement' -Valeur 'entrée de démarrage de session (registre, sans droits administrateur)' }
         default   { Write-Etat -Libelle 'Mode de lancement' -Valeur 'lancement manuel (ni service ni tâche pour ce dossier)' }
     }
     # Les ports sont globaux au PC : s'ils appartiennent au Worker d'un AUTRE dossier, on ne décide rien d'après eux.

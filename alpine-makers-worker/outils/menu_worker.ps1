@@ -41,6 +41,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'commun.ps1')
+# Socle de la rubrique « Gestion du Worker » (lecture de ETAT-WORKER.txt, comparaison de versions). Paquet
+# incohérent (fichier absent ou illisible) : le menu continue, et son indicateur « À faire » vaut « inconnu ».
+$script:GestionChargee = $false
+$socleGestion = Join-Path $PSScriptRoot 'commun_gestion.ps1'
+if (Test-Path -LiteralPath $socleGestion -PathType Leaf) { try { . $socleGestion; $script:GestionChargee = $true } catch { $script:GestionChargee = $false } }
 Initialize-ConsoleWorker -Titre 'Alpine Makers - Menu du Worker'
 try { $Racine = Get-RacineWorker -Racine $Racine }
 catch {
@@ -79,6 +84,7 @@ $script:Groupes = @(
     [pscustomobject]@{ Cle = 'connexion';  Titre = 'CONNEXION';         Aide = 'le Worker n''apparaît plus en ligne dans le dashboard' }
     [pscustomobject]@{ Cle = 'moteurs';    Titre = 'MOTEURS ET WORKER'; Aide = 'arrêter, relancer, libérer la carte graphique' }
     [pscustomobject]@{ Cle = 'entretien';  Titre = 'ENTRETIEN';         Aide = 'sauvegarde, ménage, démarrage du PC' }
+    [pscustomobject]@{ Cle = 'gestion';    Titre = 'GESTION DU WORKER'; Aide = 'contrôler, réparer, mettre à jour, partager' }
     [pscustomobject]@{ Cle = 'rouge';      Titre = 'ZONE ROUGE';        Aide = 'actions lourdes : lis bien l''explication avant de confirmer' }
 )
 
@@ -104,7 +110,17 @@ $script:Entrees = @(
     (New-Entree 15 'entretien'  'Démarrage automatique'         'Lancement au démarrage, tâches orphelines.'    'ps1' 'demarrage_auto.ps1')
     (New-Entree 16 'entretien'  'Libérer la mémoire du PC'      'Ferme le superflu, garde Alpine Makers.'       'ps1' 'liberer_memoire.ps1')
 
+    # Aucun drapeau sur les entrées de gestion : elles ne s'élèvent pas elles-mêmes, n'arrêtent aucun moteur,
+    # et traitent seules le cas « agent arrêté » (elles ne démarrent jamais le Worker dans la session).
+    (New-Entree 18 'gestion'    'Contrôle total et réparation'  'Vérifie tout, puis propose de réparer.'        'ps1' 'controle_total.ps1')
+    (New-Entree 19 'gestion'    'Contrôler les doublons'        'Fichiers identiques ; ne supprime rien.'       'ps1' 'controler_doublons.ps1')
+    (New-Entree 21 'gestion'    'Arrêter tous les jobs'         'Calculs et installations de ce Worker.'        'ps1' 'arreter_jobs.ps1')
+    (New-Entree 22 'gestion'    'Mode de partage'               'Privé, comptes choisis ou public.'             'ps1' 'mode_partage.ps1')
+    (New-Entree 23 'gestion'    'Mettre à jour le Worker'       'Installe la version proposée par le site.'     'ps1' 'mettre_a_jour.ps1')
+    (New-Entree 24 'gestion'    'Réparer'                       'Réparations rapides et sûres seulement.'       'ps1' 'reparer.ps1')
+
     (New-Entree 17 'rouge'      'Supprimer les moteurs IA'      'Désinstalle les moteurs (Worker allumé).'      'ps1' 'supprimer_moteurs.ps1' -Arret -Rouge -RelanceWorker)
+    (New-Entree 20 'rouge'      'Supprimer les doublons'        'Libère la place après un contrôle récent.'     'ps1' 'supprimer_doublons.ps1' -Rouge)
 )
 
 # Entrées du PC du propriétaire : le fichier n'est livré qu'à ses Workers. Il complète $script:Entrees
@@ -253,11 +269,117 @@ function Get-VramNvidia {
     }
 }
 
+function New-IndicateurInconnu {
+    <# Indicateur « À faire » quand rien n'a pu être lu. Même forme que celui de Get-IndicateurBandeau. #>
+    param([string]$Version = '')
+    return [pscustomobject]@{
+        Niveau = 'inconnu'; MajDisponible = ''; VersionInstallee = $Version; Erreurs = 0; Codes = @()
+        Source = 'local'; Date = ''; Perime = $false; Resume = 'État inconnu.'
+    }
+}
+
+function Get-IndicateurBandeau {
+    <#
+        « À faire » du bandeau : mise à jour proposée et erreurs à réparer, SANS rien lancer de plus.
+        Source, par ordre : la réponse « status » déjà reçue si elle porte « indicator » (agent 1.48.0 en
+        marche) ; sinon ETAT-WORKER.txt, dernier état écrit par l'agent (périmé au-delà de 20 minutes) ;
+        sinon rien. Dans tous les cas le menu ajoute ce qu'il voit lui-même (codes L-…).
+          Niveau : ok | maj | erreur | inconnu.   Source : agent | fichier | local.
+          Erreurs = erreurs de la source + erreurs locales ; les alertes locales entrent dans Codes sans compter.
+          MajDisponible n'est gardée que si elle est STRICTEMENT plus récente que la version installée :
+          après une mise à jour, un état ancien ne doit pas annoncer une version déjà en place.
+        Une source qui dit elle-même « inconnu » (agent qui vient de démarrer) ne vaut pas « tout va bien ».
+    #>
+    param([object]$Etat, [object]$Statut)
+    $ind = New-IndicateurInconnu -Version ([string]$Etat.Version)
+    if (-not $script:GestionChargee) { return $ind }
+
+    $parle = $false; $erreursSource = 0; $codesSource = @(); $maj = ''
+    $indicateurAgent = $null
+    if ($Statut -and (@($Statut.PSObject.Properties.Name) -contains 'indicator')) { $indicateurAgent = $Statut.indicator }
+    if ($null -ne $indicateurAgent) {
+        $ind.Source = 'agent'
+        $parle = (@('ok', 'update', 'error', 'update_error') -contains [string](Get-ChampGestion $indicateurAgent 'state' ''))
+        $erreursSource = ConvertTo-EntierGestion (Get-ChampGestion $indicateurAgent 'errors')
+        $codesSource = @(Get-ChampGestion $indicateurAgent 'codes')
+        $maj = ([string](Get-ChampGestion $indicateurAgent 'update_available' '')).Trim()
+        $vu = ConvertTo-DateLocale (Get-ChampGestion $indicateurAgent 'checked_at')
+        if ($null -eq $vu) { $vu = Get-Date }
+        $ind.Date = $vu.ToString("yyyy'-'MM'-'dd HH':'mm", [Globalization.CultureInfo]::InvariantCulture)
+    }
+    else {
+        $fichier = Read-FichierEtat -Racine $Racine
+        if ($fichier.Present) {
+            $ind.Source = 'fichier'
+            $parle = ($fichier.Etat -ne 'inconnu')
+            $erreursSource = [int]$fichier.Erreurs
+            $codesSource = @($fichier.Codes)
+            $maj = [string]$fichier.Maj
+            $ind.Date = $fichier.Date.ToString("yyyy'-'MM'-'dd HH':'mm", [Globalization.CultureInfo]::InvariantCulture)
+            $ind.Perime = ([int]$fichier.AgeMinutes -gt 20)
+        }
+    }
+
+    # Ce que le menu voit lui-même, avec les données déjà lues par Get-EtatBandeau.
+    $erreursLocales = @(); $alertesLocales = @()
+    if ($Etat.AgentNiveau -eq 'erreur') { $erreursLocales += 'L-AGENT-ARRETE' }   # jamais quand il est éteint volontairement (niveau alerte)
+    if (Test-Path -LiteralPath (Join-Path $Racine '.worker-detached')) { $erreursLocales += 'L-FICHE-SUPPRIMEE' }
+    if (-not $Etat.Config -or -not $Etat.Config.Present -or -not $Etat.Config.Associe) { $erreursLocales += 'L-NON-ASSOCIE' }
+    if ($script:EcartsLibelles.Count -gt 0) { $erreursLocales += 'L-PAQUET-INCOHERENT' }
+    # Même règle que l'état complet : le service ET une tâche planifiée active lancent ce même dossier.
+    if ($Etat.Lancement -and $Etat.Lancement.Mode -eq 'service' -and @($Etat.Lancement.Taches | Where-Object { $_.ViseCeDossier -and $_.Etat -ne 'Disabled' }).Count -gt 0) { $alertesLocales += 'L-DOUBLE-LANCEUR' }
+    if (Test-Path -LiteralPath (Join-Path $Racine '.worker-disconnected')) { $alertesLocales += 'L-DECONNECTE' }
+
+    # Codes : ceux de la source arrivent sans gravité, erreurs d'abord ; seul son compteur fait foi.
+    $propres = @()
+    foreach ($c in $codesSource) { if ($c -is [string] -and $c -match '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$' -and ($propres -notcontains $c)) { $propres += $c } }
+    $nouvelles = @($erreursLocales | Where-Object { $propres -notcontains $_ })
+    $ind.Erreurs = [int]$erreursSource + $nouvelles.Count
+    $rang = [Math]::Min([int]$erreursSource, $propres.Count)
+    $codes = @()
+    for ($i = 0; $i -lt $rang; $i++) { $codes += $propres[$i] }
+    $codes += $nouvelles
+    for ($i = $rang; $i -lt $propres.Count; $i++) { $codes += $propres[$i] }
+    foreach ($c in $alertesLocales) { if ($codes -notcontains $c) { $codes += $c } }
+    $ind.Codes = @($codes | Select-Object -First 12)
+
+    if ($maj) {
+        $ordre = Compare-VersionWorker $maj ([string]$Etat.Version)
+        if ($null -eq $ordre -or $ordre -le 0) { $maj = '' }
+    }
+    $ind.MajDisponible = $maj
+
+    if ($ind.Erreurs -gt 0) {
+        $ind.Niveau = 'erreur'
+        if ($maj) { $ind.Resume = 'Mise à jour disponible : ' + $maj + ' - ' + $ind.Erreurs + ' erreur(s) à réparer.' }
+        else { $ind.Resume = [string]$ind.Erreurs + ' erreur(s) à réparer.' }
+    }
+    elseif ($maj) { $ind.Niveau = 'maj'; $ind.Resume = 'Mise à jour disponible : ' + $maj + '.' }
+    elseif ($parle) { $ind.Niveau = 'ok'; $ind.Resume = 'Tout va bien.' }
+    return $ind
+}
+
+function Get-NumeroDisponible {
+    <# Le numéro de l'entrée si elle est au catalogue ET que son fichier est présent, sinon 0. #>
+    param([int]$Numero)
+    $entree = $script:Entrees | Where-Object { $_.Numero -eq $Numero } | Select-Object -First 1
+    if ($entree -and (Test-Path -LiteralPath $entree.Chemin -PathType Leaf)) { return $Numero }
+    return 0
+}
+
+function Get-EntreesParGroupe {
+    <# Catalogue trié par rang du groupe (ordre de $script:Groupes), puis par numéro : c'est l'ordre d'affichage. #>
+    $rangs = @{}
+    $position = 0
+    foreach ($g in $script:Groupes) { $rangs[[string]$g.Cle] = $position; $position++ }
+    return @($script:Entrees | Sort-Object @{ Expression = { if ($rangs.ContainsKey([string]$_.Groupe)) { [int]$rangs[[string]$_.Groupe] } else { 999 } } }, @{ Expression = { [int]$_.Numero } })
+}
+
 function Get-EtatBandeau {
     <# Tout ce que le bandeau affiche, lu SANS élévation. Chaque lecture tolère l'échec. #>
     $etat = [pscustomobject]@{
         Config = $null; Version = ''; Lancement = $null; Moteurs = @(); Vram = $null
-        AgentNiveau = 'info'; AgentTexte = ''; AgentDetail = ''; Alertes = @()
+        AgentNiveau = 'info'; AgentTexte = ''; AgentDetail = ''; Alertes = @(); Indicateur = $null
     }
     try { $etat.Config = Get-ConfigSure -Racine $Racine } catch { }
     try { $etat.Version = Get-VersionInstallee -Racine $Racine } catch { }
@@ -324,9 +446,11 @@ function Get-EtatBandeau {
     try {
         if (Test-Path -LiteralPath (Join-Path $env:ProgramData 'AlpineMakers\pause-supervision.flag')) { $alertes += 'La supervision de TOUT le PC est en pause : rien ne sera relancé automatiquement.' }
     } catch { }
-    if ($script:StatusNonSupporte) { $alertes += 'Agent trop ancien pour dialoguer avec les outils (arrêt propre des moteurs) : mets le Worker à jour depuis le site (Mes Workers > « Mettre à jour »).' }
+    if ($script:StatusNonSupporte) { $alertes += 'Agent trop ancien pour dialoguer avec les outils (arrêt propre des moteurs) : mets le Worker à jour avec 23 (Mettre à jour le Worker), ou depuis le site (Mes Workers > « Mettre à jour »).' }
     if ($script:EcartsLibelles.Count -gt 0) { $alertes += ('Paquet d''outils incohérent : les entrées ' + (($script:EcartsLibelles | Sort-Object -Unique) -join ', ') + ' n''ont pas le même nom dans le menu et dans commun.ps1. Mets le Worker à jour.') }
     $etat.Alertes = $alertes
+    # « À faire » : réutilise la réponse « status » ci-dessus et lit ETAT-WORKER.txt ; aucun appel de plus.
+    try { $etat.Indicateur = Get-IndicateurBandeau -Etat $etat -Statut $statut } catch { $etat.Indicateur = New-IndicateurInconnu -Version ([string]$etat.Version) }
     return $etat
 }
 
@@ -375,6 +499,7 @@ function Write-Bandeau {
         if ([string]$t.Etat -eq 'Disabled') { $niveauTache = 'alerte' }
         Write-LigneEtat -Niveau $niveauTache -Libelle 'Lancement' -Segments @((New-Segment ('tâche planifiée : ' + $etatTache + '   (' + $t.Nom + ')') 'Gray'))
     }
+    elseif ($l.Mode -eq 'session') { Write-LigneEtat -Niveau 'ok' -Libelle 'Lancement' -Segments @((New-Segment 'entrée de démarrage de session (registre, sans droits administrateur)' 'Gray')) }
     else { Write-LigneEtat -Niveau 'alerte' -Libelle 'Lancement' -Segments @((New-Segment 'manuel : ni service ni tâche planifiée pour ce dossier' 'Yellow')) }
 
     # Agent
@@ -383,6 +508,21 @@ function Write-Bandeau {
     $segments = @((New-Segment $Etat.AgentTexte $couleurAgent))
     if ($Etat.AgentDetail) { $segments += (New-Segment ('  (' + $Etat.AgentDetail + ')') 'Gray') }
     Write-LigneEtat -Niveau $Etat.AgentNiveau -Libelle 'Agent' -Segments $segments
+
+    # À faire : une ligne par information, chacune assez courte pour n'être jamais coupée.
+    $ind = $Etat.Indicateur
+    if ($ind) {
+        if ($ind.Erreurs -gt 0) { Write-LigneEtat -Niveau 'erreur' -Libelle 'À faire' -Segments @((New-Segment ([string]$ind.Erreurs + ' erreur(s) à réparer') 'Red'), (New-Segment '  - lance 24 (détail : 18)' 'Gray')) }
+        elseif ($ind.MajDisponible) { }   # la ligne « Mise à jour » suffit
+        elseif ($ind.Niveau -eq 'inconnu') { Write-LigneEtat -Niveau 'info' -Libelle 'À faire' -Segments @((New-Segment 'inconnu : l''agent n''a encore rien écrit' 'DarkGray')) }
+        else { Write-LigneEtat -Niveau 'ok' -Libelle 'À faire' -Segments @((New-Segment 'rien : tout va bien' 'Green')) }
+        if ($ind.MajDisponible) { Write-LigneEtat -Niveau 'alerte' -Libelle 'Mise à jour' -Segments @((New-Segment ('disponible : ' + $ind.MajDisponible) 'Yellow'), (New-Segment '  - lance 23' 'Gray')) }
+        if ($ind.Perime -and $ind.Date) {
+            $dateEtat = [string]$ind.Date
+            try { $dateEtat = Format-DateEtat -Date ([datetime]::ParseExact([string]$ind.Date, 'yyyy-MM-dd HH:mm', [Globalization.CultureInfo]::InvariantCulture)) } catch { }
+            Write-LigneEtat -Niveau 'info' -Libelle 'État du' -Segments @((New-Segment ($dateEtat + ' : dernier état connu, agent arrêté') 'DarkGray'))
+        }
+    }
 
     # Moteurs : une pastille colorée par moteur
     $total = @($Etat.Moteurs).Count
@@ -460,7 +600,7 @@ function Write-Menu {
         if ($entreesGroupe.Count -eq 0) { continue }   # pas de titre de section sans entrée
         $couleurTitre = 'White'
         if ($g.Cle -eq 'rouge') { $couleurTitre = 'Red' }
-        # Affichage resserré (fenêtre de moins de 50 lignes) : ni ligne vide ni trait entre les groupes.
+        # Affichage resserré (fenêtre de moins de 63 lignes) : ni ligne vide ni trait entre les groupes.
         if (-not $script:Compact) { Write-Host '' }
         Write-Host ('  ' + $g.Titre) -ForegroundColor $couleurTitre -NoNewline
         Write-Host ('   ' + $g.Aide) -ForegroundColor DarkGray
@@ -484,6 +624,15 @@ function Write-Menu {
         switch ($Etat.AgentNiveau) { 'ok' { $couleurSynthese = 'Green' } 'alerte' { $couleurSynthese = 'Yellow' } 'erreur' { $couleurSynthese = 'Red' } }
         if ($nbAlertes -gt 0 -and $couleurSynthese -eq 'Green') { $couleurSynthese = 'Yellow' }
         Write-Host ('  ' + $synthese) -ForegroundColor $couleurSynthese
+        # Dans une fenêtre basse, c'est la seule ligne « À faire » visible sans remonter.
+        if ($Etat.Indicateur) {
+            $aFaire = '  À faire : ' + [string]$Etat.Indicateur.Resume
+            if ($Etat.Indicateur.MajDisponible) { $aFaire += ' - lance 23' }
+            if ($Etat.Indicateur.Erreurs -gt 0) { $aFaire += ' - lance 24' }
+            $couleurAFaire = 'Gray'
+            switch ([string]$Etat.Indicateur.Niveau) { 'erreur' { $couleurAFaire = 'Red' } 'maj' { $couleurAFaire = 'Yellow' } 'ok' { $couleurAFaire = 'Green' } }
+            Write-Host $aFaire -ForegroundColor $couleurAFaire
+        }
     }
 }
 
@@ -563,7 +712,9 @@ function Invoke-Entree {
     if (-not (Test-Path -LiteralPath $Entree.Chemin -PathType Leaf)) {
         Write-Host ''
         Write-Alerte ('« ' + $Entree.Nom + ' » est indisponible : ' + $Entree.Fichier + ' est absent de ce Worker.')
-        Write-Conseil 'Mets le Worker à jour depuis le dashboard : les outils manquants seront réinstallés.'
+        # 23 n'est proposée que si elle est elle-même présente (c'est peut-être elle qui manque).
+        if ((Get-NumeroDisponible 23) -ne 0) { Write-Conseil 'Mets le Worker à jour avec 23 (Mettre à jour le Worker), ou depuis le dashboard : les outils manquants seront réinstallés.' }
+        else { Write-Conseil 'Mets le Worker à jour depuis le dashboard : les outils manquants seront réinstallés.' }
         return 1
     }
     if ($Entree.Rouge) {
@@ -642,7 +793,7 @@ function Invoke-Entree {
 function Show-Aide {
     $lisezMoi = Join-Path $Racine 'README.md'
     if (-not (Test-Path -LiteralPath $lisezMoi -PathType Leaf)) {
-        Write-Alerte 'README.md est absent de ce Worker : mets le Worker à jour pour le récupérer.'
+        Write-Alerte 'README.md est absent de ce Worker : mets le Worker à jour (23) pour le récupérer.'
         return
     }
     try {
@@ -669,14 +820,23 @@ if ($EtatJson) {
         $lancement = @{ mode = [string]$e.Lancement.Mode; service = $service
                         taches = @($e.Lancement.Taches | ForEach-Object { @{ nom = [string]$_.Nom; etat = [string]$_.Etat; vise_ce_dossier = [bool]$_.ViseCeDossier; orpheline = [bool]$_.Orpheline } }) }
     }
+    # « À faire » : ce que le panneau affiche en permanence. Les trois numéros valent 0 quand l'entrée manque.
+    $lu = $e.Indicateur
+    if (-not $lu) { $lu = New-IndicateurInconnu -Version ([string]$e.Version) }
+    $indicateur = @{
+        niveau = [string]$lu.Niveau; resume = [string]$lu.Resume; maj_disponible = [string]$lu.MajDisponible; version_installee = [string]$lu.VersionInstallee
+        erreurs = [int]$lu.Erreurs; codes = @($lu.Codes | ForEach-Object { [string]$_ }); source = [string]$lu.Source; date = [string]$lu.Date; perime = [bool]$lu.Perime
+        action_maj = [int](Get-NumeroDisponible 23); action_reparer = [int](Get-NumeroDisponible 24); action_detail = [int](Get-NumeroDisponible 18)
+    }
     $sortie = @{
         ok = $true; racine = [string]$Racine; version = [string]$e.Version; config = $config; lancement = $lancement
         agent = @{ niveau = [string]$e.AgentNiveau; texte = [string]$e.AgentTexte; detail = [string]$e.AgentDetail }
         moteurs = @($e.Moteurs | ForEach-Object { @{ outil = [string]$_.Outil; nom = [string]$_.Nom; port = [int]$_.Port; en_ecoute = [bool]$_.EnEcoute; fiche = [bool]$_.FichePresente } })
         vram = @(@($e.Vram) | Where-Object { $_ } | ForEach-Object { @{ nom = [string]$_.Nom; utilise_gio = [double]$_.UtiliseGio; total_gio = [double]$_.TotalGio; pourcent = [int]$_.Pourcent } })
         alertes = @($e.Alertes | ForEach-Object { [string]$_ })
+        indicateur = $indicateur
         groupes = @($script:Groupes | ForEach-Object { @{ cle = [string]$_.Cle; titre = [string]$_.Titre; aide = [string]$_.Aide } })
-        entrees = @($script:Entrees | Sort-Object Numero | ForEach-Object { @{ numero = [int]$_.Numero; groupe = [string]$_.Groupe; nom = [string]$_.Nom; description = [string]$_.Description
+        entrees = @(Get-EntreesParGroupe | ForEach-Object { @{ numero = [int]$_.Numero; groupe = [string]$_.Groupe; nom = [string]$_.Nom; description = [string]$_.Description
                     admin = [bool]$_.Admin; arret = [bool]$_.Arret; rouge = [bool]$_.Rouge; disponible = [bool](Test-Path -LiteralPath $_.Chemin -PathType Leaf) } })
     }
     Write-Output ($sortie | ConvertTo-Json -Depth 6 -Compress)
@@ -698,14 +858,16 @@ if ($Choix) {
     exit (Invoke-Entree -Entree $entree -Direct)
 }
 
-# Le menu fait une cinquantaine de lignes : on agrandit la fenêtre quand la console le permet
+# Le menu fait une soixantaine de lignes : on agrandit la fenêtre quand la console le permet
 # (console Windows classique ; sous Windows Terminal l'appel est sans effet et on continue).
+# Les deux nombres ci-dessous suivent le menu réel : 63 = lignes de -Apercu dans le cas le plus long (25 entrées,
+# erreurs + mise à jour + état périmé, sans alerte) ; 71 = ce compte, l'invite, et la place de quelques alertes.
 try {
     $ui = $Host.UI.RawUI
     $tampon = $ui.BufferSize
     if ($tampon.Width -lt 100) { $tampon.Width = 100; $ui.BufferSize = $tampon }
     $fenetre = $ui.WindowSize
-    $hauteur = [Math]::Min(58, $ui.MaxPhysicalWindowSize.Height)
+    $hauteur = [Math]::Min(71, $ui.MaxPhysicalWindowSize.Height)
     $largeur = [Math]::Min([Math]::Max($fenetre.Width, 100), $ui.MaxPhysicalWindowSize.Width)
     if ($fenetre.Height -lt $hauteur -or $fenetre.Width -lt $largeur) {
         $fenetre.Height = [Math]::Max($fenetre.Height, $hauteur); $fenetre.Width = $largeur
@@ -713,7 +875,7 @@ try {
     }
 } catch { }
 # Fenêtre restée basse (Windows Terminal, petite console) : le menu se resserre et redit l'état près de l'invite.
-try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 50) { $script:Compact = $true } } catch { }
+try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 63) { $script:Compact = $true } } catch { }
 
 $message = $null
 while ($true) {

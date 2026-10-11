@@ -161,8 +161,10 @@ $script:NomsEntrees = @{
     9 = 'Moteurs (état, arrêt, départ)'; 10 = 'Redémarrer l''agent';   11 = 'Éteindre le Worker (lui seul)'; 12 = 'Rallumer le Worker'
     13 = 'Sauvegarder le Worker';  14 = 'Nettoyage léger';             15 = 'Démarrage automatique';    16 = 'Libérer la mémoire du PC'
     17 = 'Supprimer les moteurs IA'
+    18 = 'Contrôle total et réparation'; 19 = 'Contrôler les doublons'; 20 = 'Supprimer les doublons'; 21 = 'Arrêter tous les jobs'
+    22 = 'Mode de partage';        23 = 'Mettre à jour le Worker';     24 = 'Réparer'
 }
-# Les entrées propres au PC du propriétaire (18 et suivantes) sont ajoutées à cette table par
+# Les entrées propres au PC du propriétaire (25 et suivantes) sont ajoutées à cette table par
 # menu_proprietaire.ps1, livré seulement aux Workers du compte propriétaire.
 
 function Get-NomEntree {
@@ -400,10 +402,12 @@ function Invoke-OutilEleveSansFenetre {
 
 function Get-ModeLancement {
     <#
-        Service Windows (nssm « AlpineWorker »), tâche planifiée, ou rien.
-        Renvoie : Mode (service|tache|aucun), Service (Nom, Etat, Demarrage, Compte,
+        Service Windows (nssm « AlpineWorker »), tâche planifiée, entrée de démarrage de session, ou rien.
+        Renvoie : Mode (service|tache|session|aucun), Service (Nom, Etat, Demarrage, Compte,
         ViseCeDossier) ou $null, Taches (Nom, Etat, Dossier, DossierExiste,
-        ViseCeDossier, Orpheline).
+        ViseCeDossier, Orpheline), Session (Nom, Commande) ou $null.
+        « session » = ni service ni tâche pour ce dossier, mais une entrée Run du compte (repli sans droits
+        administrateur) : le Worker démarre à l'ouverture de session, sans relance par le planificateur.
     #>
     param([string]$Racine)
     $service = $null
@@ -433,10 +437,34 @@ function Get-ModeLancement {
             Orpheline = ([bool]$dossierTache -and -not $existe)
         }
     }
+    $session = Get-EntreeSessionWorker -Racine $Racine
     $mode = 'aucun'
     if ($service -and $service.ViseCeDossier) { $mode = 'service' }
     elseif (@($taches | Where-Object { $_.ViseCeDossier }).Count -gt 0) { $mode = 'tache' }
-    return [pscustomobject]@{ Mode = $mode; Service = $service; Taches = $taches }
+    elseif ($session) { $mode = 'session' }
+    return [pscustomobject]@{ Mode = $mode; Service = $service; Taches = $taches; Session = $session }
+}
+
+function Get-EntreeSessionWorker {
+    <#
+        Entrée de démarrage de session de CE dossier : valeur « AlpineMakersWorker* » de la clé Run du compte
+        (HKCU), posée par configure_autostart.ps1 quand Windows refuse la tâche planifiée sans droits
+        administrateur. Lecture seule. Renvoie Nom et Commande, ou $null (aucune entrée, ou autre dossier).
+    #>
+    param([string]$Racine)
+    $valeurs = $null
+    try { $valeurs = Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction Stop } catch { return $null }
+    if (-not $valeurs) { return $null }
+    foreach ($p in $valeurs.PSObject.Properties) {
+        if ($p.Name -notlike 'AlpineMakersWorker*') { continue }
+        $commande = [string]$p.Value
+        if ($commande -notmatch '-File\s+"([^"]+)\\run_worker\.ps1"') { continue }
+        $dossier = $Matches[1]
+        # Même comparaison que pour les tâches : forme LONGUE (un nom court PRENOM~1 fausserait le test).
+        if (Test-Path -LiteralPath $dossier) { $dossier = ConvertTo-CheminLong $dossier }
+        if ($dossier.TrimEnd('\') -ieq $Racine) { return [pscustomobject]@{ Nom = [string]$p.Name; Commande = $commande } }
+    }
+    return $null
 }
 
 # ---------------------------------------------------------------------------
@@ -483,10 +511,45 @@ function Test-AgentVivant {
 # Parler à l'agent vivant : boîte aux lettres locale
 # ---------------------------------------------------------------------------
 
+function ConvertTo-ArgumentsLocaux {
+    <#
+        Copie des paramètres d'une action locale, sûre pour ConvertTo-Json sous PowerShell 5.1 : une liste
+        y reste une liste PLATE de valeurs simples. Pièges payés : un tableau rendu par une fonction peut
+        arriver enveloppé (ConvertTo-Json écrirait {"value":[…],"Count":1}) ; @(f) autour d'une fonction
+        qui rend déjà un tableau donne un tableau de tableaux ; une chaîne lue par Get-Content porte des
+        propriétés ajoutées qui la changeraient en objet ; un paramètre [switch] s'écrirait {"IsPresent":true}
+        au lieu de true. L'agent refuserait chacune de ces formes.
+    #>
+    param([hashtable]$Arguments)
+    $propre = @{}
+    foreach ($cle in @($Arguments.get_Keys())) {
+        $valeur = $Arguments[$cle]
+        if ($null -ne $valeur -and $valeur -is [System.Array]) {
+            $plat = New-Object System.Collections.ArrayList
+            foreach ($element in $valeur) {
+                if ($null -ne $element -and $element -is [System.Array]) { foreach ($sous in $element) { [void]$plat.Add($sous) } }
+                else { [void]$plat.Add($element) }
+            }
+            $valeur = $plat.ToArray()
+        }
+        elseif ($valeur -is [string]) { $valeur = $valeur.ToString() }
+        elseif ($valeur -is [System.Management.Automation.SwitchParameter]) { $valeur = [bool]$valeur }
+        $propre[[string]$cle] = $valeur
+    }
+    return $propre
+}
+
 function Invoke-ActionLocale {
     <#
         Dépose une demande dans runtime\local-control\ et attend la réponse de l'agent.
-        Actions : status | engines-stop | engines-start | reconnect | network.
+        Actions sans paramètre : status | engines-stop | engines-start | reconnect | network.
+        Actions de l'agent 1.48.0 (rubrique « Gestion du Worker ») : duplicates-audit | duplicates-cancel |
+        duplicates-status | duplicates-plan | duplicates-apply | site-state | site-update | site-repair |
+        jobs-stop | sharing-set | relay-status.
+        -Arguments : paramètres de l'action (table), remis à local_control.py par --params-b64 : base64
+        d'un objet JSON UTF-8 sans BOM, 2048 octets au plus. Une liste y est TOUJOURS écrite @( ), même
+        à un seul élément : sinon PowerShell 5.1 envoie une chaîne, que l'agent refuse. Sans -Arguments
+        (ou table vide), la ligne de commande est celle d'avant.
         Renvoie : Ok, Resultat (objet), Erreur (texte), Code, NonSupporte, DelaiDepasse,
         EnCours, EnAttente.
         NonSupporte = $true quand l'agent installé est trop ancien pour cette action :
@@ -501,9 +564,20 @@ function Invoke-ActionLocale {
         $ErrorActionPreference ni « 2>&1 » n'entrent en jeu, le refus d'argparse d'un ancien
         agent (« usage: … invalid choice ») est donc toujours reconnu.
     #>
-    param([string]$Racine, [string]$Action, [int]$DelaiSecondes = 15, [switch]$Progression)
+    param([string]$Racine, [string]$Action, [int]$DelaiSecondes = 15, [switch]$Progression, [hashtable]$Arguments = $null)
     $retour = [pscustomobject]@{ Ok = $false; Resultat = $null; Erreur = ''; Code = -1; NonSupporte = $false; DelaiDepasse = $false; EnCours = $false; EnAttente = $false }
     if ($Action -notmatch '^[a-z-]+$') { $retour.Erreur = 'Action locale invalide.'; return $retour }
+    $suiteParametres = ''
+    if ($null -ne $Arguments -and $Arguments.get_Count() -gt 0) {
+        $octetsParametres = $null
+        try {
+            $jsonParametres = [string]((ConvertTo-ArgumentsLocaux -Arguments $Arguments) | ConvertTo-Json -Depth 4 -Compress)
+            $octetsParametres = (New-Object System.Text.UTF8Encoding($false)).GetBytes($jsonParametres)
+        } catch { $retour.Erreur = 'Paramètres illisibles.'; return $retour }
+        if ($octetsParametres.Length -gt 2048) { $retour.Erreur = 'Paramètres trop volumineux.'; return $retour }
+        # Base64 standard (A-Z a-z 0-9 + / =) : rien à citer sur la ligne de commande.
+        $suiteParametres = ' --params-b64 ' + [Convert]::ToBase64String($octetsParametres)
+    }
     $python = Get-PythonWorker -Racine $Racine
     if (-not $python) { $retour.Erreur = 'Interpréteur Python du Worker introuvable (python_path.txt).'; return $retour }
     $script = Join-Path $Racine 'local_control.py'
@@ -514,7 +588,7 @@ function Invoke-ActionLocale {
         $info = New-Object System.Diagnostics.ProcessStartInfo
         $info.FileName = $python
         # $Racine ne finit jamais par « \ » (Get-RacineWorker) : le guillemet fermant n'est pas échappé.
-        $info.Arguments = '"' + $script + '" --root "' + $Racine.TrimEnd('\') + '" --action ' + $Action + ' --json --timeout ' + [int]$DelaiSecondes
+        $info.Arguments = '"' + $script + '" --root "' + $Racine.TrimEnd('\') + '" --action ' + $Action + ' --json --timeout ' + [int]$DelaiSecondes + $suiteParametres
         $info.WorkingDirectory = $Racine
         $info.UseShellExecute = $false
         $info.RedirectStandardOutput = $true

@@ -19483,6 +19483,53 @@
         "revision": null,
         "retrieved_at": "2026-10-05T22:40:00.000Z"
       }
+    },
+    "lab-maps-tools": {
+      "id": "lab-maps-tools",
+      "evidence_status": "publisher_declaration_license_text_not_collected",
+      "evidence_files": [],
+      "attribution": "Outils de cartes du Labo — code Alpine Makers livré avec l'agent Worker ; bibliothèques de l'environnement ComfyUI, non redistribuées par ce module : Pillow — Copyright © 1997-2011 Secret Labs AB ; Copyright © 1995-2011 Fredrik Lundh et contributeurs ; Copyright © 2010 Jeffrey A. Clark et contributeurs (licence MIT-CMU) ; numpy — Copyright (c) 2005 et années suivantes, NumPy Developers (licence BSD-3-Clause)",
+      "redistribution_obligations": [
+        "Aucun composant tiers n'est embarqué, téléchargé ni redistribué par ce module : Pillow et numpy restent ceux installés avec le moteur ComfyUI, avec leurs propres fichiers de licence.",
+        "Si Alpine Makers livrait un jour ces bibliothèques, joindre leurs textes de licence complets (MIT-CMU pour Pillow ; BSD-3-Clause et licences des composants inclus pour numpy) et leurs mentions de copyright."
+      ],
+      "source_delivery_status": "Code source du module livré en clair avec l'agent Worker (runners/image_maps.py, runners/image_maps_script.py) ; aucun binaire, poids ni donnée tierce.",
+      "review_status": "Dossier documentaire, pas certification juridique ni permission supplémentaire.",
+      "distribution_mode": "see_component_installer",
+      "installed_version_verified": false,
+      "required_attribution": [],
+      "dependencies_evidence": [
+        {
+          "name": "Pillow",
+          "declared_license": "MIT-CMU",
+          "official_url": "https://github.com/python-pillow/Pillow",
+          "license_url": "https://github.com/python-pillow/Pillow/blob/main/LICENSE",
+          "observed_version": "12.3.0",
+          "redistributed": false
+        },
+        {
+          "name": "numpy",
+          "declared_license": "BSD-3-Clause (composants 0BSD / MIT / Zlib / CC0-1.0)",
+          "official_url": "https://github.com/numpy/numpy",
+          "license_url": "https://github.com/numpy/numpy/blob/main/LICENSE.txt",
+          "observed_version": "2.5.2",
+          "redistributed": false
+        }
+      ],
+      "remaining_actions": [
+        "Conserver et présenter cette notice ; les textes de licence de Pillow et numpy restent dans leurs paquets de l'environnement ComfyUI (non joints au dossier : ce module ne les redistribue pas).",
+        "Avant toute redistribution de Pillow ou numpy par Alpine Makers, joindre leurs textes de licence complets et mentions de copyright, et vérifier les versions réellement livrées."
+      ],
+      "notice_file": {
+        "name": "NOTICE--lab-maps-tools",
+        "kind": "generated_attribution_notice",
+        "url": "alpine-makers:generated-notice",
+        "local_path": "legal_sources/NOTICE--lab-maps-tools.txt",
+        "sha256": "0d813d69a39874e4ac445910ac8de70dfcf32590fb4caee38e333b0f077bcdd5",
+        "bytes": 2735,
+        "revision": null,
+        "retrieved_at": "2026-10-06T18:00:00.000Z"
+      }
     }
   },
   "repository_evidence": [
@@ -20985,5 +21032,5 @@
       "collection_mode": "offline"
     }
   ],
-  "total_text_bytes": 2123770
+  "total_text_bytes": 2126505
 }

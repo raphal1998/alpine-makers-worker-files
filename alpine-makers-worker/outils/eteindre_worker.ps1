@@ -161,6 +161,10 @@ try {
             Write-Etat -Libelle 'Mode de lancement' -Valeur 'tâche planifiée à l''ouverture de session'
             foreach ($t in @($mode.Taches | Where-Object { $_.ViseCeDossier })) { Write-Info ('      Tâche « ' + $t.Nom + ' » : état ' + $t.Etat) }
         }
+        'session' {
+            Write-Etat -Libelle 'Mode de lancement' -Valeur 'entrée de démarrage de session (registre, sans droits administrateur)'
+            Write-Info '      Cet outil ne retire pas cette entrée : le Worker repartira à la prochaine ouverture de session.'
+        }
         default   { Write-Etat -Libelle 'Mode de lancement' -Valeur 'lancement manuel (ni service ni tâche pour ce dossier)' }
     }
     if (Test-ServiceAutreDossier -Mode $mode) { Exit-Outil -Code 2 -SansPause:$SansPause }
@@ -371,6 +375,7 @@ try {
         switch ($mode.Mode) {
             'service' { $suite = @('Démarrage Manuel : il reste éteint, même après un redémarrage du PC.', ('Pour le remettre en route : ' + (Get-NomEntree 12)), '(il remet aussi le démarrage automatique du service).') }
             'tache'   { $suite = @('Tâche désactivée : il ne repartira pas à l''ouverture de session.', ('Pour le remettre en route : ' + (Get-NomEntree 12)), '(il réactive aussi la tâche planifiée).') }
+            'session' { $suite = @('L''entrée de démarrage de session est restée en place : il repartira à la prochaine ouverture de session.', 'Pour l''empêcher, depuis le dossier du Worker : outils\demarrage_auto.bat -DesactiverAuto', ('Pour le remettre en route avant : ' + (Get-NomEntree 12) + '.')) }
             default   { $suite = @('Ni service ni tâche planifiée ici : rien ne le relance tout seul.', ('Pour le remettre en route : ' + (Get-NomEntree 12) + '.')) }
         }
         Write-Cadre -Titre 'WORKER ÉTEINT' -Couleur Green -Lignes (@('Il apparaîtra « hors ligne » dans le site d''ici une minute.') + $suite)

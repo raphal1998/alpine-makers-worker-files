@@ -8,6 +8,7 @@ import base64
 import ctypes
 import json
 import hashlib
+import importlib
 import os
 import re
 import platform
@@ -62,7 +63,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.46.0"
+AGENT_VERSION = "1.49.0"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Maintenance des environnements (agent 1.35.17) : Python isolé et pip/wheel/setuptools des .venv gérés rafraîchis
@@ -100,6 +101,16 @@ AGENT_CAPABILITIES += ("image_lab_face_restore_v1",)  # littéral : le site lit 
 # trait, gribouillage, tuile, grille de couleurs, niveaux de gris et masque par runners/image_maps.py, qui lance
 # runners/image_maps_script.py (Pillow seul) avec le Python du moteur image ; module sans téléchargement.
 AGENT_CAPABILITIES += ("image_lab_maps_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.47.0 : CLIP skip (nœud CLIPSetLastLayer, SD 1.x / 2.x / XL) et hires fix (LatentUpscaleBy + seconde passe
+# KSampler, texte → image) dans les graphes de génération, formes fixes validées par safety._comfyui_graph.
+AGENT_CAPABILITIES += ("comfyui_clip_skip_hires_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.48.0 : gestion du Worker depuis le PC. Les outils du menu et de worker.exe déposent une demande locale
+# (local_control.py) ; ce qui concerne le site (état, mise à jour, réparation, arrêt des jobs, partage) passe par des
+# demandes signées de l'agent à ses propres routes « self/… » (self_service.py), jamais par une commande nouvelle.
+AGENT_CAPABILITIES += ("worker_self_service_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.49.0, Préparer pour une CNC : runners/freecad.py lance freecad_cam.py (FreeCAD CAM) sur un projet déclaratif revalidé par
+# cam_payload ; le G-code produit est relu par cam_gcode_check avant d'être rendu. Aucune commande vers une machine.
+AGENT_CAPABILITIES += ("freecad_cam_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -274,6 +285,26 @@ CANCELLABLE_INSTALL_COMMANDS = {f"{kind}.{action}" for kind in ("tool", "compone
 ASSET_REPORT_LIMIT = 400
 # LoRA annoncés par le relevé périodique (le site garde 500 modèles par Worker, tous moteurs confondus).
 LORA_INVENTORY_LIMIT = 300
+# État local que « Mettre à jour Worker » ne remplace ni ne retire jamais (premier élément du chemin, casse ignorée).
+UPDATE_PRESERVED = frozenset({"config.json", "storage.json", "cache", "temp", "components", "runtime", "logs", "data", "outputs",
+                              "workspace", "jobs", "config", "licenses", "python_path.txt", "git_path.txt", "supervisor.lock",
+                              ".worker-detached", "equipment-transfers"})
+# Fichiers du paquet dont la vie dépend d'un composant (retirés à sa désinstallation, reposés à son installation) :
+# absents ou différents du manifeste, ils ne sont ni une erreur ni une alerte. Liste identique à
+# $script:FichiersGeresParComposant de outils/commun_gestion.ps1.
+INTEGRITY_COMPONENT_FILES = frozenset({"orca_core_bridge.ps1"})
+UPDATE_LEFTOVER = re.compile(r"(.+)\.ancien-[0-9a-f]{8}")
+UPDATE_REPORT_LIMIT = 20
+
+
+def UPDATE_CRITICAL(relative):
+    """Vrai pour un fichier que l'agent charge au démarrage : tout module Python, et les scripts et fichiers JSON de la
+    racine (run_worker.ps1, legal_policy.json…). S'il ne peut pas être remplacé, la mise à jour est annulée en entier :
+    redémarrer sur un mélange de modules donnerait un agent qui tombe à l'import, que plus rien ne répare. Le reste
+    (worker.exe, *.bat, documentation, branding/, legal_sources/, outils/*.ps1) peut manquer sans empêcher le démarrage."""
+    relative = Path(relative)
+    suffix = relative.suffix.casefold()
+    return suffix == ".py" or (len(relative.parts) == 1 and suffix in {".ps1", ".json", ".sh"})
 
 
 def run(command, timeout=20, env=None):
@@ -440,6 +471,19 @@ class Agent:
         self.maintenance_active = False
         self.maintenance_count = 0
         self.maintenance_recovery = {}
+        # Gestion du Worker depuis le PC (agent 1.48.0) : état lu par le contrôle local (status, ETAT-WORKER.txt) et
+        # par les modules chargés à la demande, duplicates.py et self_service.py.
+        self.available_agent_version = ""   # dernière version proposée par le site (réponse du heartbeat)
+        self.heartbeat_state = {"ok": None, "at": None, "failures": 0, "http": None}
+        self.self_state = None              # dernier état lu sur le site (self_service.py)
+        self.self_ops = {}                  # relais vers le site en cours ou récents
+        self.self_relay_lock = threading.Lock()
+        self.integrity = None               # contrôle des fichiers de l'agent contre son manifeste (_check_integrity)
+        self.duplicates_state = None
+        # Relevé des ressources ComfyUI et remplacement d'une copie par un lien ne s'intercalent jamais.
+        self.assets_lock = threading.RLock()
+        self.duplicates_apply_active = False   # suppression des doublons en cours : commandes de maintenance refusées
+        self.asset_commands_active = 0         # asset.install / asset.uninstall en cours (sous maintenance_lock)
         self.job_threads = {}
         # Comptes IA (agent 1.35.0) : connexions en cours, commande → session (processus de la CLI), pour que
         # ai_accounts.login_input / login_cancel les atteignent. Gestionnaire créé à la première commande.
@@ -627,6 +671,33 @@ class Agent:
         if item.get("command") in CANCELLABLE_INSTALL_COMMANDS and self._install_cancel_requested(item.get("command_id")):
             raise InstallationCancelled("Installation annulée avant son démarrage ; composants existants conservés.")
 
+    def _note_heartbeat(self, ok, response=None, error=None):
+        """Retient l'issue du dernier heartbeat pour le contrôle local (status, ETAT-WORKER.txt) ; ne lève jamais.
+
+        ``failures`` compte les échecs de suite ; ``refused`` ceux que le site a refusés (401, 403, 410) et
+        ``unreachable`` ceux restés sans réponse du site (aucun statut, 502, 503, 504, 52x), de suite eux aussi.
+        """
+        try:
+            if ok:
+                available = response.get("available_agent_version") if isinstance(response, dict) else None
+                if isinstance(available, str) and len(available) <= 40 and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", available):
+                    self.available_agent_version = available
+                self.heartbeat_state = {"ok": True, "at": time.time(), "failures": 0, "http": None, "refused": 0, "unreachable": 0}
+                return
+            code = getattr(error, "code", None)
+            http = code if isinstance(code, int) and not isinstance(code, bool) else None
+            previous = self.heartbeat_state if isinstance(self.heartbeat_state, dict) else {}
+
+            def streak(key, same_kind):
+                count = previous.get(key)
+                return (count if isinstance(count, int) and not isinstance(count, bool) else 0) + 1 if same_kind else 0
+
+            self.heartbeat_state = {"ok": False, "at": time.time(), "failures": streak("failures", True), "http": http,
+                                    "refused": streak("refused", http in (401, 403, 410)),
+                                    "unreachable": streak("unreachable", http is None or http in (502, 503, 504) or 520 <= http <= 529)}
+        except Exception:   # noqa: BLE001 - un champ d'état ne coupe jamais le heartbeat
+            pass
+
     def _handle_heartbeat_commands(self, response, identity):
         if identity != self._command_identity():
             return  # A response for the previous association must not cancel new work.
@@ -742,10 +813,17 @@ class Agent:
                     raise AgentError("Réponse de conformité trop volumineuse.")
                 return json.loads(content.decode("utf-8"))
         except urllib.error.HTTPError as error:
-            try: message = json.loads(error.read().decode()).get("error")
+            site_code = ""
+            try:
+                body = json.loads(error.read().decode())
+                message = body.get("error")
+                # Code d'erreur du site (« WORKER_BUSY »…) : absent d'une réponse d'intermédiaire (page HTML de Cloudflare).
+                if isinstance(body.get("code"), str):
+                    site_code = body["code"][:80]
             except Exception: message = str(error)
             failure = AgentError(message or str(error))
             failure.code = error.code
+            failure.site_code = site_code
             raise failure from error
 
     def download_agent_update(self):
@@ -830,8 +908,7 @@ class Agent:
                             raise ValueError("manifest file mismatch")
             except (OSError, SyntaxError, ValueError, TypeError, StopIteration) as error:
                 raise AgentError("Paquet Worker invalide ou incomplet. Redémarrez le dashboard à jour avant de réessayer la mise à jour.") from error
-            preserved = {"config.json", "storage.json", "cache", "temp", "components", "runtime", "logs", "data", "outputs", "workspace",
-                         "jobs", "config", "licenses", "python_path.txt", "git_path.txt", "supervisor.lock", ".worker-detached", "equipment-transfers"}
+            preserved = UPDATE_PRESERVED
             # Files the previous package shipped and the new one does not: they
             # are removed after the copy so the installation mirrors the
             # dashboard's worker_agent folder. Only files listed by the former
@@ -844,17 +921,9 @@ class Agent:
             except (OSError, ValueError):
                 previous_files = set()
             shipped_files = set(files) if isinstance(files, dict) else set()
-            for item in source.iterdir():
-                if item.name.casefold() in preserved:
-                    continue
-                destination = self.root / item.name
-                if item.is_dir():
-                    shutil.copytree(item, destination, dirs_exist_ok=True)
-                else:
-                    staged = destination.with_name(destination.name + ".update")
-                    shutil.copy2(item, staged)
-                    os.replace(staged, destination)
-            removed = self._remove_stale_agent_files(previous_files - shipped_files, preserved) if shipped_files else []
+            incomplete, leftovers = self._install_update_files(source, preserved)
+            # Un fichier resté ancien : on ne retire rien, l'installation doit rester réparable par une réinstallation.
+            removed = self._remove_stale_agent_files(previous_files - shipped_files, preserved) if shipped_files and not incomplete else []
         # Les programmes dont le Worker dépend (Python isolé, pip des environnements) sont rafraîchis par
         # l'agent redémarré, quand aucun calcul ne tourne : la demande survit dans runtime/ (dossier préservé),
         # y compris quand la version installée est déjà la plus récente.
@@ -868,7 +937,209 @@ class Agent:
         # heartbeat after supervised restart proves the new version is active.
         return {"updated": True, "version": installed_version, "running_version": AGENT_VERSION,
                 "restart_required": True, "activation_pending": True, "removed_files": removed,
-                "environment_maintenance_requested": maintenance_requested}
+                "environment_maintenance_requested": maintenance_requested,
+                # Fichiers que l'agent ne charge pas (worker.exe ouvert…) restés à l'ancienne version, et anciens
+                # fichiers écartés pas encore supprimés : le contrôle d'intégrité du démarrage suivant les signale.
+                "incomplete_files": incomplete[:UPDATE_REPORT_LIMIT], "leftover_files": leftovers[:UPDATE_REPORT_LIMIT]}
+
+    def _install_update_files(self, source, preserved):
+        """Pose les fichiers du paquet en deux temps ; rend (fichiers non critiques restés anciens, anciens fichiers écartés
+        non supprimés).
+
+        Temps 1 : chaque fichier est copié à côté de sa cible (« <nom>.update »), sans rien remplacer. Temps 2 : pour
+        chaque fichier, l'ancien est écarté (« <nom>.ancien-<8 hex> ») puis le nouveau posé, par deux renommages ;
+        agent.py puis agent_manifest.json passent en dernier. Un fichier critique (UPDATE_CRITICAL) non remplaçable
+        annule tout : chaque échange déjà fait est défait et l'AgentError empêche le redémarrage, l'ancien agent continue
+        sur des fichiers cohérents. Un fichier non critique non remplaçable reste ancien et la boucle continue.
+        """
+        run = secrets.token_hex(4)   # un seul suffixe par mise à jour
+        members = sorted((path for path in source.rglob("*") if path.is_file()),
+                         key=lambda path: path.relative_to(source).as_posix().casefold())
+        members = [path for path in members if path.relative_to(source).parts[0].casefold() not in preserved]
+        last = ("agent.py", "agent_manifest.json")   # posés en dernier, dans cet ordre
+        order = ([path for path in members if path.relative_to(source).as_posix() not in last]
+                 + [source / name for name in last if (source / name).is_file()])
+
+        def discard(path):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass   # reste purgé au démarrage suivant (_purge_update_leftovers)
+
+        # Temps 1 : tout préparer à côté des cibles, sans rien remplacer. Aucun verrou n'est heurté.
+        staged = []
+        try:
+            for path in order:
+                destination = self.root / path.relative_to(source)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                copy = destination.with_name(destination.name + ".update")
+                if copy.is_dir():
+                    raise IsADirectoryError(copy.name)   # copy2 rangerait le fichier DANS ce dossier
+                staged.append(copy)   # noté avant la copie : une copie interrompue est retirée elle aussi
+                shutil.copy2(path, copy)
+        except OSError as error:
+            for copy in staged:
+                discard(copy)
+            raise AgentError("Mise à jour annulée : préparation des fichiers impossible (" + type(error).__name__
+                             + ") ; rien n'a été changé.") from error
+
+        # Temps 2 : pour chaque fichier, écarter l'ancien puis poser le nouveau (deux renommages).
+        def swap(destination, copy):
+            aside = destination.with_name(destination.name + ".ancien-" + run)
+            had = destination.exists()
+            failure = None
+            for wait in (0.0, 0.2, 0.4, 0.6):   # verrou bref d'antivirus
+                time.sleep(wait)
+                try:
+                    if had and not aside.exists():
+                        os.replace(destination, aside)
+                    os.replace(copy, destination)
+                    return aside if had else None
+                except PermissionError as error:
+                    failure = error
+                except OSError as error:
+                    failure = error
+                    break   # autre erreur : insister ne sert à rien
+            if had and aside.exists() and not destination.exists():
+                try:
+                    os.replace(aside, destination)   # remet l'ancien
+                except OSError:
+                    failure.alpine_not_restored = True
+            raise failure
+
+        swapped, incomplete = [], []   # swapped : (destination, ancien fichier écarté ou None)
+        for path in order:
+            relative = path.relative_to(source)
+            destination = self.root / relative
+            copy = destination.with_name(destination.name + ".update")
+            try:
+                swapped.append((destination, swap(destination, copy)))
+            except OSError as error:
+                if UPDATE_CRITICAL(relative):
+                    undone = 1 if getattr(error, "alpine_not_restored", False) else 0
+                    for done, aside in reversed(swapped):   # retour arrière de TOUS les échanges déjà faits
+                        try:
+                            if aside is None:
+                                done.unlink(missing_ok=True)   # fichier qui n'existait pas avant
+                            else:
+                                os.replace(aside, done)
+                        except OSError:
+                            undone += 1
+                    for left in staged:
+                        discard(left)
+                    raise AgentError("Mise à jour annulée : « " + relative.as_posix() + " » est utilisé par un autre programme. "
+                                     + ("Rien n'a été changé." if not undone
+                                        else str(undone) + " fichier(s) n'ont pas pu être remis : relance la mise à jour.")
+                                     + " Ferme ce qui l'utilise, puis réessaie.") from error
+                discard(copy)
+                incomplete.append(relative.as_posix())   # non critique : on CONTINUE
+                print(f"Mise à jour : « {relative.as_posix()} » n'a pas pu être remplacé ({type(error).__name__}) ; "
+                      "il reste dans son ancienne version.", flush=True)
+        leftovers = []
+        for done, aside in swapped:   # succès : retirer les fichiers écartés
+            if aside is not None:
+                try:
+                    aside.unlink()
+                except OSError:
+                    leftovers.append(aside.name)   # worker.exe encore ouvert : purgé à un démarrage suivant
+        return incomplete, leftovers
+
+    def _purge_update_leftovers(self):
+        """Retire au démarrage les restes d'une mise à jour : « <fichier>.update » et « <fichier>.ancien-<8 hex> ».
+
+        Borné au manifeste courant : seuls les dossiers des fichiers livrés sont lus, sans descendre (components/ et ses
+        dizaines de milliers de fichiers ne sont jamais parcourus), et seul un reste d'un fichier livré est retiré : un
+        « notes.update » posé là par l'utilisateur n'est jamais touché. Mêmes gardes que _remove_stale_agent_files.
+        """
+        names = ["agent_manifest.json"]
+        try:
+            manifest = json.loads((self.root / "agent_manifest.json").read_text(encoding="utf-8"))
+            if isinstance(manifest, dict) and isinstance(manifest.get("files"), dict):
+                names.extend(str(name) for name in manifest["files"])
+        except (OSError, ValueError):
+            pass
+        folders = {}
+        for name in names:
+            relative = Path(name.replace("\\", "/"))
+            # anchor : « /x » et « C:x » aussi, qui feraient lire un dossier hors du Worker.
+            if not relative.parts or relative.anchor or any(part in {"", ".", ".."} for part in relative.parts):
+                continue
+            if relative.parts[0].casefold() in UPDATE_PRESERVED:
+                continue
+            folders.setdefault(relative.parent, set()).add(relative.name)
+        root = self.root.resolve()
+        removed = []
+        for folder, shipped in folders.items():
+            try:
+                present = os.listdir(self.root / folder)   # ce dossier seulement, jamais ses sous-dossiers
+            except OSError:
+                continue
+            for name in present:
+                match = UPDATE_LEFTOVER.fullmatch(name)
+                origin = match.group(1) if match else name[:-len(".update")] if name.endswith(".update") else None
+                if origin not in shipped:
+                    continue
+                target = self.root / folder / name
+                try:
+                    if is_link(target) or not target.is_file() or not target.resolve().is_relative_to(root):
+                        continue
+                    if not target.stat().st_mode & stat.S_IWRITE:
+                        os.chmod(target, stat.S_IWRITE)   # attribut lecture seule levé avant la suppression
+                    target.unlink()
+                    removed.append((folder / name).as_posix())
+                except OSError:
+                    continue   # worker.exe.ancien-… encore ouvert : retiré à un démarrage suivant
+        if removed:
+            print(f"Restes de mise à jour retirés : {len(removed)} fichier(s).", flush=True)
+        return removed
+
+    def _check_integrity(self):
+        """Compare chaque fichier du manifeste au disque (SHA-256), comme Test-IntegriteAgent côté outils.
+
+        Rend des nombres, jamais un chemin : {"checked_at", "missing", "modified"} ; ``checked_at`` vaut None quand le
+        manifeste est absent ou illisible (rien n'a pu être contrôlé). Les fichiers gérés par un composant
+        (INTEGRITY_COMPONENT_FILES) sont ignorés ; un fichier illisible à cet instant n'est pas compté.
+        """
+        try:
+            manifest = json.loads((self.root / "agent_manifest.json").read_text(encoding="utf-8"))
+            files = manifest.get("files") if isinstance(manifest, dict) else None
+        except (OSError, ValueError):
+            files = None
+        if not isinstance(files, dict):
+            return {"checked_at": None, "missing": 0, "modified": 0}
+        root = self.root.resolve()
+        missing = modified = 0
+        for name, expected in files.items():
+            relative = Path(str(name).replace("\\", "/"))
+            if not relative.parts or relative.anchor or any(part in {"", ".", ".."} for part in relative.parts):
+                continue
+            if relative.as_posix() in INTEGRITY_COMPONENT_FILES:
+                continue
+            try:
+                target = (root / relative).resolve()
+                if not target.is_relative_to(root):
+                    continue
+                if not target.is_file():
+                    missing += 1
+                    continue
+                digest = hashlib.sha256()
+                with target.open("rb") as handle:
+                    for block in iter(lambda: handle.read(1024 * 1024), b""):
+                        digest.update(block)
+            except OSError:
+                continue
+            if digest.hexdigest() != str(expected).lower():
+                modified += 1
+        return {"checked_at": time.time(), "missing": missing, "modified": modified}
+
+    def _integrity_once(self):
+        """Fil « worker-integrity » : un seul contrôle, vingt secondes après le démarrage ; ne lève jamais."""
+        if self.stop_requested.wait(20):
+            return   # arrêt demandé : sortie avant toute lecture de disque
+        try:
+            self.integrity = self._check_integrity()
+        except Exception as error:
+            print(f"Contrôle des fichiers de l'agent impossible ({type(error).__name__}).", flush=True)
 
     def _remove_stale_agent_files(self, names, preserved):
         """Delete shipped files dropped from the package; never local state, never outside the root."""
@@ -1130,6 +1401,7 @@ class Agent:
                     challenge = self.request("/api/worker-protocol/identity/challenge", "POST", {})
                     payload["security"]["challenge"] = challenge["nonce"]
                 response = self.request("/api/worker-protocol/heartbeat", "POST", payload)
+                self._note_heartbeat(True, response)
                 if isinstance(response, dict):
                     self._handle_heartbeat_commands(response, identity)
                 if disconnected:
@@ -1137,6 +1409,7 @@ class Agent:
                 disconnected = False
                 delay = HEARTBEAT_SECONDS
             except Exception as error:
+                self._note_heartbeat(False, None, error)
                 print(f"Connexion Worker interrompue ({type(error).__name__}); nouvelle tentative automatique.", flush=True)
                 disconnected = True
                 delay = min(max(POLL_SECONDS, delay * 2), 30)
@@ -1273,7 +1546,8 @@ class Agent:
         # du fichier (mis en cache par taille et date), le nom exact du fichier voyage avec l'inventaire.
         known_loras = {spec[0]: model_id for (_, model_id), spec in COMFYUI_LORA_CATALOG.items()}
         try:
-            lora_files = comfyui_assets.scan_assets(self.root, comfy_root, kinds={"lora", "controlnet"}) if comfy_root.is_dir() else []
+            with self.assets_lock:   # même verrou que la suppression des doublons, qui corrige l'index des ressources
+                lora_files = comfyui_assets.scan_assets(self.root, comfy_root, kinds={"lora", "controlnet"}) if comfy_root.is_dir() else []
         except Exception:  # noqa: BLE001 - un dossier de LoRA illisible ne fait jamais tomber le relevé du Worker
             lora_files = []
         # Les LoRA sont ajoutés en fin de relevé (voir plus bas) : leur nombre est borné et aucun ne peut prendre
@@ -1970,8 +2244,13 @@ class Agent:
     # d'erreur sur M lues" into the very logs they just scanned ; that count line
     # is itself classified "info" below 20 by the tool and never the error text
     # itself, so it must not be relayed as a Worker log error (incident 05/10).
+    # worker.exe (WorkerManager.cs) transcribes every console line of a launched
+    # outil into worker-manager.log, including journaux.ps1's own "ce que fait cet
+    # outil" explanation ("...seulement ses lignes d'erreur...") : plain help text,
+    # not a reported error, but still a false positive for the word "erreur" (08/10).
     LOG_NOISE_PATTERN = re.compile(r"(?:\bINFO\b|\bDEBUG\b|uvicorn\.error:|\[INFO\]|it/s\]|s/it\]|\b0 erreur\(s\)|"
-                                    r"ligne\(s\) d'erreur sur \d+ lues)")
+                                    r"ligne\(s\) d'erreur sur \d+ lues|"
+                                    r"ses lignes d'erreur, ou son défilement en direct)")
     LOG_WATCH_INTERVAL = 10
 
     # Une ligne de journal relayée au site porte souvent un chemin local, donc le
@@ -2428,7 +2707,14 @@ class Agent:
     @staticmethod
     def _remove_readonly(function, path, _error):
         os.chmod(path, os.stat(path).st_mode | stat.S_IWRITE)
-        function(path)
+        try:
+            function(path)
+        except OSError:
+            # Clearing the read-only bit does not release a native extension (.pyd) the
+            # running agent process itself has loaded (e.g. runtime/identity-deps/cryptography
+            # for signed requests) ; Windows keeps it locked until this process exits. Skipping
+            # it here lets the rest of the purge finish instead of aborting it (incident 08/10).
+            pass
 
     def purge_managed_components(self):
         """Stop engines and remove only components installed below the agent root."""
@@ -3071,6 +3357,9 @@ class Agent:
         maintenance = command.startswith(("tool.", "component.", "model.")) or command in {"agent.update", "agent.restart", "agent.disconnect", "worker.purge", "equipment.install", "printguard.camera", "printguard.settings", "agent.maintain_environments"}
         if maintenance:
             with self.maintenance_lock:
+                if self.duplicates_apply_active:
+                    # Avant le test du nettoyage local, que la suppression des doublons lève aussi : le vrai motif.
+                    raise AgentError("Suppression des doublons en cours ; réessaie après sa fin.")
                 if self.local_cleanup_active:
                     raise AgentError("Nettoyage IA local en cours ; reessaie apres sa fin.")
                 if command in {"agent.update", "agent.restart", "agent.disconnect", "worker.purge"} and self.environment_maintenance_running:
@@ -3203,6 +3492,23 @@ class Agent:
             pass
 
     def manage_asset(self, command, payload, command_id):
+        """Garde de manage_asset : une installation ou une suppression de ressource et la suppression des doublons
+        (duplicates.py) ne tournent jamais ensemble sur le dossier des modèles. asset.* n'est pas une commande de
+        maintenance pour execute() : le refus et le compteur vivent ici, sous le même verrou."""
+        counted = command in {"asset.install", "asset.uninstall"}
+        if counted:
+            with self.maintenance_lock:
+                if self.duplicates_apply_active:
+                    raise AgentError("Suppression des doublons en cours ; réessaie après sa fin.")
+                self.asset_commands_active += 1
+        try:
+            return self._manage_asset(command, payload, command_id)
+        finally:
+            if counted:
+                with self.maintenance_lock:
+                    self.asset_commands_active -= 1
+
+    def _manage_asset(self, command, payload, command_id):
         """LoRA, embeddings, ControlNet et VAE ajoutés par le propriétaire du Worker (agent 1.36.0).
 
         Le site ne fournit ni chemin ni ligne de commande : un type, un nom de fichier simple et, pour une
@@ -3217,8 +3523,9 @@ class Agent:
                 if set(payload) - {"tool_id"}:
                     raise AgentError("L’inventaire des ressources n’accepte aucun chemin ni paramètre distant.")
                 self.command_progress(command_id, 5, "Inventaire des ressources ComfyUI…")
-                found = comfyui_assets.scan_assets(self.root, comfy_root, hashes=True,
-                                                   progress=lambda message: self.command_progress(command_id, 40, message))
+                with self.assets_lock:   # jamais entre le remplacement d'une copie par un lien et la correction de l'index
+                    found = comfyui_assets.scan_assets(self.root, comfy_root, hashes=True,
+                                                       progress=lambda message: self.command_progress(command_id, 40, message))
                 return {"assets": found[:ASSET_REPORT_LIMIT], "truncated": len(found) > ASSET_REPORT_LIMIT,
                         "diagnostic": comfyui_assets.diagnostic(self.root, comfy_root),
                         "progress": 100, "message": f"{len(found)} ressource(s) inventoriée(s)."}
@@ -4009,10 +4316,33 @@ class Agent:
                     self.maintenance_recovery.pop(command_id, None)
                     self.maintenance_active = self.maintenance_count > 0 or bool(self.maintenance_recovery)
 
+    def _start_self_management(self):
+        """Démarrage de la gestion locale (agent 1.48.0), chaque étape sous son propre try : une étape en échec ou un
+        module absent écrit une ligne et n'arrête jamais l'agent. Tout fil lancé ici attend par stop_requested.wait
+        et sort aussitôt qu'il rend vrai, avant tout appel réseau et toute lecture de disque."""
+        try:
+            self._purge_update_leftovers()
+        except Exception as error:
+            print(f"Restes de mise à jour non retirés ({type(error).__name__}).", flush=True)
+        try:
+            threading.Thread(target=self._integrity_once, name="worker-integrity", daemon=True).start()
+        except Exception as error:
+            print(f"Contrôle des fichiers de l'agent non lancé ({type(error).__name__}).", flush=True)
+        # duplicates.py et self_service.py sont chargés à la demande : ils ne conditionnent pas le démarrage.
+        for name, entry in (("duplicates", "recover"), ("self_service", "start")):
+            try:
+                module = importlib.import_module("." + name, __package__) if __package__ else importlib.import_module(name)
+                getattr(module, entry)(self)
+            except Exception as error:
+                print(f"Module {name} indisponible sur ce Worker ({type(error).__name__}) ; le reste de l'agent continue.", flush=True)
+
     def loop(self):
         delay = POLL_SECONDS
         self.main_loop_seen = time.monotonic()
         threading.Thread(target=local_loop, args=(self,), name="worker-local-control", daemon=True).start()
+        # Avant le heartbeat et la première commande du site : la purge des restes de mise à jour ne croise
+        # jamais une mise à jour en cours.
+        self._start_self_management()
         heartbeat = threading.Thread(target=self._heartbeat_loop, name="worker-heartbeat", daemon=True)
         heartbeat.start()
         threading.Thread(target=self.equipment_relay.loop, name="worker-equipment", daemon=True).start()

@@ -5419,6 +5419,16 @@
       "bytes": 1414,
       "revision": null,
       "retrieved_at": "2026-10-05T22:40:00.000Z"
+    },
+    {
+      "name": "NOTICE--lab-maps-tools",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lab-maps-tools.txt",
+      "sha256": "0d813d69a39874e4ac445910ac8de70dfcf32590fb4caee38e333b0f077bcdd5",
+      "bytes": 2735,
+      "revision": null,
+      "retrieved_at": "2026-10-06T18:00:00.000Z"
     }
   ]
 }

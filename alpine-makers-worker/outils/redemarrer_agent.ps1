@@ -91,6 +91,7 @@ try {
     switch ($mode.Mode) {
         'service' { Write-Etat -Libelle 'Mode de lancement' -Valeur ('service Windows AlpineWorker : ' + $mode.Service.Etat + ', démarrage ' + $mode.Service.Demarrage) }
         'tache'   { Write-Etat -Libelle 'Mode de lancement' -Valeur 'tâche planifiée à l''ouverture de session' }
+        'session' { Write-Etat -Libelle 'Mode de lancement' -Valeur 'entrée de démarrage de session (registre, sans droits administrateur)' }
         default   { Write-Etat -Libelle 'Mode de lancement' -Valeur 'lancement manuel (ni service ni tâche pour ce dossier)' }
     }
     # Les ports sont globaux au PC : s'ils appartiennent au Worker d'un AUTRE dossier, on ne décide rien d'après eux.
@@ -151,7 +152,7 @@ try {
     if (-not (Confirm-Action -Question 'Redémarrer l''agent maintenant ?' -Oui:$Oui)) { Write-Info 'Annulé : rien n''a changé.'; Exit-Outil -Code 2 -SansPause:$SansPause }
 
     $tacheCible = @($mode.Taches | Where-Object { $_.ViseCeDossier -and $_.Etat -ne 'Disabled' }) | Select-Object -First 1
-    if ($mode.Mode -eq 'aucun' -and (Test-Administrateur)) {
+    if (($mode.Mode -eq 'aucun' -or $mode.Mode -eq 'session') -and (Test-Administrateur)) {
         Write-Erreur 'Cette fenêtre est administrateur : l''agent relancé tournerait avec des droits administrateur.'
         Write-Conseil 'Ferme-la, puis relance cet outil depuis une fenêtre normale (double-clic).'
         Exit-Outil -Code 1 -SansPause:$SansPause

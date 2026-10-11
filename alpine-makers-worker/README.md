@@ -223,6 +223,7 @@ Détails et variante sans carte graphique : section 11.
 | --- | --- | --- |
 | **Service Windows** `AlpineWorker` (outil `nssm`) | Le **PC d'atelier**. | Le service démarre **avec Windows, sans ouverture de session**, sous ton compte Windows (il faut ce compte pour lire la clé d'identité). Un second service, `AlpineSupervisor`, vérifie toutes les 30 secondes que les sources Alpine Makers en démarrage **Automatique** tournent, et relance celles qui sont arrêtées. Une source passée en démarrage **Manuel** est considérée comme **arrêtée volontairement** et n'est plus relancée. |
 | **Tâche planifiée** `Alpine Makers Worker <code>` | Les autres PC (installation standard). | Créée par `configure_autostart.ps1 -AutoStart Yes`. Elle se déclenche **à l'ouverture de ta session Windows** (pas avant). Le `<code>` est une empreinte du dossier d'installation, pour distinguer plusieurs Workers. |
+| **Entrée de démarrage de session** `AlpineMakersWorker<code>` (registre de ton compte, clé `Run`) | Un PC où Windows **refuse la tâche planifiée sans droits administrateur** (compte standard, ou tâche du même nom créée plus tôt en administrateur). | Repli posé par `configure_autostart.ps1 -AutoStart Yes` depuis l'agent 1.47.1 : l'installation **n'échoue plus** pour ce refus. Même commande que la tâche, lancée **à l'ouverture de ta session**, et le Worker est lancé tout de suite. Différence : le planificateur ne relance pas le superviseur s'il est fermé (le superviseur, lui, relance toujours l'agent). L'entrée **15** propose de passer à la tâche planifiée (droits administrateur demandés) ou de retirer ce démarrage. Si une tâche valide de ton compte existe déjà, elle est simplement **conservée**. |
 | Aucun | Si tu as répondu N à l'installation. | Lancement manuel par l'entrée **5 · Reconnecter** du menu. |
 
 Les outils du menu reconnaissent eux-mêmes le mode de ce PC et s'adaptent.
@@ -612,18 +613,21 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
 
 - **Quand** : le Worker ne repart pas après un redémarrage du PC ; une erreur apparaît à
   chaque ouverture de session ; tu veux changer le choix O/N de l'installation.
-- **Fait** : montre le mode (service / tâche / aucun), l'état et le démarrage du service,
+- **Fait** : montre le mode (service / tâche / entrée de démarrage de session / aucun), l'état et le démarrage du service,
   le dossier qu'il vise, et toutes les tâches « Alpine Makers Worker… ». Il propose ensuite,
   selon le cas : de retirer les **tâches orphelines** — celles qui visent un dossier
   **disparu** (cas (j), section 10) ; en mode service, de retirer la **tâche en doublon**
   qui vise aussi ce dossier (celle que crée un « O » à l'installateur ; mot `RETIRER`
   exigé) ; et, si **rien** ne lance ce Worker, d'**activer** la tâche planifiée de
-  l'installateur — ce qui **lance aussi le Worker tout de suite**.
+  l'installateur — ce qui **lance aussi le Worker tout de suite**. Avec une **entrée de
+  démarrage de session** (repli sans droits administrateur), il propose de **passer à la
+  tâche planifiée** (fenêtre administrateur) et, si tu refuses, de retirer ce démarrage.
 - **Ne fait PAS** : ne touche pas aux tâches d'un **autre** Worker valide ni aux autres
   tâches du PC ; n'arrête et ne redémarre pas le Worker ; **ne modifie pas le service**
   (Manuel / Automatique : entrées 11 et 12) ; refuse d'activer une tâche quand le service
-  lance déjà ce dossier. Il ne **désactive** pas non plus la tâche d'un Worker en mode
-  tâche : il t'indique la commande (`configure_autostart.ps1 -AutoStart No`).
+  lance déjà ce dossier. Il ne **désactive** pas non plus d'office la tâche d'un Worker en mode
+  tâche : il t'indique la commande (`outils\demarrage_auto.bat -DesactiverAuto`, qui retire
+  la tâche et l'entrée de session, avec fenêtre administrateur si Windows refuse).
 - **Résultat attendu** : une seule source de démarrage pour ce dossier, aucune orpheline.
 - **Si ça échoue** : Windows refuse de retirer une tâche → l'outil ouvre une fenêtre
   administrateur ; accepte-la (code 3 si tu refuses : les tâches restent en place).
@@ -900,6 +904,7 @@ Les cas **(a) à (j)** sont réels (le cas (i), propre au PC du propriétaire, n
 | | **Un moteur repart tout seul 30 s après le démarrage.** | Il a été arrêté **brutalement** : son intention est restée « allumé ». | Entrée **9**. | L'arrêter **proprement** (entrée 9 ou bouton du site). |
 | | **Le Worker repart tout seul après que je l'ai arrêté.** | La supervision relance sous 30 s une source en démarrage Automatique. | Entrée **1**. | Entrée **11** (passe le service en Manuel). |
 | | **Service `AlpineWorker` en état « Paused ».** | Un superviseur lancé **hors service** tient le verrou `supervisor.lock` : le superviseur du service sort aussitôt avec 0, et nssm le relance en boucle puis le met en pause. Cause la plus fréquente : entrée **5**, **6** ou **17** (ou un ancien `.bat`, ou un « O » à l'installateur) utilisée **pendant que le service était arrêté**, typiquement entre l'entrée 11 et l'entrée 12. | Entrée **1** : service « Paused » alors que l'agent répond. | Entrée **11** (elle arrête aussi les processus lancés hors service), puis **12**. Ensuite, service arrêté = entrée 12 uniquement. |
+| | **« Register-ScheduledTask : Accès refusé » à la fin de l'installation** (agent 1.47.0 ou plus ancien : « L'installation du Worker a echoue. Code: 1 »). | Windows refuse la tâche planifiée sans droits administrateur. Le Worker est pourtant installé et associé. | Entrée **15**. | Mets le Worker à jour (1.47.1) ou relance l'installateur récent : il garde la tâche existante ou pose l'entrée de démarrage de session, et l'installation se termine normalement. |
 | | **Deux lanceurs pour le même dossier** (service **et** tâche planifiée). | Tu as répondu **O** à la question du démarrage automatique de `install_windows.bat` ou de « Récupérer une inscription » (7) sur un PC déjà en service. | Entrée **15** : section « Doublon ». | Entrée **15** : retirer le doublon (mot `RETIRER`). La prochaine fois : répondre **N** ou passer `-AutoStart No`. |
 
 ---

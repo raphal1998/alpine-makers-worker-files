@@ -1,0 +1,24 @@
+Alpine Makers — notice documentaire : lab-maps-tools
+Auteur/éditeur : Alpine Makers (code de l'agent Worker)
+Attribution : Outils de cartes du Labo — code Alpine Makers livré avec l'agent Worker ; bibliothèques de l'environnement ComfyUI, non redistribuées par ce module : Pillow — Copyright © 1997-2011 Secret Labs AB ; Copyright © 1995-2011 Fredrik Lundh et contributeurs ; Copyright © 2010 Jeffrey A. Clark et contributeurs (licence MIT-CMU) ; numpy — Copyright (c) 2005 et années suivantes, NumPy Developers (licence BSD-3-Clause)
+Licence : Code d'Alpine Makers livré avec l'agent ; aucun composant tiers ajouté (utilise Pillow, MIT-CMU, et vérifie numpy, BSD-3-Clause, déjà présents dans l'environnement du moteur ComfyUI)
+Source officielle : code livré avec l'agent Worker (runners/image_maps.py, runners/image_maps_script.py)
+État : publisher_declaration_license_text_not_collected
+
+Module de calcul du Labo image écrit par Alpine Makers : aucun composant tiers n'est embarqué ni téléchargé (aucun modèle, aucun fichier de poids, aucune donnée tierce).
+Il s'appuie sur deux bibliothèques déjà installées dans l'environnement Python du moteur ComfyUI du Worker, non redistribuées par ce module :
+- Pillow — licence MIT-CMU (anciennement déclarée HPND). Copyright © 1997-2011 Secret Labs AB ; Copyright © 1995-2011 Fredrik Lundh et contributeurs ; Copyright © 2010 Jeffrey A. Clark et contributeurs.
+  Projet : https://github.com/python-pillow/Pillow
+  Licence : https://github.com/python-pillow/Pillow/blob/main/LICENSE
+- numpy — licence BSD-3-Clause (composants inclus sous 0BSD, MIT, Zlib et CC0-1.0). Copyright (c) 2005 et années suivantes, NumPy Developers.
+  Projet : https://github.com/numpy/numpy
+  Licence : https://github.com/numpy/numpy/blob/main/LICENSE.txt
+Leurs textes de licence complets restent ceux livrés avec leurs paquets dans l'environnement ComfyUI.
+
+Aucun composant tiers n'est embarqué, téléchargé ni redistribué par ce module : Pillow et numpy restent ceux installés avec le moteur ComfyUI, avec leurs propres fichiers de licence.
+Si Alpine Makers livrait un jour ces bibliothèques, joindre leurs textes de licence complets (MIT-CMU pour Pillow ; BSD-3-Clause et licences des composants inclus pour numpy) et leurs mentions de copyright.
+
+Code source du module livré en clair avec l'agent Worker (runners/image_maps.py, runners/image_maps_script.py) ; aucun binaire, poids ni donnée tierce.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

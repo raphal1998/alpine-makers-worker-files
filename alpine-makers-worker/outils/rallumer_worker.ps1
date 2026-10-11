@@ -156,6 +156,7 @@ try {
             Write-Etat -Libelle 'Mode de lancement' -Valeur 'tâche planifiée à l''ouverture de session'
             foreach ($t in @($mode.Taches | Where-Object { $_.ViseCeDossier })) { Write-Info ('      Tâche « ' + $t.Nom + ' » : état ' + $t.Etat) }
         }
+        'session' { Write-Etat -Libelle 'Mode de lancement' -Valeur 'entrée de démarrage de session (registre, sans droits administrateur)' }
         default { Write-Etat -Libelle 'Mode de lancement' -Valeur 'lancement manuel (ni service ni tâche pour ce dossier)' }
     }
     # Un autre dossier sert déjà les ports du Worker : démarrer celui-ci créerait un conflit, et tout
@@ -203,7 +204,7 @@ try {
 
     # Mode tâche ou manuel depuis une fenêtre administrateur : l'agent tournerait en administrateur.
     $tacheCible = @($mode.Taches | Where-Object { $_.ViseCeDossier }) | Select-Object -First 1
-    if (-not $dejaEnMarche -and $mode.Mode -eq 'aucun' -and (Test-Administrateur)) {
+    if (-not $dejaEnMarche -and ($mode.Mode -eq 'aucun' -or $mode.Mode -eq 'session') -and (Test-Administrateur)) {
         Write-Erreur 'Cette fenêtre est administrateur : le Worker démarrerait avec des droits administrateur.'
         Write-Conseil 'Ferme-la, puis relance cet outil depuis une fenêtre normale (double-clic).'
         Exit-Outil -Code 1 -SansPause:$SansPause

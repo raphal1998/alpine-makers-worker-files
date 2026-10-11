@@ -4,7 +4,10 @@
     Usage :
         etat_worker.ps1                     affichage expliqué, puis verdict
         etat_worker.ps1 -SansPause          idem, sans attendre la touche Entrée
-        etat_worker.ps1 -Json               un seul objet JSON (pour rapport_diagnostic)
+        etat_worker.ps1 -Json               un seul objet JSON (rapport de diagnostic, contrôle total, réparer)
+
+    Chaque problème du verdict porte un code stable (« L-… »), rendu par -Json dans le champ « code » :
+    « Contrôle total et réparation » (18) et « Réparer » (24) s'en servent pour choisir la réparation.
 
     Codes de sortie : 0 = contrôle fait (même s'il trouve des problèmes), 1 = contrôle impossible.
 #>
@@ -16,6 +19,11 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'commun.ps1')
 . (Join-Path $PSScriptRoot 'diagnostic_commun.ps1')
+# Socle de la rubrique « Gestion du Worker » : contrôle des fichiers de l'agent et des droits du dossier.
+# Paquet incohérent (fichier absent ou illisible) : le contrôle continue, sans ces deux lignes.
+$script:GestionChargee = $false
+$socleGestion = Join-Path $PSScriptRoot 'commun_gestion.ps1'
+if (Test-Path -LiteralPath $socleGestion -PathType Leaf) { try { . $socleGestion; $script:GestionChargee = $true } catch { $script:GestionChargee = $false } }
 
 # En mode -Json, rien d'autre que l'objet JSON ne doit sortir : l'affichage est neutralisé.
 if ($Json) { function Write-Host { param([Parameter(ValueFromRemainingArguments = $true)]$Reste, $ForegroundColor, [switch]$NoNewline) } }
@@ -53,17 +61,21 @@ $script:Menu = @{
     rallumer    = (Get-NomEntree 12 -Nu)
     nettoyage   = (Get-NomEntree 14 -Nu)
     demarrage   = (Get-NomEntree 15 -Nu)
+    controle    = (Get-NomEntree 18 -Nu)
+    arretJobs   = (Get-NomEntree 21 -Nu)
 }
-# Pas d'outil de réparation ni de mise à jour dans le menu : on dit l'action réelle.
+# Python et Git : aucun outil du menu ne les répare, on dit l'action réelle.
 $script:ActionInstall = 'Aucun outil du menu : relance install_windows.bat (dans le dossier du Worker), il retrouve Python et Git et réécrit python_path.txt et git_path.txt'
-$script:ActionMiseAJour = 'Aucun outil du menu : mets le Worker à jour depuis le site (Compte > Mes PC / Workers > ce Worker > « Mettre à jour »)'
+# Mise à jour : l'entrée 23 du menu. Elle a besoin d'un agent assez récent : sinon, le bouton du site reste le seul chemin.
+$script:ActionMiseAJour = (Get-NomEntree 23 -Nu) + ' ; si elle répond que l''agent est trop ancien : depuis le site, Mes Workers > ce Worker > « Mettre à jour »'
 # Moteur (tool_id) -> clé du journal dans l'outil Journaux.
 $script:CleJournalMoteur = @{ 'image_generation' = 'images'; 'ai3d' = '3d'; 'printguard' = 'printguard'; 'model-studio' = 'orca' }
 
 $problemes = New-Object System.Collections.ArrayList
 function Add-Probleme {
-    param([ValidateSet('erreur', 'alerte')][string]$Gravite, [string]$Texte, [string]$Outil)
-    [void]$problemes.Add([pscustomobject]@{ Gravite = $Gravite; Probleme = $Texte; Outil = $Outil })
+    # -Code : identifiant stable du problème (« L-… »), le même d'une version à l'autre ; le texte, lui, peut changer.
+    param([ValidateSet('erreur', 'alerte')][string]$Gravite, [string]$Texte, [string]$Outil, [string]$Code = '')
+    [void]$problemes.Add([pscustomobject]@{ Gravite = $Gravite; Probleme = $Texte; Outil = $Outil; Code = $Code })
 }
 $constats = [ordered]@{ ok = $true; genere_le = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss'); racine = $Racine; administrateur = (Test-Administrateur) }
 
@@ -90,10 +102,10 @@ if (Test-Path -LiteralPath $fichierGit -PathType Leaf) {
 Write-Etat 'Dossier du Worker' $Racine 'info'
 if (-not $config.Present) {
     Write-Etat 'Configuration' 'config.json absent : Worker jamais associé' 'erreur'
-    Add-Probleme 'erreur' 'Le Worker n''a pas de configuration (config.json absent).' $script:Menu.reassocier
+    Add-Probleme 'erreur' 'Le Worker n''a pas de configuration (config.json absent).' $script:Menu.reassocier 'L-NON-ASSOCIE'
 } elseif (-not $config.Associe) {
     Write-Etat 'Association' 'non associé à un compte' 'erreur'
-    Add-Probleme 'erreur' 'Le Worker n''est associé à aucun compte.' $script:Menu.reassocier
+    Add-Probleme 'erreur' 'Le Worker n''est associé à aucun compte.' $script:Menu.reassocier 'L-NON-ASSOCIE'
 } else {
     Write-Etat 'Association' ('associé  (identifiant ' + $config.WorkerIdCourt + '...)') 'ok'
 }
@@ -103,16 +115,41 @@ if ($version) { Write-Etat 'Version de l''agent' $version 'info' } else { Write-
 if ($pythonFichierValide) { Write-Etat 'Python (python_path.txt)' $python 'ok' }
 elseif ($python) {
     Write-Etat 'Python (python_path.txt)' ('fichier absent ou invalide ; secours : ' + $python) 'alerte'
-    Add-Probleme 'alerte' 'python_path.txt est absent ou désigne un Python qui n''existe plus.' $script:ActionInstall
+    Add-Probleme 'alerte' 'python_path.txt est absent ou désigne un Python qui n''existe plus.' $script:ActionInstall 'L-PYTHON'
 } else {
     Write-Etat 'Python' 'introuvable' 'erreur'
-    Add-Probleme 'erreur' 'Aucun Python utilisable : l''agent ne peut pas démarrer.' $script:ActionInstall
+    Add-Probleme 'erreur' 'Aucun Python utilisable : l''agent ne peut pas démarrer.' $script:ActionInstall 'L-PYTHON'
 }
 switch ($gitEtat) {
     'valide'   { Write-Etat 'Git (git_path.txt)' 'valide' 'ok' }
-    'invalide' { Write-Etat 'Git (git_path.txt)' 'désigne un fichier qui n''existe plus' 'alerte'; Add-Probleme 'alerte' 'git_path.txt désigne un Git qui n''existe plus (installation de moteurs impossible).' $script:ActionInstall }
+    'invalide' { Write-Etat 'Git (git_path.txt)' 'désigne un fichier qui n''existe plus' 'alerte'; Add-Probleme 'alerte' 'git_path.txt désigne un Git qui n''existe plus (installation de moteurs impossible).' $script:ActionInstall 'L-GIT' }
     default    { Write-Etat 'Git (git_path.txt)' 'absent (utile seulement pour installer des moteurs)' 'info' }
 }
+
+# Fichiers de l'agent contre agent_manifest.json, et droits du dossier (socle de gestion). Le problème « fichiers de
+# l'agent » est inscrit après la section Agent : la marche à suivre dépend de l'agent, selon qu'il répond ou non.
+$integrite = $null; $droits = $null
+if ($script:GestionChargee) {
+    try { $integrite = Test-IntegriteAgent -Racine $Racine } catch { $integrite = $null }
+    try { $droits = Test-DroitsDossier -Racine $Racine } catch { $droits = $null }
+}
+$fichiersManquants = @(); $fichiersModifies = @()
+if ($integrite -and $integrite.Connu) {
+    $fichiersManquants = @($integrite.Manquants | Where-Object { $_ }); $fichiersModifies = @($integrite.Modifies | Where-Object { $_ })
+    if (($fichiersManquants.Count + $fichiersModifies.Count) -eq 0) { Write-Etat 'Fichiers de l''agent' ([string]$integrite.Total + ' contrôlés, tous conformes à la version installée') 'ok' }
+    else { Write-Etat 'Fichiers de l''agent' ([string]$fichiersManquants.Count + ' manquant(s), ' + $fichiersModifies.Count + ' modifié(s), sur ' + $integrite.Total + ' contrôlés') 'erreur' }
+} else { Write-Etat 'Fichiers de l''agent' 'non vérifiables (agent_manifest.json absent ou illisible)' 'info' }
+$comptesOuverts = @()
+if ($droits -and $droits.Connu) {
+    $comptesOuverts = @($droits.Comptes | Where-Object { $_ })
+    if ($droits.Ouvert) {
+        Write-Etat 'Droits du dossier' ('modifiable par d''autres comptes de ce PC : ' + ($comptesOuverts -join ', ')) 'alerte'
+        Add-Probleme 'alerte' ('Le dossier du Worker est modifiable par d''autres comptes de ce PC (' + ($comptesOuverts -join ', ') + ') : n''importe lequel peut commander l''agent.') 'Aucun outil du menu : relance install_windows.bat (dans le dossier du Worker), il coupe l''héritage et repose les droits du dossier' 'L-DROITS-DOSSIER'
+    } else { Write-Etat 'Droits du dossier' 'fermé aux autres comptes de ce PC' 'ok' }
+} else { Write-Etat 'Droits du dossier' 'non vérifiables' 'info' }
+$constats.fichiers_agent = [ordered]@{ connu = [bool]($integrite -and $integrite.Connu); total = 0; manquants = @($fichiersManquants); modifies = @($fichiersModifies) }
+if ($integrite -and $integrite.Connu) { $constats.fichiers_agent.total = [int]$integrite.Total }
+$constats.droits_dossier = [ordered]@{ connu = [bool]($droits -and $droits.Connu); ouvert = [bool]($droits -and $droits.Connu -and $droits.Ouvert); comptes = @($comptesOuverts) }
 $constats.identite = [ordered]@{ config_presente = $config.Present; associe = $config.Associe; worker_id_court = $config.WorkerIdCourt; nom = $config.Nom; serveur = $config.ServeurUrl; version = $version; python = [string]$python; python_path_valide = $pythonFichierValide; git_path = $gitEtat }
 
 # ---------------------------------------------------------------------------
@@ -125,9 +162,10 @@ if ($mode) {
     switch ($mode.Mode) {
         'service' { Write-Etat 'Mode' 'service Windows (démarre avec le PC, sans session ouverte)' 'ok' }
         'tache'   { Write-Etat 'Mode' 'tâche planifiée (démarre à l''ouverture de session)' 'ok' }
+        'session' { Write-Etat 'Mode' 'entrée de démarrage de session (registre, sans droits administrateur) : démarre à l''ouverture de session, sans relance par le planificateur' 'ok' }
         default   {
             Write-Etat 'Mode' 'lancement manuel : rien ne démarre le Worker tout seul' 'alerte'
-            Add-Probleme 'alerte' 'Aucun démarrage automatique ne vise ce dossier : après un redémarrage du PC, le Worker restera éteint.' $script:Menu.demarrage
+            Add-Probleme 'alerte' 'Aucun démarrage automatique ne vise ce dossier : après un redémarrage du PC, le Worker restera éteint.' $script:Menu.demarrage 'L-AUCUN-DEMARRAGE'
         }
     }
     if ($mode.Service) {
@@ -135,20 +173,20 @@ if ($mode) {
         Write-Etat 'Service AlpineWorker' ($s.Etat + ' / démarrage ' + $s.Demarrage + ' / compte ' + $s.Compte) 'info'
         if (-not $s.ViseCeDossier) {
             Write-Etat 'Dossier du service' ('AUTRE dossier : ' + $s.Dossier) 'alerte'
-            Add-Probleme 'alerte' ('Le service AlpineWorker vise un autre dossier (' + $s.Dossier + ') : les outils de ce dossier ne le piloteront pas.') $script:Menu.demarrage
+            Add-Probleme 'alerte' ('Le service AlpineWorker vise un autre dossier (' + $s.Dossier + ') : les outils de ce dossier ne le piloteront pas.') $script:Menu.demarrage 'L-SERVICE-AUTRE-DOSSIER'
         } else {
             Write-Etat 'Dossier du service' 'ce dossier' 'ok'
             if ($s.Etat -ne 'Running') {
                 if ($s.Demarrage -eq 'Auto') {
                     Write-Etat 'État du service' ($s.Etat + ' (le superviseur le relance sous 30 s)') 'erreur'
-                    Add-Probleme 'erreur' 'Le service AlpineWorker est arrêté alors qu''il est en démarrage automatique.' ($script:Menu.rallumer + ' ; s''il retombe : ' + $script:Menu.journaux + ', journal « service-erreurs-precedent »')
+                    Add-Probleme 'erreur' 'Le service AlpineWorker est arrêté alors qu''il est en démarrage automatique.' ($script:Menu.rallumer + ' ; s''il retombe : ' + $script:Menu.journaux + ', journal « service-erreurs-precedent »') 'L-SERVICE-ARRETE'
                 } else {
                     Write-Etat 'État du service' ($s.Etat + ', démarrage ' + $s.Demarrage + ' = arrêt volontaire, personne ne le relancera') 'alerte'
-                    Add-Probleme 'alerte' ('Le Worker est éteint volontairement (état laissé par « ' + [string]$script:NomsEntrees[11] + ' » : service en démarrage manuel ou désactivé). Ce n''est pas une panne.') $script:Menu.rallumer
+                    Add-Probleme 'alerte' ('Le Worker est éteint volontairement (état laissé par « ' + [string]$script:NomsEntrees[11] + ' » : service en démarrage manuel ou désactivé). Ce n''est pas une panne.') $script:Menu.rallumer 'L-ETEINT-VOLONTAIRE'
                 }
             } elseif ($s.Demarrage -ne 'Auto') {
                 Write-Etat 'Démarrage du service' ($s.Demarrage + ' : il ne repartira pas après un redémarrage du PC') 'alerte'
-                Add-Probleme 'alerte' 'Le service tourne mais n''est pas en démarrage automatique.' ($script:Menu.rallumer + ' : il remet le démarrage automatique')
+                Add-Probleme 'alerte' 'Le service tourne mais n''est pas en démarrage automatique.' ($script:Menu.rallumer + ' : il remet le démarrage automatique') 'L-SERVICE-PAS-AUTO'
             }
         }
     } else { Write-Etat 'Service AlpineWorker' 'non installé sur ce PC' 'info' }
@@ -158,14 +196,14 @@ if ($mode) {
     foreach ($t in $taches) {
         if ($t.Orpheline) {
             Write-Etat 'Tâche planifiée' ($t.Nom + ' : ORPHELINE, vise un dossier disparu (' + $t.Dossier + ')') 'alerte'
-            Add-Probleme 'alerte' ('La tâche planifiée « ' + $t.Nom + ' » vise un dossier qui n''existe plus.') ($script:Menu.demarrage + ' : il retire les tâches orphelines')
+            Add-Probleme 'alerte' ('La tâche planifiée « ' + $t.Nom + ' » vise un dossier qui n''existe plus.') ($script:Menu.demarrage + ' : il retire les tâches orphelines') 'L-TACHE-ORPHELINE'
         } elseif ($t.ViseCeDossier) {
             if ($mode.Mode -eq 'tache' -and $t.Etat -eq 'Disabled') {
                 Write-Etat 'Tâche planifiée' ($t.Nom + ' : DÉSACTIVÉE, vise ce dossier') 'alerte'
-                Add-Probleme 'alerte' ('La tâche planifiée « ' + $t.Nom + ' » est désactivée : le Worker ne partira pas à l''ouverture de session.') ($script:Menu.rallumer + ' s''il a été éteint par ' + $script:Menu.eteindre + ' ; sinon ' + $script:Menu.demarrage)
+                Add-Probleme 'alerte' ('La tâche planifiée « ' + $t.Nom + ' » est désactivée : le Worker ne partira pas à l''ouverture de session.') ($script:Menu.rallumer + ' s''il a été éteint par ' + $script:Menu.eteindre + ' ; sinon ' + $script:Menu.demarrage) 'L-TACHE-DESACTIVEE'
             } else { Write-Etat 'Tâche planifiée' ($t.Nom + ' : ' + $t.Etat + ', vise ce dossier') 'info' }
             if ($mode.Mode -eq 'service' -and $t.Etat -ne 'Disabled') {
-                Add-Probleme 'alerte' ('Le service ET la tâche « ' + $t.Nom + ' » lancent ce même Worker : risque de double lancement.') $script:Menu.demarrage
+                Add-Probleme 'alerte' ('Le service ET la tâche « ' + $t.Nom + ' » lancent ce même Worker : risque de double lancement.') $script:Menu.demarrage 'L-DOUBLE-LANCEUR'
             }
         } elseif ($t.Illisible) {
             Write-Etat 'Tâche planifiée' ($t.Nom + ' : ' + $t.Etat + ', dossier illisible dans la tâche : vérifie-la dans le Planificateur de tâches') 'alerte'
@@ -199,15 +237,15 @@ $detache = Test-Path -LiteralPath (Join-Path $Racine '.worker-detached')
 $pauseGlobale = Test-Path -LiteralPath (Join-Path $env:ProgramData 'AlpineMakers\pause-supervision.flag')
 if ($detache) {
     Write-Etat '.worker-detached' 'présent : Worker RETIRÉ du site' 'erreur'
-    Add-Probleme 'erreur' 'Le Worker a été retiré du site : il ne se reconnectera pas tout seul.' $script:Menu.reassocier
+    Add-Probleme 'erreur' 'Le Worker a été retiré du site : il ne se reconnectera pas tout seul.' $script:Menu.reassocier 'L-FICHE-SUPPRIMEE'
 } else { Write-Etat '.worker-detached' 'absent' 'ok' }
 if ($deconnecte) {
     Write-Etat '.worker-disconnected' 'présent : déconnecté depuis le site' 'alerte'
-    Add-Probleme 'alerte' 'Le Worker a été déconnecté depuis le site : il reste hors ligne tant qu''on ne le reconnecte pas.' $script:Menu.reconnecter
+    Add-Probleme 'alerte' 'Le Worker a été déconnecté depuis le site : il reste hors ligne tant qu''on ne le reconnecte pas.' $script:Menu.reconnecter 'L-DECONNECTE'
 } else { Write-Etat '.worker-disconnected' 'absent' 'ok' }
 if ($pauseGlobale) {
     Write-Etat 'pause-supervision.flag' 'PRÉSENT : supervision de TOUTES les sources en pause' 'alerte'
-    Add-Probleme 'alerte' 'La supervision de TOUTES les sources (boutique, courrier, dashboard, Worker) est en pause : plus rien n''est relancé automatiquement.' 'Aucun outil du Worker : retire C:\ProgramData\AlpineMakers\pause-supervision.flag quand la maintenance de la machine est finie'
+    Add-Probleme 'alerte' 'La supervision de TOUTES les sources (boutique, courrier, dashboard, Worker) est en pause : plus rien n''est relancé automatiquement.' 'Aucun outil du Worker : retire C:\ProgramData\AlpineMakers\pause-supervision.flag quand la maintenance de la machine est finie' 'L-PAUSE-SUPERVISION'
 } else { Write-Etat 'pause-supervision.flag' 'absent' 'ok' }
 $constats.marqueurs = [ordered]@{ deconnecte = $deconnecte; detache = $detache; pause_supervision_globale = $pauseGlobale }
 
@@ -235,22 +273,22 @@ if ($eteintVolontaire) {
     $constatAgent.non_supporte = $true
     Write-Etat 'Dialogue avec l''agent' 'non disponible : agent trop ancien' 'alerte'
     Write-Conseil 'Maintenance, jobs en cours et intentions des moteurs ne peuvent pas être lus.'
-    Write-Conseil 'Mets le Worker à jour depuis le site (Compte > Mes PC / Workers > ce Worker > « Mettre à jour ») pour les obtenir.'
+    Write-Conseil ('Pour les obtenir : ' + $script:ActionMiseAJour + '.')
     Write-Conseil 'Le reste du contrôle continue.'
-    Add-Probleme 'alerte' 'L''agent installé est trop ancien pour répondre aux outils (état détaillé, arrêt propre des moteurs).' $script:ActionMiseAJour
+    Add-Probleme 'alerte' 'L''agent installé est trop ancien pour répondre aux outils (état détaillé, arrêt propre des moteurs).' $script:ActionMiseAJour 'L-AGENT-ANCIEN'
 } elseif (-not $action.Ok) {
     $constatAgent.erreur = [string]((Protect-TexteRapport -Lignes @(([string]$action.Erreur) -split "`n" | Select-Object -First 1)) -join '')
     Write-Etat 'Dialogue avec l''agent' 'aucune réponse en 8 s' 'alerte'
     if ($constatAgent.erreur) { Write-Conseil ('Détail : ' + $constatAgent.erreur) }
     $serviceTourne = [bool]($mode -and $mode.Service -and $mode.Service.ViseCeDossier -and $mode.Service.Etat -eq 'Running')
-    if ($serviceTourne -or $relais) { Add-Probleme 'alerte' 'L''agent semble lancé mais ne répond pas aux outils (occupé, bloqué ou en cours de démarrage).' ('Relance ce contrôle dans une minute ; s''il reste muet : ' + $script:Menu.redemarrer) }
-    else { Add-Probleme 'erreur' 'L''agent ne répond pas et rien n''indique qu''il tourne.' $script:Menu.rallumer }
+    if ($serviceTourne -or $relais) { Add-Probleme 'alerte' 'L''agent semble lancé mais ne répond pas aux outils (occupé, bloqué ou en cours de démarrage).' ('Relance ce contrôle dans une minute ; s''il reste muet : ' + $script:Menu.redemarrer) 'L-AGENT-MUET' }
+    else { Add-Probleme 'erreur' 'L''agent ne répond pas et rien n''indique qu''il tourne.' $script:Menu.rallumer 'L-AGENT-ARRETE' }
 } else {
     $statut = $action.Resultat
     $constatAgent.statut_disponible = $true
     $constatAgent.statut = $statut
     Write-Etat 'Dialogue avec l''agent' ('répond (version ' + [string]$statut.agent_version + ')') 'ok'
-    if ($statut.maintenance_active) { Write-Etat 'Maintenance' 'en cours : les moteurs sont volontairement à l''arrêt' 'alerte'; Add-Probleme 'alerte' 'Une maintenance est en cours (installation ou mise à jour).' ('Attends la fin ; si elle dure plus de 30 minutes : ' + $script:Menu.journaux) }
+    if ($statut.maintenance_active) { Write-Etat 'Maintenance' 'en cours : les moteurs sont volontairement à l''arrêt' 'alerte'; Add-Probleme 'alerte' 'Une maintenance est en cours (installation ou mise à jour).' ('Attends la fin ; si elle dure plus de 30 minutes : ' + $script:Menu.journaux) 'L-MAINTENANCE' }
     else { Write-Etat 'Maintenance' 'aucune' 'ok' }
     if ($statut.maintenance_recovery) { Write-Etat 'Reprise de maintenance' 'en attente' 'alerte' }
     if ($statut.disconnecting) { Write-Etat 'Déconnexion' 'en cours' 'alerte' }
@@ -258,7 +296,7 @@ if ($eteintVolontaire) {
     if ($jobsActifs.Count -gt 0) {
         Write-Etat 'Jobs en cours' ([string]$jobsActifs.Count + ' (ils bloquent l''arrêt des moteurs et la mise à jour)') 'alerte'
         foreach ($j in $jobsActifs) { Write-Conseil ([string]$j.job_id + '  ' + [string]$j.tool_id + '  état ' + [string]$j.state) }
-        Add-Probleme 'alerte' ([string]$jobsActifs.Count + ' job(s) en cours ou non soldé(s) bloquent l''arrêt des moteurs et la mise à jour.') $script:Menu.jobs
+        Add-Probleme 'alerte' ([string]$jobsActifs.Count + ' job(s) en cours ou non soldé(s) bloquent l''arrêt des moteurs et la mise à jour.') ($script:Menu.jobs + ' pour les voir ; ' + $script:Menu.arretJobs + ' pour les arrêter') 'L-JOBS'
     } else { Write-Etat 'Jobs en cours' 'aucun' 'ok' }
     # Affirmation sûre ICI seulement : un agent qui sait répondre « status » (et compter
     # jobs_previous_identity) est postérieur au correctif qui lui fait ignorer ces jobs.
@@ -266,6 +304,15 @@ if ($eteintVolontaire) {
     if ([int]$statut.jobs_previous_identity -gt 0) { Write-Etat 'Jobs d''anciennes identités' ([string]$statut.jobs_previous_identity + ' (ignorés par l''agent, aucune action)') 'info' }
 }
 $constats.agent = $constatAgent
+$fichiersAbimes = @($fichiersManquants + $fichiersModifies)
+if ($fichiersAbimes.Count -gt 0) {
+    $nomsAbimes = (@($fichiersAbimes | Select-Object -First 5) -join ', ')
+    if ($fichiersAbimes.Count -gt 5) { $nomsAbimes += ', et ' + ($fichiersAbimes.Count - 5) + ' autre(s)' }
+    $texteFichiers = [string]$fichiersAbimes.Count + ' fichier(s) de l''agent manquent ou ont changé par rapport à la version installée (' + $nomsAbimes + ').'
+    # Toute réinstallation passe par l'agent vivant : arrêté, il faut d'abord le rallumer ; s'il ne démarre plus, reste l'installateur.
+    if ($statut) { Add-Probleme 'erreur' $texteFichiers ($script:Menu.controle + ' : il propose de réinstaller les fichiers de l''agent') 'L-FICHIERS-AGENT' }
+    else { Add-Probleme 'erreur' $texteFichiers ($script:Menu.rallumer + ', puis ' + $script:Menu.controle + ' ; si l''agent ne démarre plus : réinstalle le Worker par-dessus avec l''installateur téléchargé depuis Mes Workers (l''association et les moteurs sont conservés)') 'L-FICHIERS-AGENT' }
+}
 
 # ---------------------------------------------------------------------------
 # 5. Moteurs
@@ -307,7 +354,7 @@ foreach ($m in $moteurs) {
         $cleJournal = [string]$script:CleJournalMoteur[[string]$m.Outil]
         $outilMoteur = $script:Menu.journaux
         if ($cleJournal) { $outilMoteur = $script:Menu.journaux + ', journal « ' + $cleJournal + ' »' }
-        Add-Probleme 'alerte' ($m.Nom + ' ne répond pas sur son port ' + $m.Port + ' alors qu''il est noté comme lancé (tombé, ou encore en démarrage : un gros modèle met plusieurs minutes).') ($outilMoteur + ' ; si rien ne bouge : ' + $script:Menu.moteurs + ', arrêt puis départ')
+        Add-Probleme 'alerte' ($m.Nom + ' ne répond pas sur son port ' + $m.Port + ' alors qu''il est noté comme lancé (tombé, ou encore en démarrage : un gros modèle met plusieurs minutes).') ($outilMoteur + ' ; si rien ne bouge : ' + $script:Menu.moteurs + ', arrêt puis départ') 'L-MOTEUR-MUET'
     } elseif ($intention -eq $true) {
         Write-Etat $libelle 'arrêté, mais l''agent a prévu de le relancer' 'info'
     } else {
@@ -316,7 +363,7 @@ foreach ($m in $moteurs) {
     $constatMoteurs += [ordered]@{ outil = $m.Outil; nom = $m.Nom; port = $m.Port; en_ecoute = [bool]$m.EnEcoute; pid_port = [int]$m.PidPort; fiche_presente = [bool]$m.FichePresente; intention = $intention }
 }
 if ($orphelins.Count -gt 0) {
-    Add-Probleme 'alerte' ('Le Worker est éteint mais ' + $orphelins.Count + ' moteur(s) tournent encore (orphelins : ' + ($orphelins -join ', ') + ') : ils gardent la mémoire de la carte graphique et gêneront le prochain démarrage.') ($script:Menu.eteindre + ' : relance-le, sa fenêtre administrateur balaie les processus restants ; puis ' + $script:Menu.rallumer)
+    Add-Probleme 'alerte' ('Le Worker est éteint mais ' + $orphelins.Count + ' moteur(s) tournent encore (orphelins : ' + ($orphelins -join ', ') + ') : ils gardent la mémoire de la carte graphique et gêneront le prochain démarrage.') ($script:Menu.eteindre + ' : relance-le, sa fenêtre administrateur balaie les processus restants ; puis ' + $script:Menu.rallumer) 'L-MOTEURS-ORPHELINS'
 }
 Write-Conseil 'FreeCAD (conversion) n''a pas de processus permanent : il est lancé à la demande.'
 $constats.moteurs = $constatMoteurs
@@ -355,7 +402,7 @@ if (-not $config.ServeurUrl) {
         if ($code -eq 200) { Write-Etat 'Serveur (/health)' 'joignable (200)' 'ok' }
         else {
             Write-Etat 'Serveur (/health)' ('répond, mais avec le code ' + $code) 'alerte'
-            Add-Probleme 'alerte' ('Le serveur répond avec le code HTTP ' + $code + ' au lieu de 200 (site en maintenance, ou limite Cloudflare).') 'Aucun outil du Worker : vérifie le site, puis relance ce contrôle'
+            Add-Probleme 'alerte' ('Le serveur répond avec le code HTTP ' + $code + ' au lieu de 200 (site en maintenance, ou limite Cloudflare).') 'Aucun outil du Worker : vérifie le site, puis relance ce contrôle' 'L-SITE-HTTP'
         }
         if ($dateServeur) {
             try {
@@ -366,14 +413,14 @@ if (-not $config.ServeurUrl) {
                 if ([Math]::Abs($ecart) -gt 60) {
                     Write-Etat 'Horloge de ce PC' ('DÉCALÉE de ' + $ecart + ' s par rapport au serveur') 'erreur'
                     Write-Conseil 'Toutes les requêtes signées du Worker seront refusées tant que l''heure est fausse.'
-                    Add-Probleme 'erreur' ('Horloge décalée de ' + $ecart + ' s : toutes les requêtes signées seront refusées.') 'Resynchronise l''heure Windows (Paramètres > Heure et langue > Date et heure > Synchroniser maintenant)'
+                    Add-Probleme 'erreur' ('Horloge décalée de ' + $ecart + ' s : toutes les requêtes signées seront refusées.') 'Resynchronise l''heure Windows (Paramètres > Heure et langue > Date et heure > Synchroniser maintenant)' 'L-HORLOGE'
                 } else { Write-Etat 'Horloge de ce PC' ('à l''heure (écart ' + $ecart + ' s)') 'ok' }
             } catch { Write-Etat 'Horloge de ce PC' 'non vérifiable (date du serveur illisible)' 'info' }
         } else { Write-Etat 'Horloge de ce PC' 'non vérifiable (le serveur n''a pas donné son heure)' 'info' }
     } else {
         Write-Etat 'Serveur (/health)' ('INJOIGNABLE : ' + $url) 'erreur'
         if ($constatReseau.erreur) { Write-Conseil ('Détail : ' + $constatReseau.erreur) }
-        Add-Probleme 'erreur' 'Le serveur est injoignable depuis ce PC (Internet coupé, DNS, pare-feu, ou site arrêté).' ('Aucun outil ne répare Internet : vérifie que le site s''ouvre dans un navigateur sur ce PC. Si le PC vient de changer de réseau, une fois le site joignable : ' + $script:Menu.adressesIp)
+        Add-Probleme 'erreur' 'Le serveur est injoignable depuis ce PC (Internet coupé, DNS, pare-feu, ou site arrêté).' ('Aucun outil ne répare Internet : vérifie que le site s''ouvre dans un navigateur sur ce PC. Si le PC vient de changer de réseau, une fois le site joignable : ' + $script:Menu.adressesIp) 'L-SITE-INJOIGNABLE'
     }
 }
 $constats.reseau = $constatReseau
@@ -403,9 +450,9 @@ if (-not $smi) {
         $niveau = 'ok'; $suffixe = ''
         if ($total -gt 0 -and ($utilise / $total) -gt 0.92) { $niveau = 'alerte'; $suffixe = '  (mémoire presque pleine)' }
         Write-Etat $champs[0] ([string]$utilise + ' / ' + [string]$total + ' Mio utilisés, pilote ' + $champs[3] + $suffixe) $niveau
-        if ($niveau -eq 'alerte') { Add-Probleme 'alerte' ('La mémoire de la carte graphique est presque pleine (' + $utilise + ' / ' + $total + ' Mio) : une génération peut échouer.') ($script:Menu.moteurs + ' : arrête un moteur dont tu ne te sers pas, c''est lui qui occupe la carte') }
+        if ($niveau -eq 'alerte') { Add-Probleme 'alerte' ('La mémoire de la carte graphique est presque pleine (' + $utilise + ' / ' + $total + ' Mio) : une génération peut échouer.') ($script:Menu.moteurs + ' : arrête un moteur dont tu ne te sers pas, c''est lui qui occupe la carte') 'L-VRAM' }
     }
-    if ($cartes.Count -eq 0) { Write-Etat 'nvidia-smi' 'présent mais sans réponse (pilote en erreur ?)' 'alerte'; Add-Probleme 'alerte' 'nvidia-smi ne répond pas : le pilote NVIDIA est peut-être en erreur.' 'Redémarre le PC, puis réinstalle le pilote NVIDIA si cela persiste' }
+    if ($cartes.Count -eq 0) { Write-Etat 'nvidia-smi' 'présent mais sans réponse (pilote en erreur ?)' 'alerte'; Add-Probleme 'alerte' 'nvidia-smi ne répond pas : le pilote NVIDIA est peut-être en erreur.' 'Redémarre le PC, puis réinstalle le pilote NVIDIA si cela persiste' 'L-NVIDIA' }
     else { $constatGpu.disponible = $true; $constatGpu.cartes = $cartes }
 }
 $constats.gpu = $constatGpu
@@ -422,7 +469,7 @@ try {
     $constatDisque.lecteur = $lecteur.Name; $constatDisque.libre_gio = $libre; $constatDisque.total_gio = $total
     if ($libre -lt 8) {
         Write-Etat ('Lecteur ' + $lecteur.Name) ([string]$libre + ' Gio libres sur ' + $total + ' : TROP PEU') 'alerte'
-        Add-Probleme 'alerte' ('Il reste ' + $libre + ' Gio sur le lecteur du Worker : les générations et les mises à jour peuvent échouer.') $script:Menu.nettoyage
+        Add-Probleme 'alerte' ('Il reste ' + $libre + ' Gio sur le lecteur du Worker : les générations et les mises à jour peuvent échouer.') $script:Menu.nettoyage 'L-DISQUE'
     } else { Write-Etat ('Lecteur ' + $lecteur.Name) ([string]$libre + ' Gio libres sur ' + $total) 'ok' }
 } catch { Write-Etat 'Espace disque' 'illisible' 'info' }
 $constats.disque = $constatDisque
@@ -462,11 +509,11 @@ foreach ($f in $fichiersJournaux) {
             Write-Conseil 'Il se termine par « KeyboardInterrupt » : c''est la trace d''un arrêt demandé, pas une panne.'
         } elseif ($quand -and ((Get-Date) - $quand).TotalHours -le 24) {
             # Signalé au verdict pendant 24 h seulement : au-delà, c'est de l'histoire ancienne.
-            Add-Probleme 'alerte' ('Le service du Worker a écrit des erreurs avant son dernier arrêt, le ' + $quand.ToString('yyyy-MM-dd à HH:mm') + ' (il a pu être relancé depuis).') ($script:Menu.journaux + ', journal « service-erreurs-precedent » : la cause y est écrite')
+            Add-Probleme 'alerte' ('Le service du Worker a écrit des erreurs avant son dernier arrêt, le ' + $quand.ToString('yyyy-MM-dd à HH:mm') + ' (il a pu être relancé depuis).') ($script:Menu.journaux + ', journal « service-erreurs-precedent » : la cause y est écrite') 'L-JOURNAUX'
         }
     }
 }
-if ($bruyants.Count -gt 0) { Add-Probleme 'alerte' ('Beaucoup d''erreurs récentes dans : ' + ($bruyants -join ', ') + '.') ($script:Menu.journaux + ', mode « erreurs »') }
+if ($bruyants.Count -gt 0) { Add-Probleme 'alerte' ('Beaucoup d''erreurs récentes dans : ' + ($bruyants -join ', ') + '.') ($script:Menu.journaux + ', mode « erreurs »') 'L-JOURNAUX' }
 $constats.journaux = $constatJournaux
 
 # ---------------------------------------------------------------------------
@@ -490,7 +537,7 @@ if (-not (Test-Path -LiteralPath $boite -PathType Container)) {
     if ($bloquees.Count -gt 0) {
         Write-Etat 'Demandes en attente' ([string]$demandes.Count + ', dont ' + $bloquees.Count + ' de plus de 2 minutes : l''agent ne les lit pas') 'alerte'
         if ($workerEteint) { Write-Conseil ('Normal tant que le Worker est éteint : aucune n''est lue. Celles de plus de 7 jours partent avec ' + $script:Menu.nettoyage + '.') }
-        else { Add-Probleme 'alerte' ([string]$bloquees.Count + ' demande(s) locale(s) attendent depuis plus de 2 minutes : l''agent est arrêté ou bloqué.') ($script:Menu.redemarrer + ' (celles de plus de 7 jours partent ensuite avec ' + $script:Menu.nettoyage + ')') }
+        else { Add-Probleme 'alerte' ([string]$bloquees.Count + ' demande(s) locale(s) attendent depuis plus de 2 minutes : l''agent est arrêté ou bloqué.') ($script:Menu.redemarrer + ' (celles de plus de 7 jours partent ensuite avec ' + $script:Menu.nettoyage + ')') 'L-BOITE-BLOQUEE' }
     } elseif ($demandes.Count -gt 0) { Write-Etat 'Demandes en attente' ([string]$demandes.Count + ' (récentes)') 'info' }
     else { Write-Etat 'Demandes en attente' 'aucune' 'ok' }
     if ($anciens.Count -gt 0) {
@@ -504,7 +551,7 @@ $constats.boite_locale = $constatBoite
 # Verdict
 # ---------------------------------------------------------------------------
 $tries = @(@($problemes | Where-Object { $_.Gravite -eq 'erreur' }) + @($problemes | Where-Object { $_.Gravite -eq 'alerte' }))
-$constats.problemes = @($tries | ForEach-Object { [ordered]@{ gravite = $_.Gravite; probleme = $_.Probleme; outil = $_.Outil } })
+$constats.problemes = @($tries | ForEach-Object { [ordered]@{ gravite = $_.Gravite; probleme = $_.Probleme; outil = $_.Outil; code = $_.Code } })
 $constats.nombre_erreurs = @($tries | Where-Object { $_.Gravite -eq 'erreur' }).Count
 $constats.nombre_alertes = @($tries | Where-Object { $_.Gravite -eq 'alerte' }).Count
 

@@ -4,11 +4,14 @@ No registration, token rotation, shell payload or server identity changes.
 Cleanup never follows links and never removes global programs or shared caches.
 """
 import argparse
+import base64
 import hashlib
+import importlib
 import ipaddress
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import stat
 import sys
@@ -43,6 +46,26 @@ READ_ACTIONS = ("status", "fire-watch")
 ENGINES_MEMO = "runtime/local-control/engines-memo.json"
 REQUEST_MAX_LIFETIME = 660  # --timeout est borne a 600 s cote client
 _ENGINES_START_GUARD = threading.Lock()
+
+# Agent 1.48.0 : actions a parametres et a echeance, servies par des modules charges a la demande.
+# nom de l'action -> module dont le dictionnaire LOCAL_ACTIONS porte le descripteur
+# {"handler": callable(agent, params) -> dict, "params": {nom: validateur}, "read": bool}.
+LAZY_ACTIONS = {
+    "duplicates-audit": "duplicates", "duplicates-cancel": "duplicates", "duplicates-status": "duplicates",
+    "duplicates-plan": "duplicates", "duplicates-apply": "duplicates",
+    "site-state": "self_service", "site-update": "self_service", "site-repair": "self_service",
+    "jobs-stop": "self_service", "sharing-set": "self_service", "relay-status": "self_service",
+}
+PARAMS_MAX_BYTES = 2048
+# Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.
+STATUS_FILE = "ETAT-WORKER.txt"
+STATUS_FILE_REFRESH = 600  # sans changement, la date est rafraichie toutes les dix minutes
+STATUS_FILE_RETRY = 60     # apres un echec d'ecriture (fichier tenu par un autre programme)
+STATUS_FILE_STATES = {"ok": "ok", "update": "maj", "error": "erreur", "update_error": "maj_erreur", "unknown": "inconnu"}
+INDICATOR_CODES_MAX = 12
+_SITE_CODE = re.compile(r"[a-z0-9_]{1,60}")
+_VERSION = re.compile(r"[0-9]{1,9}(\.[0-9]{1,9}){0,5}")
+_HEX = "0123456789abcdefABCDEF"
 
 
 def network_info():
@@ -221,6 +244,173 @@ def _release_maintenance(agent):
         agent.maintenance_active = agent.maintenance_count > 0 or bool(agent.maintenance_recovery)
 
 
+def _import_optional(module):
+    """Module facultatif de l'agent, importe a la demande (meme convention que les imports de tete)."""
+    return importlib.import_module("." + module, __package__) if __package__ else importlib.import_module(module)
+
+
+def _agent_version(agent):
+    # La version vient du module de l'agent deja charge : aucun import circulaire.
+    version = getattr(sys.modules.get(type(agent).__module__), "AGENT_VERSION", None)
+    return version if isinstance(version, str) else None
+
+
+def _number(value):
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def _count(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
+
+
+def _version_parts(value):
+    if not isinstance(value, str) or len(value) > 40 or not _VERSION.fullmatch(value):
+        return ()
+    return tuple(int(part) for part in value.split("."))
+
+
+def version_newer(installed, available):
+    """Vrai si ``available`` est strictement plus recente : comparaison numerique par champs
+    (« 1.9.0 » est anterieure a « 1.20.1 »), meme regle que worker_health.agent_outdated cote site."""
+    left, right = _version_parts(installed), _version_parts(available)
+    if not left or not right:
+        return False
+    size = max(len(left), len(right))
+    return (left + (0,) * size)[:size] < (right + (0,) * size)[:size]
+
+
+def _heartbeat_unreachable(http):
+    return http is None or http in (502, 503, 504) or 520 <= http <= 529
+
+
+def indicator(agent):
+    """Etat en une ligne pour le bandeau et le fichier d'etat : mise a jour proposee, erreurs a reparer.
+
+    Aucun reseau, aucun chemin. Tout ce qui vient du site (self_state, health, problems) est valide
+    par son type avant d'etre lu : une valeur inattendue est ignoree, jamais indexee.
+    """
+    version = _agent_version(agent)
+    available = getattr(agent, "available_agent_version", "")
+    update = available if isinstance(available, str) and version_newer(version, available) else ""
+    errors, alerts = [], []
+
+    def add(code, blocking):
+        if code not in errors and code not in alerts:
+            (errors if blocking else alerts).append(code)
+
+    beat = getattr(agent, "heartbeat_state", None)
+    beat = beat if isinstance(beat, dict) else {}
+    failures = _count(beat.get("failures"))
+    http = beat.get("http") if isinstance(beat.get("http"), int) and not isinstance(beat.get("http"), bool) else None
+    # Echecs de suite de chaque sorte, comptes par l'agent ; repli sur le dernier statut s'ils manquent.
+    refused = beat.get("refused") if "refused" in beat else (failures if http in (401, 403, 410) else 0)
+    unreachable = beat.get("unreachable") if "unreachable" in beat else (failures if _heartbeat_unreachable(http) else 0)
+    if _count(refused) >= 3:
+        add("A-LIAISON-REFUSEE", True)
+    if _count(unreachable) >= 9:
+        add("A-SITE-INJOIGNABLE", False)
+    integrity = getattr(agent, "integrity", None)
+    if isinstance(integrity, dict) and _count(integrity.get("missing")) + _count(integrity.get("modified")) > 0:
+        add("A-FICHIERS-AGENT", True)
+    if getattr(agent, "maintenance_recovery", None):
+        add("A-INSTALLATION-INCERTAINE", True)
+    watch = getattr(agent, "runtime_watch", None)
+    if isinstance(watch, dict) and any(isinstance(item, dict) and item.get("exhausted") is True for item in tuple(watch.values())):
+        add("A-MOTEUR-TOMBE", True)
+    try:
+        summary = agent.environment_maintenance_summary()
+    except Exception:
+        summary = None  # rapport de maintenance illisible : aucune alerte, le reste de l'indicateur tient
+    if isinstance(summary, dict) and summary.get("status") == "failed":
+        add("A-MAINTENANCE-ENV", False)
+    state = getattr(agent, "self_state", None)
+    site = state.get("site") if isinstance(state, dict) else None
+    health = site.get("health") if isinstance(site, dict) else None
+    problems = health.get("problems") if isinstance(health, dict) else None
+    for problem in problems if isinstance(problems, list) else ():
+        code = problem.get("code") if isinstance(problem, dict) else None
+        # agent_outdated est l'indicateur de mise a jour ; offline n'a pas de sens vu de l'agent.
+        if not isinstance(code, str) or not _SITE_CODE.fullmatch(code) or code in ("agent_outdated", "offline"):
+            continue
+        add("S-" + code, problem.get("severity") == "bloquant")
+    if beat.get("ok") is None:
+        level = "unknown"  # aucun heartbeat n'a encore reussi ni echoue
+    elif errors:
+        level = "update_error" if update else "error"
+    else:
+        level = "update" if update else "ok"
+    return {"state": level, "update_available": update, "errors": len(errors), "alerts": len(alerts),
+            "codes": (errors + alerts)[:INDICATOR_CODES_MAX], "checked_at": time.time()}
+
+
+def _heartbeat_view(agent):
+    state = agent.heartbeat_state
+    if not isinstance(state, dict):
+        return None
+    ok, http = state.get("ok"), state.get("http")
+    return {"ok": ok if isinstance(ok, bool) else None, "at": _number(state.get("at")), "failures": _count(state.get("failures")),
+            "http": http if isinstance(http, int) and not isinstance(http, bool) else None}
+
+
+def _site_view(agent):
+    state = agent.self_state
+    if not isinstance(state, dict):
+        return None
+    return {"known": state.get("known") is True, "fetched_at": _number(state.get("fetched_at")), "missing": state.get("missing") is True}
+
+
+def _sharing_view(agent):
+    state = agent.self_state
+    if not isinstance(state, dict):
+        return None
+    site = state.get("site")
+    sharing = site.get("sharing") if isinstance(site, dict) else None
+    if not isinstance(sharing, dict):
+        return {"known": False, "mode": "", "audiences": [], "auto_accept_jobs": False, "users_count": 0}
+    mode, audiences = sharing.get("mode"), sharing.get("audiences")
+    return {"known": True, "mode": mode if isinstance(mode, str) and mode in ("prive", "comptes", "public") else "",
+            "audiences": [name for name in ("team", "contributors", "everyone") if isinstance(audiences, list) and name in audiences],
+            "auto_accept_jobs": sharing.get("auto_accept_jobs") is True, "users_count": _count(sharing.get("users_count"))}
+
+
+def _duplicates_view(agent):
+    try:
+        module = _import_optional("duplicates")
+    except ImportError:
+        return None  # module absent : le champ vaut null, rien d'autre ne change
+    summary = module.status_summary(agent)
+    if not isinstance(summary, dict):
+        return None
+    audit, applied = summary.get("audit_state"), summary.get("apply_state")
+    # Seuls des etats connus et des nombres sortent d'ici : jamais un chemin.
+    return {"audit_state": audit if isinstance(audit, str) and audit in ("idle", "running", "done", "cancelled", "failed") else "idle",
+            "progress": _count(summary.get("progress")), "finished_at": _number(summary.get("finished_at")),
+            "groups": _count(summary.get("groups")), "in_scope_groups": _count(summary.get("in_scope_groups")),
+            "reclaimable_bytes": _count(summary.get("reclaimable_bytes")),
+            "apply_state": applied if isinstance(applied, str) and applied in ("idle", "running", "done") else "idle"}
+
+
+def _grbl_view(agent):
+    names = agent.active_grbl_jobs()
+    return [str(name)[:80] for name in names[:32]] if isinstance(names, list) else None
+
+
+def _integrity_view(agent):
+    state = agent.integrity
+    if not isinstance(state, dict):
+        return None
+    return {"checked_at": _number(state.get("checked_at")), "missing": _count(state.get("missing")), "modified": _count(state.get("modified"))}
+
+
+def _guarded(view, agent):
+    # status est lu par le bandeau et par tous les outils : un champ nouveau qui echoue vaut null,
+    # il ne fait jamais echouer la reponse.
+    try:
+        return view(agent)
+    except Exception:
+        return None
+
+
 def status(agent):
     """Instantane en lecture seule. Jamais de jeton, d'identite complete ni de chemin."""
     jobs, previous_identity = [], 0
@@ -241,10 +431,8 @@ def status(agent):
                         "intent": _engine_intent(agent, tool_id)})
     # "converter" (FreeCAD) n'a pas de processus permanent : il est omis.
     recovery = agent.maintenance_recovery
-    # La version vient du module de l'agent deja charge : aucun import circulaire.
-    version = getattr(sys.modules.get(type(agent).__module__), "AGENT_VERSION", None)
     return {"checked_at": time.time(), "agent_pid": os.getpid(),
-            "agent_version": version if isinstance(version, str) else None,
+            "agent_version": _agent_version(agent),
             "name": agent.config.get("name"), "server_url": agent.config.get("server_url"),
             "worker_id_prefix": str(agent.config.get("worker_id") or "")[:8],
             "maintenance_active": bool(agent.maintenance_active), "maintenance_count": int(agent.maintenance_count),
@@ -254,7 +442,77 @@ def status(agent):
             "engines": engines,
             "engines_start": {"in_progress": bool(getattr(agent, "local_engines_starting", False)),
                               "last": getattr(agent, "local_engines_last_start", None)},
-            "memo": _read_memo(agent)}
+            "memo": _read_memo(agent),
+            # Champs ajoutes par l'agent 1.48.0 (rien de retire), chacun calcule a part.
+            "indicator": _guarded(indicator, agent), "heartbeat": _guarded(_heartbeat_view, agent),
+            "site": _guarded(_site_view, agent), "sharing": _guarded(_sharing_view, agent),
+            "duplicates": _guarded(_duplicates_view, agent), "grbl_jobs": _guarded(_grbl_view, agent),
+            "integrity": _guarded(_integrity_view, agent)}
+
+
+def status_file_text(info, version, now):
+    """Contenu exact de ETAT-WORKER.txt (ASCII, CRLF) : une ligne lisible, puis les lignes cle=valeur des outils."""
+    update, errors = info["update_available"], info["errors"]
+    state = STATUS_FILE_STATES.get(info["state"], "inconnu")
+    line = {"inconnu": "ETAT INCONNU (l'agent vient de demarrer)", "ok": "TOUT VA BIEN",
+            "maj": f"MISE A JOUR DISPONIBLE : {update}", "erreur": f"{errors} ERREUR(S) A REPARER",
+            "maj_erreur": f"MISE A JOUR DISPONIBLE : {update} - {errors} ERREUR(S) A REPARER"}[state]
+    moment = time.localtime(now)  # heure locale du PC
+    lines = [time.strftime("%Y-%m-%d %H:%M", moment) + "  " + line,
+             f"Worker Alpine Makers, version installee : {version}.",
+             "Pour agir : ouvre worker.exe (ou MENU-WORKER.bat), rubrique GESTION DU WORKER.",
+             "Si la date ci-dessus a plus de 20 minutes, l'agent ne tourne plus : ouvre worker.exe pour le verifier.",
+             "",
+             "--- lignes lues par les outils, ne pas modifier ---",
+             "etat=" + state,
+             "date=" + time.strftime("%Y-%m-%dT%H:%M:%S", moment),
+             f"version={version}",
+             f"maj={update}",
+             f"erreurs={errors}",
+             f"alertes={info['alerts']}",
+             "codes=" + ",".join(info["codes"])]
+    return "\r\n".join(lines) + "\r\n"
+
+
+def write_status_file(agent, force=False, now=None):
+    """Ecrit ETAT-WORKER.txt a la racine du Worker, sans reseau. Rend True si le fichier a ete ecrit.
+
+    Reecrit seulement si le coeur (etat, version, maj, erreurs, alertes, codes) a change, ou si la
+    derniere ecriture reussie a plus de dix minutes (la date du fichier prouve que l'agent tourne).
+    """
+    now = time.time() if now is None else now
+    memo = getattr(agent, "status_file_memo", None)
+    if not isinstance(memo, dict):
+        memo = agent.status_file_memo = {"core": None, "written_at": None, "failed_at": None, "logged": False}
+    info = indicator(agent)
+    version = _agent_version(agent) or ""
+    core = (info["state"], version, info["update_available"], info["errors"], info["alerts"], tuple(info["codes"]))
+    if not force:
+        if memo["core"] == core and memo["written_at"] is not None and abs(now - memo["written_at"]) < STATUS_FILE_REFRESH:
+            return False
+        if memo["failed_at"] is not None and abs(now - memo["failed_at"]) < STATUS_FILE_RETRY:
+            return False  # un autre programme tient le fichier : pas de nouvel essai avant une minute
+    target = Path(agent.root) / STATUS_FILE
+    try:
+        if is_link(target):
+            raise OSError("cible liee")  # jamais d'ecriture a travers un lien
+        temporary = target.with_name(target.name + "." + uuid.uuid4().hex + ".tmp")
+        try:
+            with temporary.open("xb") as handle:
+                handle.write(status_file_text(info, version, now).encode("ascii", "replace"))
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, target)
+        finally:
+            temporary.unlink(missing_ok=True)
+    except OSError as error:
+        memo["failed_at"] = now
+        if not memo["logged"]:  # une seule ligne par serie d'echecs
+            memo["logged"] = True
+            print(f"Fichier d'etat {STATUS_FILE} non ecrit ({type(error).__name__}) ; nouvel essai dans une minute.", flush=True)
+        return False
+    memo.update(core=core, written_at=now, failed_at=None, logged=False)
+    return True
 
 
 def fire_watch_status(agent):
@@ -423,10 +681,7 @@ def engines_start(agent):
     return {"starting": tools, "source": source}
 
 
-def _check_engine_request(item):
-    # Aucune surface nouvelle : ni chemin ni parametre libre pour ces actions.
-    if set(item) - {"worker_id", "action", "expires_at"}:
-        raise ValueError("Cette action locale n'accepte aucun parametre.")
+def _check_expiry(item):
     expires_at = item.get("expires_at")
     if isinstance(expires_at, bool) or not isinstance(expires_at, (int, float)):
         raise ValueError("Requete locale sans echeance ; action refusee.")
@@ -435,12 +690,95 @@ def _check_engine_request(item):
         raise ValueError("Requete locale expiree ; action non executee. Relance l'outil.")
 
 
+def _check_engine_request(item):
+    # Aucune surface nouvelle : ni chemin ni parametre libre pour ces actions.
+    if set(item) - {"worker_id", "action", "expires_at"}:
+        raise ValueError("Cette action locale n'accepte aucun parametre.")
+    _check_expiry(item)
+
+
+def v_bool(value):
+    """Validateur : un booleen JSON, rien d'autre (ni 0/1, ni "true")."""
+    if type(value) is not bool:
+        raise ValueError("Paramètre local invalide : un booléen est attendu.")
+    return value
+
+
+def v_hex(length):
+    """Validateur : une chaine d'exactement ``length`` chiffres hexadecimaux, rendue en minuscules."""
+    def check(value):
+        if type(value) is not str or len(value) != length or any(char not in _HEX for char in value):
+            raise ValueError(f"Paramètre local invalide : {length} caractères hexadécimaux sont attendus.")
+        return value.lower()
+    return check
+
+
+def v_choice(*values):
+    """Validateur : une des chaines de la liste, a l'identique."""
+    def check(value):
+        if type(value) is not str or value not in values:
+            raise ValueError("Paramètre local invalide : valeur hors de la liste permise.")
+        return value
+    return check
+
+
+def v_list_of(choices, maximum):
+    """Validateur : une liste JSON (jamais une chaine) d'au plus ``maximum`` valeurs prises dans ``choices``, sans doublon."""
+    choices = tuple(choices)
+
+    def check(value):
+        if type(value) is not list or len(value) > maximum:
+            raise ValueError(f"Paramètre local invalide : une liste d'au plus {maximum} valeur(s) est attendue.")
+        cleaned = []
+        for item in value:
+            if type(item) is not str or item not in choices:
+                raise ValueError("Paramètre local invalide : valeur hors de la liste permise.")
+            if item not in cleaned:
+                cleaned.append(item)
+        return cleaned
+    return check
+
+
+def _load_action(name):
+    """Rend le descripteur {"handler": callable(agent, params) -> dict, "params": {nom: validateur}, "read": bool}."""
+    module = LAZY_ACTIONS[name]
+    try:
+        actions = getattr(_import_optional(module), "LOCAL_ACTIONS", None)
+    except ImportError as error:
+        raise ValueError(f"Fichier de l'agent manquant ({module}.py) : lance « Réparer ».") from error
+    spec = actions.get(name) if isinstance(actions, dict) else None
+    if not isinstance(spec, dict) or not callable(spec.get("handler")) or not isinstance(spec.get("params"), dict):
+        raise ValueError("Action locale inconnue")
+    return spec
+
+
+def _check_param_request(item, spec):
+    """Cles ⊆ {worker_id, action, expires_at, params} ; echeance comme _check_engine_request ;
+    params = dict, cles ⊆ spec["params"] ; chaque valeur passe par son validateur (rend la valeur nettoyee
+    ou leve ValueError). Rend le dict nettoye. Toute cle inconnue : ValueError("Paramètre local non autorisé : <nom>")."""
+    unknown = sorted(str(key) for key in set(item) - {"worker_id", "action", "expires_at", "params"})
+    if unknown:
+        raise ValueError(f"Paramètre local non autorisé : {unknown[0]}")
+    _check_expiry(item)
+    params = item.get("params", {})
+    if type(params) is not dict:
+        raise ValueError("Paramètres locaux invalides : un objet est attendu.")
+    cleaned = {}
+    for name in sorted(params):
+        validator = spec["params"].get(name)
+        if not callable(validator):
+            raise ValueError(f"Paramètre local non autorisé : {name}")
+        cleaned[name] = validator(params[name])
+    return cleaned
+
+
 def process_requests(agent):
     inbox = checked(agent.root, "runtime/local-control")
     inbox.mkdir(parents=True, exist_ok=True)
     for path in sorted(inbox.glob("*.request.json"))[:10]:
         result_path = path.with_name(path.name.replace(".request.json", ".result.json"))
         action = None
+        read_only = False
         try:
             checked(agent.root, path.relative_to(agent.root))
             if path.stat().st_size > 4096:
@@ -452,6 +790,7 @@ def process_requests(agent):
                 path.unlink()
                 continue
             action = item.get("action")
+            read_only = action in READ_ACTIONS
             if action in ENGINE_ACTIONS or action in READ_ACTIONS:
                 _check_engine_request(item)
                 # Requete retiree AVANT execution : un arret de l'agent en cours
@@ -459,6 +798,13 @@ def process_requests(agent):
                 path.unlink()
                 result = {"status": status, "engines-stop": engines_stop, "engines-start": engines_start,
                           "fire-watch": fire_watch_status}[action](agent)
+            elif isinstance(action, str) and action in LAZY_ACTIONS:
+                spec = _load_action(action)
+                read_only = spec.get("read") is True
+                params = _check_param_request(item, spec)
+                path.unlink()  # retiree AVANT execution, comme ci-dessus : jamais rejouee
+                # Le handler rend en moins de 2 s : un travail long part dans son propre fil.
+                result = spec["handler"](agent, params)
             elif action == "cleanup":
                 result = cleanup(agent, item.get("digest"))
             elif action in {"reconnect", "network"}:
@@ -473,37 +819,66 @@ def process_requests(agent):
         except Exception as error:
             atomic_json(result_path, {"ok": False, "error": str(error)})
         path.unlink(missing_ok=True)
-        if action not in READ_ACTIONS:  # lecture seule : aucun heartbeat force
+        if not read_only:  # lecture seule : aucun heartbeat force
             agent.reconnect_requested.set()
 
 
 def local_loop(agent):
+    status_file_failed = False
     while not agent.stop_requested.is_set():
         try:
             process_requests(agent)
-        except (OSError, ValueError) as error:
+        except Exception as error:  # rien ne doit tuer ce fil : toutes les actions locales en dependent
             print(f"Maintenance locale indisponible ({type(error).__name__})", flush=True)
+        # Fichier d'etat : dans son propre try, jamais dans celui des demandes locales.
+        try:
+            write_status_file(agent)
+            status_file_failed = False
+        except Exception as error:
+            if not status_file_failed:  # une seule ligne par serie d'echecs
+                print(f"Fichier d'etat du Worker indisponible ({type(error).__name__})", flush=True)
+            status_file_failed = True
         agent.stop_requested.wait(1)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Boite aux lettres locale du Worker (aucun reseau necessaire).")
     parser.add_argument("--root", required=True)
-    parser.add_argument("--action", choices=("reconnect", "network", "cleanup") + ENGINE_ACTIONS + ("fire-watch",), required=True,
+    parser.add_argument("--action", choices=("reconnect", "network", "cleanup") + ENGINE_ACTIONS + ("fire-watch",) + tuple(LAZY_ACTIONS),
+                        required=True,
                         help="status : etat de l'agent et des moteurs ; engines-stop / engines-start : moteurs IA ; "
                              "fire-watch : etat de la surveillance IA des graveuses (lecture seule) ; "
-                             "reconnect / network / cleanup : maintenance")
+                             "reconnect / network / cleanup : maintenance ; "
+                             "duplicates-* / site-* / jobs-stop / sharing-set / relay-status : gestion du Worker")
     parser.add_argument("--json", action="store_true", help="n'imprime qu'une ligne JSON : la reponse de l'agent")
     parser.add_argument("--timeout", type=int, default=120, help="attente maximale en secondes (1 a 600)")
+    parser.add_argument("--params-b64", default=None,
+                        help="parametres de l'action : base64 d'un objet JSON UTF-8 d'au plus 2048 octets (actions de gestion seulement)")
     args = parser.parse_args()
     if args.json and args.action == "cleanup":
         parser.error("--json est incompatible avec cleanup (confirmation interactive).")
+    if args.params_b64 is not None and args.action not in LAZY_ACTIONS:
+        parser.error("--params-b64 n'est accepte que par les actions de gestion du Worker.")
     timeout = min(600, max(1, args.timeout))
-    transient = args.action in ENGINE_ACTIONS or args.action in READ_ACTIONS
+    transient = args.action in ENGINE_ACTIONS or args.action in READ_ACTIONS or args.action in LAZY_ACTIONS
 
     def emit(response, code):
         print(json.dumps(response, ensure_ascii=True, separators=(",", ":")), flush=True)
         return code
+
+    params = None
+    if args.params_b64 is not None:
+        try:
+            raw = base64.b64decode(args.params_b64, validate=True)
+            if len(raw) > PARAMS_MAX_BYTES:
+                raise ValueError("too large")
+            params = json.loads(raw.decode("utf-8"))
+            if type(params) is not dict:
+                raise ValueError("object expected")
+        except (ValueError, RecursionError):  # base64, UTF-8, JSON ou type invalide
+            if args.json:
+                return emit({"ok": False, "error": "Parametres locaux illisibles."}, 1)
+            raise SystemExit("Parametres locaux illisibles.")
 
     root = Path(args.root).resolve()
     try:
@@ -520,6 +895,8 @@ def main():
     if transient:
         # L'agent refuse une requete echue : jamais d'execution differee.
         item["expires_at"] = time.time() + timeout + 5
+    if params is not None:
+        item["params"] = params
     inbox = checked(root, "runtime/local-control")
     inbox.mkdir(parents=True, exist_ok=True)
     if args.action == "cleanup":

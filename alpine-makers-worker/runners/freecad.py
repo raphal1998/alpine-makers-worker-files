@@ -46,6 +46,8 @@ def _run(job, workdir, state):
     if state.value["state"] in {"failed", "cancelled"}:
         raise ValueError(state.value.get("error") or "Exécution déjà terminée.")
     parameters = job.get("parameters") if isinstance(job.get("parameters"), dict) else {}
+    if isinstance(parameters.get("cam"), dict):
+        return _run_cam(job, workdir, state, parameters)
     # Creation mode: the job carries a declarative scene instead of a source
     # file. It is re-validated here even though the server already did it —
     # a runner never trusts the payload it is handed.
@@ -90,19 +92,21 @@ def _run(job, workdir, state):
             # The scene travels as a file: no geometry ever reaches FreeCADCmd
             # through a command line that an accented path could break.
             scene_path.write_text(json.dumps(scene, ensure_ascii=False), encoding="utf-8")
-        state.submit_intent(engine="freecad")
-        with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
-            try:
-                target = os.path.join(engine_path(destination.parent), destination.name)
-                command = ([freecad, engine_path(engine), engine_path(scene_path), target] if scene is not None else
-                           [freecad, engine_path(engine), engine_path(source), target, str(linear), "0.523599", str(facets)])
-                process = subprocess.Popen(command,
-                    stdout=stdout, stderr=stderr, creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
-            except OSError as error:
-                state.finish("failed", error=str(error))
-                raise
-        identity = process_identity(process.pid)
-        state.update(state="running", pid=process.pid, process_identity=identity)
+        target = os.path.join(engine_path(destination.parent), destination.name)
+        command = ([freecad, engine_path(engine), engine_path(scene_path), target] if scene is not None else
+                   [freecad, engine_path(engine), engine_path(source), target, str(linear), "0.523599", str(facets)])
+        process = _launch(state, command, stdout_path, stderr_path)
+    details = _supervise(state, process, stdout_path)
+    if not details.get("ok") or not destination.is_file():
+        raise ValueError(str(details.get("error") or "Conversion FreeCAD échouée ou sortie incomplète."))
+    details.pop("ok", None)
+    details["artifacts"] = [destination.name]
+    state.finish("completed", result=details)
+    return details
+
+
+def _supervise(state, process, stdout_path):
+    """Attend le seul processus FreeCAD de ce job (annulation ciblée, délai 3600 s) ; rend sa ligne de résultat."""
     pid, identity = state.value.get("pid"), state.value.get("process_identity")
     if not pid:
         raise ValueError("Lancement FreeCAD incertain ; aucune nouvelle conversion ne sera lancée.")
@@ -128,10 +132,84 @@ def _run(job, workdir, state):
     lines = stdout_path.read_text(encoding="utf-8", errors="replace").splitlines() if stdout_path.is_file() else []
     reported = next((line.split("=", 1)[1] for line in reversed(lines) if line.startswith("RAPHAL_FREECAD_RESULT=")), "")
     details = json.loads(reported) if reported else {}
-    if (process is not None and process.returncode) or not details.get("ok") or not destination.is_file():
-        raise ValueError(str(details.get("error") or "Conversion FreeCAD échouée ou sortie incomplète."))
+    if not isinstance(details, dict):
+        details = {}
+    if process is not None and process.returncode:
+        details["ok"] = False
+    return details
+
+
+def _launch(state, command, stdout_path, stderr_path):
+    state.submit_intent(engine="freecad")
+    with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
+        try:
+            process = subprocess.Popen(command, stdout=stdout, stderr=stderr,
+                                       creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+        except OSError as error:
+            state.finish("failed", error=str(error))
+            raise
+    state.update(state="running", pid=process.pid, process_identity=process_identity(process.pid))
+    return process
+
+
+CAM_ARTIFACT_SUFFIXES = (".nc", ".ngc", ".tap", ".gcode", ".fcstd", ".cam.json", ".setup.html")
+
+
+def _run_cam(job, workdir, state, parameters):
+    """Préparer pour une CNC : FreeCAD CAM sur un projet DÉCLARATIF revalidé ici, jamais un script."""
+    try:
+        from cam_payload import validate_cam_job_parameters
+    except ImportError:
+        raise ValueError("Le moteur CNC manque sur ce Worker : mets le Worker à jour.") from None
+    clean = validate_cam_job_parameters(parameters)
+    cam = clean["cam"]
+    request = {"op": cam["op"]}
+    if cam["op"] == "compute":
+        project = cam["project"]
+        source_info = parameters.get("input_file") if isinstance(parameters.get("input_file"), dict) else {}
+        source = Path(str(source_info.get("path") or "")).resolve()
+        if not source.is_file() or source.parent != workdir:
+            raise ValueError("Fichier source absent ou non autorisé.")
+        if source.stat().st_size > 512 * 1024 * 1024:
+            raise ValueError("Fichier source trop volumineux.")
+        expected = project["source"]["file"]
+        if source.name != expected or str(source_info.get("name") or source.name) != expected:
+            raise ValueError("Le fichier joint ne correspond pas au fichier source du projet CNC.")
+        request.update(project=project, source=expected)
+    stdout_path, stderr_path = workdir / "freecad.stdout", workdir / "freecad.stderr"
+    process = None
+    if state.value["state"] == "preparing":
+        freecad = os.getenv("FREECAD_CMD")
+        engine = Path(__file__).resolve().parents[1] / "freecad_cam.py"
+        if not freecad or not Path(freecad).is_file():
+            raise ValueError("FreeCADCmd est introuvable.")
+        if not engine.is_file():
+            raise ValueError("Le moteur CNC manque sur ce Worker : mets le Worker à jour.")
+        if state.cancellation_requested():
+            state.finish("cancelled", error="Calcul CNC annulé avant lancement.")
+            raise ValueError("Calcul CNC annulé.")
+        request_path = workdir / "cam_request.json"
+        request_path.write_text(json.dumps(request, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+        command = [freecad, engine_path(engine), engine_path(request_path), engine_path(workdir)]
+        process = _launch(state, command, stdout_path, stderr_path)
+    details = _supervise(state, process, stdout_path)
+    if not details.get("ok"):
+        raise ValueError(str(details.get("error") or "Calcul FreeCAD CAM échoué."))
     details.pop("ok", None)
-    details["artifacts"] = [destination.name]
+    wanted = ["cam_capabilities.json"] if cam["op"] == "capabilities" else details.get("artifacts")
+    if not isinstance(wanted, list) or not wanted:
+        raise ValueError("Le moteur CNC n'a annoncé aucun fichier.")
+    artifacts = []
+    for name in wanted:
+        name = safe_relative_name(str(name), basename=True)
+        allowed = name in ("cam_result.json", "cam_capabilities.json") or name.lower().endswith(CAM_ARTIFACT_SUFFIXES)
+        path = workdir / name
+        if not allowed or path.resolve().parent != workdir or not path.is_file() or path.stat().st_size == 0:
+            raise ValueError("Sortie du moteur CNC incomplète ou non autorisée.")
+        artifacts.append(name)
+    if cam["op"] == "compute" and ("cam_result.json" not in artifacts or details.get("gcode_file") not in artifacts):
+        raise ValueError("Sortie du moteur CNC incomplète (G-code ou résultat absent).")
+    details["artifacts"] = artifacts
     state.finish("completed", result=details)
     return details
 

@@ -17,7 +17,7 @@ REQUIRED_SOURCE_FILES = (
     "local_sandbox.py", "legal_policy.json", "legal_evidence.json", "legal_sources/INDEX.json", "run_worker.ps1", "install_linux.sh",
     "installers/component_installer.py", "installers/model_installer.py",
     "installers/model_catalog.py", "installers/python_runtime.py",
-    "runners/comfyui.py", "runners/hunyuan3d.py", "runners/freecad.py",
+    "runners/comfyui.py", "runners/hunyuan3d.py", "runners/freecad.py", "cam_payload.py", "cam_gcode_check.py",
 )
 
 
@@ -56,7 +56,7 @@ def inspect_sources(root):
         {"id": "external-engine-assets", "severity": "release-gate",
          "remedy": "Keep engines, models, venvs, caches, data and licenses outside the executable; retain the existing root/manifest and user-installed resources."},
         {"id": "server-injected-adapters", "severity": "release-gate",
-         "remedy": "The server package builder adds hunyuan_worker.py, freecad_converter.py, freecad_builder.py and orca_core_bridge.ps1 from project sources. Validate the final manifest, not worker_agent alone."},
+         "remedy": "The server package builder adds hunyuan_worker.py, freecad_converter.py, freecad_builder.py, freecad_cam.py and orca_core_bridge.ps1 from project sources. Validate the final manifest, not worker_agent alone."},
         {"id": "publisher-signature", "severity": "release-gate",
          "remedy": "Use the real publisher's code-signing certificate, timestamp and independent signature verification; no certificate is created or claimed by this preflight."},
         {"id": "native-platform-validation", "severity": "release-gate",

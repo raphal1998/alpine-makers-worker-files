@@ -69,6 +69,16 @@ COMFYUI_TASKS = ("text_to_image", "image_to_image")
 # est l'unique image source du job ; « controlnet_canny » en tire d'abord les contours (nœud Canny natif de ComfyUI).
 COMFYUI_CONTROL_TASKS = ("controlnet", "controlnet_canny")
 COMFYUI_LORA_MAX = 8
+# comfyui_clip_skip_hires_v1 (agent 1.47.0) : deux ajouts FACULTATIFS aux graphes ci-dessous, chacun de forme fixe.
+# CLIP skip : nœud « 40 » CLIPSetLastLayer entre le chargeur (ou le dernier LoRA) et les deux encodeurs de texte,
+# graphes SD 1.x / 2.x / SDXL seulement. Hires fix (texte → image, toutes familles sauf Stable Cascade) : « 41 »
+# LatentUpscaleBy du latent de la passe de base, « 42 » KSampler de la seconde passe (même graine, CFG, échantillonneur,
+# planificateur, modèle et conditionnements), décodé par « 6 ». Mêmes numéros et même méthode que comfyui_provider.py.
+COMFYUI_CLIP_SKIP_HIRES_CAPABILITY = "comfyui_clip_skip_hires_v1"
+COMFYUI_CLIP_SKIP_RANGE = (1, 12)
+COMFYUI_HIRES_UPSCALE_METHOD = "bislerp"
+COMFYUI_HIRES_MAX_SIDE = 2048
+COMFYUI_OPTION_NODES = frozenset({"40", "41", "42"})
 _FREE = object()  # valeur fournie par le site (prompt, réglage, nom de fichier) : contrôlée par type et bornes
 
 
@@ -138,8 +148,8 @@ def release_comfyui_vram_when_idle(timeout=20):
         return False
 
 
-def _comfyui_graph(family, task, lora_count=0):
-    """(schéma, liaisons fixes, bornes) du graphe d'une famille pour une tâche."""
+def _comfyui_graph(family, task, lora_count=0, clip_skip=False, hires=False):
+    """(schéma, liaisons fixes, bornes) du graphe d'une famille pour une tâche, avec ses ajouts facultatifs."""
     spec = COMFYUI_FAMILIES[family]
     nodes = {}
     if spec["loader"] == "checkpoint":
@@ -175,6 +185,11 @@ def _comfyui_graph(family, task, lora_count=0):
                 # workflows officiels FLUX et Qwen-Image ; l'encodeur de texte garde son chargeur propre.
                 nodes[node_id] = ("LoraLoaderModelOnly", {"model": model_ref, "lora_name": _FREE, "strength_model": _FREE})
                 model_ref = [node_id, 0]
+    if clip_skip:
+        if family != "sd":
+            raise ValueError("CLIP skip : graphes SD 1.x, 2.x et XL seulement.")
+        nodes["40"] = ("CLIPSetLastLayer", {"clip": clip_ref, "stop_at_clip_layer": _FREE})
+        clip_ref = ["40", 0]
     nodes["2"] = ("CLIPTextEncode", {"text": _FREE, "clip": clip_ref})
     nodes["3"] = ("CLIPTextEncode", {"text": _FREE, "clip": clip_ref})
     positive_ref = ["2", 0]
@@ -209,7 +224,16 @@ def _comfyui_graph(family, task, lora_count=0):
     nodes["5"] = ("KSampler", {"seed": _FREE, "steps": _FREE, "cfg": _FREE, "sampler_name": _FREE, "scheduler": _FREE,
                                "denoise": denoise, "model": model_ref, "positive": positive_ref, "negative": negative_ref,
                                "latent_image": latent_ref})
-    nodes["6"] = ("VAEDecode", {"samples": ["5", 0], "vae": vae_ref})
+    samples_ref = ["5", 0]
+    if hires:
+        if task != "text_to_image":
+            raise ValueError("Hires fix : graphes texte → image seulement.")
+        nodes["41"] = ("LatentUpscaleBy", {"samples": ["5", 0], "upscale_method": COMFYUI_HIRES_UPSCALE_METHOD, "scale_by": _FREE})
+        nodes["42"] = ("KSampler", {"seed": _FREE, "steps": _FREE, "cfg": _FREE, "sampler_name": _FREE, "scheduler": _FREE,
+                                    "denoise": _FREE, "model": model_ref, "positive": positive_ref, "negative": negative_ref,
+                                    "latent_image": ["41", 0]})
+        samples_ref = ["42", 0]
+    nodes["6"] = ("VAEDecode", {"samples": samples_ref, "vae": vae_ref})
     nodes["7"] = ("SaveImage", {"filename_prefix": _FREE, "images": ["6", 0]})
     schema = {key: (cls, set(inputs)) for key, (cls, inputs) in nodes.items()}
     links = {}
@@ -235,6 +259,11 @@ def _comfyui_graph(family, task, lora_count=0):
     for index in range(lora_count):
         bounds[str(20 + index)] = ({"strength_model": (-2, 2), "strength_clip": (-2, 2)} if family == "sd"
                                    else {"strength_model": (-2, 2)})
+    if "40" in nodes:
+        bounds["40"] = {"stop_at_clip_layer": (-COMFYUI_CLIP_SKIP_RANGE[1], -COMFYUI_CLIP_SKIP_RANGE[0])}
+    if "42" in nodes:
+        bounds["41"] = {"scale_by": (1.1, 2.0)}
+        bounds["42"] = {"seed": (0, (1 << 63) - 1), "steps": (4, 40), "cfg": (0, COMFYUI_MAX_CFG), "denoise": (0.2, 0.9)}
     return schema, links, bounds
 
 
@@ -246,6 +275,18 @@ COMFYUI_LORA_GRAPHS = {(family, task, count): _comfyui_graph(family, task, count
 COMFYUI_GRAPHS.update({("sd", task): _comfyui_graph("sd", task) for task in COMFYUI_CONTROL_TASKS})
 COMFYUI_LORA_GRAPHS.update({("sd", task, count): _comfyui_graph("sd", task, count)
                             for task in COMFYUI_CONTROL_TASKS for count in range(1, COMFYUI_LORA_MAX + 1)})
+# comfyui_clip_skip_hires_v1 : variantes avec CLIP skip et / ou hires fix, clé (famille, tâche, nombre de LoRA, clip, hires).
+# Elles ne sont essayées que pour un graphe qui porte l'un de leurs nœuds : un graphe sans ces options est validé
+# exactement comme avant.
+COMFYUI_OPTION_GRAPHS = {
+    (family, task, count, clip_skip, hires): _comfyui_graph(family, task, count, clip_skip, hires)
+    for family in COMFYUI_FAMILIES
+    for task in COMFYUI_TASKS + (COMFYUI_CONTROL_TASKS if family == "sd" else ())
+    for count in range(0, COMFYUI_LORA_MAX + 1)
+    for clip_skip in ((False, True) if family == "sd" else (False,))
+    for hires in ((False, True) if task == "text_to_image" else (False,))
+    if clip_skip or hires
+}
 
 
 def _comfyui_cascade_graph():
@@ -298,6 +339,11 @@ def comfyui_sampling_settings(parameters):
     steps, cfg = inputs.get("steps"), inputs.get("cfg")
     if type(steps) is not int or type(cfg) not in (int, float) or not math.isfinite(cfg):
         return None
+    # Seconde passe hires (« 42 ») : ses étapes comptent aussi pour les limites du Worker (sa CFG est celle de « 5 »).
+    second = workflow.get("42")
+    second_steps = second.get("inputs", {}).get("steps") if isinstance(second, dict) and isinstance(second.get("inputs"), dict) else None
+    if type(second_steps) is int:
+        steps = max(steps, second_steps)
     return steps, float(cfg)
 
 
@@ -326,7 +372,10 @@ def _comfyui_graph_match(workflow):
     if not isinstance(workflow, dict):
         return None
     structural = None
-    graphs = list(COMFYUI_GRAPHS.items()) + list(COMFYUI_LORA_GRAPHS.items())
+    if COMFYUI_OPTION_NODES & set(workflow):
+        graphs = list(COMFYUI_OPTION_GRAPHS.items())
+    else:
+        graphs = list(COMFYUI_GRAPHS.items()) + list(COMFYUI_LORA_GRAPHS.items())
     for graph_key, graph in graphs:
         schema, links, _ = graph
         key = graph_key[:2]
@@ -406,9 +455,17 @@ def validate_comfyui_parameters(parameters, *, output_prefix=None):
         for name, (low, high) in fields.items():
             value = workflow[node_id]["inputs"][name]
             permitted = (int, float) if name in {"cfg", "denoise", "shift", "guidance", "strength_model", "strength_clip", "strength",
-                                                 "start_percent", "end_percent", "low_threshold", "high_threshold"} else (int,)
+                                                 "start_percent", "end_percent", "low_threshold", "high_threshold", "scale_by"} else (int,)
             if type(value) not in permitted or not low <= value <= high or (isinstance(value, float) and not math.isfinite(value)):
                 raise ValueError("Valeur du workflow ComfyUI hors limites.")
+    if "42" in schema:
+        # Seconde passe hires : la même image affinée, jamais un autre calcul glissé dans le graphe.
+        base, second = workflow["5"]["inputs"], workflow["42"]["inputs"]
+        if any(second[name] != base[name] for name in ("seed", "cfg", "sampler_name", "scheduler")):
+            raise ValueError("Seconde passe hires : graine, CFG, échantillonneur et planificateur doivent être ceux de la passe de base.")
+        scale = workflow["41"]["inputs"]["scale_by"]
+        if any(int(round((workflow["4"]["inputs"][side] // 8) * scale)) * 8 > COMFYUI_HIRES_MAX_SIDE for side in ("width", "height")):
+            raise ValueError(f"Hires fix : l’image finale dépasserait {COMFYUI_HIRES_MAX_SIDE} px de côté.")
     clean = copy.deepcopy(parameters)
     for node_id, (_, fields) in schema.items():
         for name in fields & _MODEL_FILE_FIELDS:

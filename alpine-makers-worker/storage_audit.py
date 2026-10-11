@@ -99,7 +99,23 @@ def _digest(item, sample=False, advance=None):
     return digest.hexdigest()
 
 
-def scan_roots(roots, progress=None, min_size_bytes=1048576, *, inventory=None):
+def verified_sha256(item):
+    """SHA-256 complet d'un fichier de l'inventaire, identité revérifiée avant, pendant et après la lecture.
+
+    ``item`` porte ``path``, ``size_bytes``, ``mtime_ns``, ``device`` et ``inode`` ; le moindre écart lève ``OSError``.
+    """
+    return _digest(item)
+
+
+def _file_entry(item, details):
+    entry = {"path": item["path"], "root": item["root"]}
+    if details:
+        # Identité relevée à l'inventaire : relue sur le disque avant toute opération sur le fichier.
+        entry.update({key: item[key] for key in ("mtime_ns", "device", "inode", "links")})
+    return entry
+
+
+def scan_roots(roots, progress=None, min_size_bytes=1048576, *, inventory=None, details=False):
     def notify(percent, message):
         if progress:
             progress(percent, message)
@@ -169,7 +185,7 @@ def scan_roots(roots, progress=None, min_size_bytes=1048576, *, inventory=None):
             reclaimable = min(len(group) - 1, independent_copies) * group[0]["size_bytes"]
             duplicates.append({
                 "sha256": digest, "size_bytes": group[0]["size_bytes"],
-                "files": [{"path": item["path"], "root": item["root"]} for item in group],
+                "files": [_file_entry(item, details) for item in group],
                 "reclaimable_bytes": reclaimable,
             })
     duplicates.sort(key=lambda item: item["reclaimable_bytes"], reverse=True)

@@ -1,16 +1,18 @@
 ﻿<#
     Démarrage automatique du Worker : montre comment il est lancé sur ce PC (service
-    Windows, tâche planifiée, ou rien) et retire les tâches planifiées ORPHELINES
-    (celles qui visent un dossier qui n'existe plus).
+    Windows, tâche planifiée, entrée de démarrage de session, ou rien) et retire les
+    tâches planifiées ORPHELINES (celles qui visent un dossier qui n'existe plus).
 
     Usage :
       demarrage_auto.ps1                       affiche la situation et propose les actions utiles
       demarrage_auto.ps1 -RetirerOrphelines    retire les tâches orphelines (après confirmation)
       demarrage_auto.ps1 -RetirerDoublon       mode service : retire la tâche planifiée qui vise AUSSI ce dossier
-      demarrage_auto.ps1 -ActiverTache         aucun démarrage auto : active la tâche planifiée (configure_autostart.ps1 -AutoStart Yes)
+      demarrage_auto.ps1 -ActiverTache         aucun démarrage auto : active la tâche planifiée (configure_autostart.ps1 -AutoStart Yes) ;
+                                               entrée de session : passe à la tâche planifiée (droits administrateur demandés)
       demarrage_auto.ps1 -ReactiverTache       mode tâche : réactive la tâche de ce dossier si elle est DÉSACTIVÉE (ne lance pas le Worker)
-      demarrage_auto.ps1 -DesactiverAuto       mode tâche : retire la tâche planifiée (configure_autostart.ps1 -AutoStart No), sans arrêter le Worker
+      demarrage_auto.ps1 -DesactiverAuto       tâche ou entrée de session : retire le démarrage automatique (configure_autostart.ps1 -AutoStart No), sans arrêter le Worker
       -Simulation : ne change rien.  -Oui / -SansPause : sans clavier.
+      -CompteAttendu : interne (fenêtre administrateur) ; compte Windows pour lequel la tâche doit être créée.
 #>
 param(
     [string]$Racine = '',
@@ -22,7 +24,8 @@ param(
     [switch]$ActiverTache,
     [switch]$ReactiverTache,
     [switch]$DesactiverAuto,
-    [switch]$DejaEleve
+    [switch]$DejaEleve,
+    [string]$CompteAttendu = ''
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'commun.ps1')
@@ -135,17 +138,18 @@ function Invoke-RetraitTaches {
 # ---------------------------------------------------------------------------
 
 Write-Explication -Titre 'DÉMARRAGE AUTOMATIQUE DU WORKER' -Fait @(
-    'Montre comment le Worker démarre sur ce PC : service Windows « AlpineWorker », tâche planifiée à l''ouverture de session, ou rien du tout.',
+    'Montre comment le Worker démarre sur ce PC : service Windows « AlpineWorker », tâche planifiée à l''ouverture de session, entrée de démarrage de session (registre), ou rien du tout.',
     'Repère les tâches planifiées ORPHELINES (elles visent un dossier qui n''existe plus) et propose de les retirer.',
     'Signale, SANS jamais les retirer, les tâches dont le dossier est illisible ou dont le disque est débranché.',
     'Si rien ne lance le Worker tout seul, propose d''activer la tâche planifiée prévue par l''installateur.',
-    'En mode tâche : signale une tâche DÉSACTIVÉE et propose de la réactiver ; permet aussi de retirer le démarrage automatique.'
+    'En mode tâche : signale une tâche DÉSACTIVÉE et propose de la réactiver ; permet aussi de retirer le démarrage automatique.',
+    'Avec une entrée de démarrage de session : propose de passer à la tâche planifiée, ou de retirer le démarrage automatique.'
 ) -NeFaitPas @(
     'N''arrête et ne redémarre pas le Worker. Ne modifie pas le service Windows.',
     'Ne retire jamais une tâche dont le dossier existe sans te le dire clairement et sans une confirmation à part.',
     'Ne touche à aucune autre tâche planifiée du PC (boutique, dashboard, courrier...).'
 ) -Exige @(
-    'Rien pour afficher. Les droits administrateur seulement si Windows refuse de retirer une tâche.'
+    'Rien pour afficher. Les droits administrateur seulement si Windows refuse de créer ou de retirer une tâche.'
 )
 
 $mode = Get-ModeLancement -Racine $Racine
@@ -157,7 +161,12 @@ Write-Etat -Libelle 'Dossier de ce Worker' -Valeur $Racine -Niveau info
 switch ($mode.Mode) {
     'service' { Write-Etat -Libelle 'Mode de lancement' -Valeur 'SERVICE WINDOWS (démarre avec le PC, sans ouvrir de session)' -Niveau ok }
     'tache'   { Write-Etat -Libelle 'Mode de lancement' -Valeur 'TÂCHE PLANIFIÉE (démarre à l''ouverture de ta session Windows)' -Niveau ok }
+    'session' { Write-Etat -Libelle 'Mode de lancement' -Valeur 'ENTRÉE DE DÉMARRAGE DE SESSION (registre, sans droits administrateur)' -Niveau ok }
     default   { Write-Etat -Libelle 'Mode de lancement' -Valeur 'AUCUN démarrage automatique : lancement manuel' -Niveau alerte }
+}
+if ($mode.Session) {
+    Write-Etat -Libelle 'Entrée de session' -Valeur ($mode.Session.Nom + ' (clé Run de ton compte Windows)') -Niveau info
+    if ($mode.Mode -ne 'session') { Write-Info '        en plus du mode ci-dessus : sans danger (un seul superviseur tient le verrou), -DesactiverAuto la retire aussi.' }
 }
 
 if ($mode.Service) {
@@ -227,6 +236,12 @@ switch ($mode.Mode) {
         Write-Info 'Le Worker démarre quand TU ouvres ta session Windows. Tant que personne n''est connecté après un redémarrage du PC, le Worker reste éteint.'
         Write-Conseil ('Pour l''éteindre en coupant aussi ce démarrage : ' + (Get-NomEntree 11) + ' ; ' + (Get-NomEntree 12) + ' le remet.')
     }
+    'session' {
+        Write-Info 'Le Worker démarre quand TU ouvres ta session Windows, par l''entrée de démarrage de ton compte (registre).'
+        Write-Info 'L''installateur l''a posée parce que Windows refuse la tâche planifiée sans droits administrateur.'
+        Write-Info 'Différence avec la tâche planifiée : le planificateur ne relance pas le superviseur s''il est fermé ; le superviseur, lui, relance toujours l''agent.'
+        Write-Conseil ((Get-NomEntree 11) + ' éteint le Worker mais laisse cette entrée : pour la retirer, -DesactiverAuto (proposé plus bas).')
+    }
     default {
         Write-Info ('Rien ne lance ce Worker tout seul : après un redémarrage du PC il reste éteint jusqu''à ce que tu lances ' + (Get-NomEntree 12) + ' (ou ' + (Get-NomEntree 5) + ').')
     }
@@ -284,7 +299,64 @@ if ($doublons.Count -gt 0) {
     Write-Ok 'Aucune tâche en doublon : rien à retirer.'
 }
 
-# --- 3. Aucun démarrage automatique ----------------------------------------------
+# --- 3. Aucun démarrage automatique, ou entrée de session à remplacer par la tâche planifiée -----
+$compteCourant = [string][Security.Principal.WindowsIdentity]::GetCurrent().Name
+$passageRefuse = $false
+if ($CompteAttendu -and $CompteAttendu -ine $compteCourant -and ($ActiverTache -or $DesactiverAuto)) {
+    # Fenêtre administrateur ouverte sous un AUTRE compte : la tâche serait créée pour ce compte-là, qui n'ouvre pas ta session.
+    Write-Section 'Compte administrateur différent'
+    Write-Erreur ('La fenêtre administrateur tourne sous le compte ' + $compteCourant + ', pas sous ' + $CompteAttendu + ' : rien n''a été modifié.')
+    Write-Conseil 'La tâche planifiée se crée pour le compte qui lance l''outil. Garde l''entrée de démarrage de session, ou donne les droits administrateur à ton propre compte.'
+    Wait-FinOutil -SansPause:$SansPause
+    exit 1
+}
+if ($mode.Mode -eq 'session') {
+    Write-Section 'Passer à la tâche planifiée'
+    $configurateur = Join-Path $Racine 'configure_autostart.ps1'
+    if (-not (Test-Path -LiteralPath $configurateur -PathType Leaf)) {
+        Write-Alerte 'configure_autostart.ps1 est absent de la racine du Worker : mets le Worker à jour pour le retrouver.'
+        if ($ActiverTache) { $codeFinal = 1 }
+    } else {
+        Write-Info 'La tâche planifiée fait la même chose, et le planificateur relance en plus le superviseur s''il est fermé.'
+        Write-Info 'Windows l''a refusée à ton compte : la créer demande les droits administrateur. L''entrée de session est retirée dès que la tâche est en place.'
+        $faire = [bool]$ActiverTache
+        if (-not $faire -and $interactif) { $faire = $true }
+        if (-not $faire) {
+            Write-Conseil 'Pour y passer : relance avec -ActiverTache.'
+        } elseif ($Simulation) {
+            Write-Info 'SIMULATION : configure_autostart.ps1 -AutoStart Yes serait lancé avec les droits administrateur. Rien n''a été fait.'
+        } elseif (Confirm-Action -Question 'Passer à la tâche planifiée (droits administrateur demandés si nécessaire) ?' -Oui:$Oui) {
+            if ($DejaEleve -or (Test-Administrateur)) {
+                $ancien = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $configurateur -AutoStart Yes
+                $codeConfig = $LASTEXITCODE
+                $ErrorActionPreference = $ancien
+                if ($codeConfig -ne 0) { Write-Erreur ('configure_autostart.ps1 a échoué (code ' + $codeConfig + ').'); $codeFinal = 1 }
+            } else {
+                Write-Alerte 'Une fenêtre Windows va te demander l''autorisation (droits administrateur).'
+                $argumentsEleves = @('-Racine', $Racine, '-ActiverTache', '-Oui', '-CompteAttendu', $compteCourant)
+                if ($SansPause) { $argumentsEleves += '-SansPause' }
+                $codeEleve = Invoke-OutilEleve -Script $PSCommandPath -Arguments $argumentsEleves
+                if ($null -eq $codeEleve) { Write-Erreur 'Tu as refusé les droits administrateur : l''entrée de démarrage de session reste en place.'; $codeFinal = 3 }
+                elseif ($codeEleve -ne 0) { Write-Alerte 'La fenêtre administrateur a signalé un problème : l''entrée de démarrage de session reste en place.'; $codeFinal = 1 }
+            }
+            if ($codeFinal -eq 0) {
+                $modeObtenu = (Get-ModeLancement -Racine $Racine).Mode
+                if ($modeObtenu -eq 'tache') {
+                    Write-Ok 'Tâche planifiée en place : l''entrée de démarrage de session n''est plus utilisée.'
+                    Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'Entrée de démarrage de session remplacée par la tâche planifiée (configure_autostart.ps1 -AutoStart Yes)'
+                } else {
+                    Write-Alerte 'La tâche planifiée n''a pas pu être créée pour ton compte : l''entrée de démarrage de session reste en place, le Worker démarre toujours à l''ouverture de session.'
+                    $codeFinal = 1
+                }
+            }
+        } else {
+            Write-Info 'Annulé : l''entrée de démarrage de session reste en place.'
+            $passageRefuse = $true
+            if ($ActiverTache) { $codeFinal = 2 }
+        }
+    }
+}
 if ($mode.Mode -eq 'aucun') {
     Write-Section 'Activer le démarrage automatique'
     $configurateur = Join-Path $Racine 'configure_autostart.ps1'
@@ -309,7 +381,11 @@ if ($mode.Mode -eq 'aucun') {
                 $codeConfig = $LASTEXITCODE
                 $ErrorActionPreference = $ancien
                 if ($codeConfig -eq 0) {
-                    Write-Ok 'Démarrage automatique activé.'
+                    # Le configurateur se rabat sur l'entrée de session quand Windows refuse la tâche : on dit ce qui est en place.
+                    if ((Get-ModeLancement -Racine $Racine).Mode -eq 'session') {
+                        Write-Ok 'Démarrage automatique activé par l''entrée de démarrage de session (Windows refuse la tâche planifiée sans droits administrateur).'
+                        Write-Conseil 'Relance cet outil pour passer à la tâche planifiée : il demandera les droits administrateur.'
+                    } else { Write-Ok 'Démarrage automatique activé.' }
                     Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'Démarrage automatique activé (configure_autostart.ps1 -AutoStart Yes)'
                 } else {
                     Write-Erreur ('configure_autostart.ps1 a échoué (code ' + $codeConfig + ').')
@@ -323,7 +399,7 @@ if ($mode.Mode -eq 'aucun') {
             Write-Conseil 'Pour l''activer : relance avec -ActiverTache.'
         }
     }
-} elseif ($ActiverTache) {
+} elseif ($ActiverTache -and $mode.Mode -ne 'session') {
     Write-Section 'Activer le démarrage automatique'
     if ($mode.Mode -eq 'service') { Write-Alerte 'Refusé : le service Windows lance déjà ce Worker. Une tâche planifiée en plus ferait doublon.' }
     elseif (@($taches | Where-Object { $_.ViseCeDossier -and $_.Etat -eq 'Disabled' }).Count -gt 0) { Write-Alerte 'La tâche planifiée existe pour ce dossier mais elle est DÉSACTIVÉE : voir ci-dessous (ou -ReactiverTache).' }
@@ -383,29 +459,56 @@ if ($mode.Mode -eq 'tache') {
         Write-Ok 'La tâche planifiée de ce dossier est déjà active : rien à faire.'
     }
 
-    # Retrait du démarrage automatique : jamais proposé d'office (on ne pousse pas à le couper), seulement sur demande.
-    if ($DesactiverAuto) {
+} elseif ($ReactiverTache) {
+    Write-Section 'Tâche planifiée'
+    Write-Alerte 'Sans objet : ce dossier n''est pas lancé par une tâche planifiée.'
+}
+
+# --- 5. Retirer le démarrage automatique (tâche planifiée ou entrée de session) -----------
+if ($mode.Mode -eq 'tache' -or $mode.Mode -eq 'session') {
+    # Jamais proposé d'office en mode tâche (on ne pousse pas à le couper). Avec une entrée de session,
+    # proposé seulement quand tu viens de refuser le passage à la tâche planifiée.
+    $retirer = [bool]$DesactiverAuto
+    if (-not $retirer -and $mode.Mode -eq 'session' -and $interactif -and $passageRefuse) { $retirer = $true }
+    $objet = 'la tâche planifiée de ce dossier'
+    if ($mode.Mode -eq 'session') { $objet = 'l''entrée de démarrage de session de ce dossier' }
+    elseif ($mode.Session) { $objet = 'la tâche planifiée et l''entrée de démarrage de session de ce dossier' }
+    if ($retirer) {
         Write-Section 'Retirer le démarrage automatique'
         $configurateur = Join-Path $Racine 'configure_autostart.ps1'
         if (-not (Test-Path -LiteralPath $configurateur -PathType Leaf)) { Write-Alerte 'configure_autostart.ps1 est absent de la racine du Worker : mets le Worker à jour pour le retrouver.'; $codeFinal = 1 }
-        elseif ($Simulation) { Write-Info 'SIMULATION : configure_autostart.ps1 -AutoStart No serait lancé (la tâche planifiée de ce dossier serait retirée). Rien n''a été fait.' }
-        elseif (Confirm-Action -Question 'Retirer la tâche planifiée de ce dossier (le Worker en marche n''est pas arrêté) ?' -Oui:$Oui) {
+        elseif ($Simulation) { Write-Info ('SIMULATION : configure_autostart.ps1 -AutoStart No serait lancé (' + $objet + ' serait retiré). Rien n''a été fait.') }
+        elseif (Confirm-Action -Question ('Retirer ' + $objet + ' (le Worker en marche n''est pas arrêté) ?') -Oui:$Oui) {
             $ancien = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
             & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $configurateur -AutoStart No
             $codeConfig = $LASTEXITCODE
             $ErrorActionPreference = $ancien
             if ($codeConfig -eq 0) {
-                Write-Ok 'Démarrage automatique retiré. Cet outil pourra le remettre (il proposera d''activer la tâche).'
+                Write-Ok 'Démarrage automatique retiré. Cet outil pourra le remettre (il proposera de l''activer).'
                 Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'Démarrage automatique retiré (configure_autostart.ps1 -AutoStart No)'
-            } else { Write-Erreur ('configure_autostart.ps1 a échoué (code ' + $codeConfig + ').'); $codeFinal = 1 }
-        } else { Write-Info 'Annulé : rien n''a été retiré.'; $codeFinal = 2 }
+            } elseif ($DejaEleve -or (Test-Administrateur)) {
+                Write-Erreur ('configure_autostart.ps1 a échoué (code ' + $codeConfig + ').'); $codeFinal = 1
+            } else {
+                # Le plus souvent : tâche créée avec des droits administrateur, que Windows refuse de retirer sans eux.
+                Write-Alerte 'Le retrait a échoué sans droits administrateur. Une fenêtre Windows va te demander l''autorisation.'
+                $argumentsEleves = @('-Racine', $Racine, '-DesactiverAuto', '-Oui')
+                if ($SansPause) { $argumentsEleves += '-SansPause' }
+                $codeEleve = Invoke-OutilEleve -Script $PSCommandPath -Arguments $argumentsEleves
+                if ($null -eq $codeEleve) { Write-Erreur 'Tu as refusé les droits administrateur : la tâche planifiée est restée en place.'; $codeFinal = 3 }
+                elseif ($codeEleve -ne 0) { Write-Alerte 'La fenêtre administrateur a signalé un problème : relance cet outil pour vérifier.'; $codeFinal = 1 }
+                else {
+                    Write-Ok 'Démarrage automatique retiré dans la fenêtre administrateur.'
+                    Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'Démarrage automatique retiré avec les droits administrateur (configure_autostart.ps1 -AutoStart No)'
+                }
+            }
+        } else { Write-Info 'Annulé : rien n''a été retiré.'; if ($DesactiverAuto) { $codeFinal = 2 } }
     } else {
         Write-Host ''
         Write-Conseil 'Pour retirer ce démarrage automatique sans éteindre le Worker : outils\demarrage_auto.bat -DesactiverAuto (depuis le dossier du Worker).'
     }
-} elseif ($ReactiverTache -or $DesactiverAuto) {
-    Write-Section 'Tâche planifiée'
-    Write-Alerte 'Sans objet : ce dossier n''est pas lancé par une tâche planifiée.'
+} elseif ($DesactiverAuto) {
+    Write-Section 'Retirer le démarrage automatique'
+    Write-Alerte 'Sans objet : ni tâche planifiée ni entrée de démarrage de session pour ce dossier.'
 }
 
 if ($Simulation) { Write-Host ''; Write-Alerte 'SIMULATION : rien n''a été modifié.' }
