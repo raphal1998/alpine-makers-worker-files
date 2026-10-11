@@ -2,6 +2,40 @@
 
 from __future__ import annotations
 
+
+def _journal_agent():
+    """Agent 1.49.1 : sortie de l'agent écrite dans un fichier quand le superviseur le demande.
+
+    Lancé par une tâche planifiée ou par l'entrée de démarrage de session, l'agent écrit dans une console cachée que
+    personne ne lit : un plantage au démarrage restait invisible (incident du 11/10, Worker « en boucle » sans aucune
+    trace). run_worker.ps1 pose ALPINE_WORKER_LOG_FILE quand sa sortie n'est pas déjà recueillie (le service nssm la
+    recueille lui-même). Placé AVANT les autres imports pour garder aussi une erreur d'import ou un plantage natif
+    (faulthandler). Un journal impossible à ouvrir ne bloque jamais l'agent."""
+    import os
+    import sys
+    chemin = os.environ.get("ALPINE_WORKER_LOG_FILE") or ""
+    if not chemin:
+        return
+    try:
+        if os.path.isfile(chemin) and os.path.getsize(chemin) > 5 * 1024 * 1024:
+            ancien = chemin + ".1"
+            if os.path.exists(ancien):
+                os.remove(ancien)
+            os.replace(chemin, ancien)
+        flux = open(chemin, "a", encoding="utf-8", errors="replace", buffering=1)
+    except OSError:
+        return
+    import faulthandler
+    import time
+    flux.write("\n===== %s · agent lancé (pid %d, Python %s) =====\n"
+               % (time.strftime("%Y-%m-%d %H:%M:%S"), os.getpid(), sys.version.split()[0]))
+    sys.stdout = sys.stderr = flux
+    faulthandler.enable(flux)
+
+
+if __name__ == "__main__":
+    _journal_agent()
+
 import argparse
 import ast
 import base64
@@ -63,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.49.0"
+AGENT_VERSION = "1.49.1"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Maintenance des environnements (agent 1.35.17) : Python isolé et pip/wheel/setuptools des .venv gérés rafraîchis
@@ -2292,7 +2326,8 @@ class Agent:
 
     def _log_watch_files(self):
         logs = self.root / "logs"
-        files = sorted(logs.glob("*.log")) if logs.is_dir() else []
+        # agent.log (1.49.1) est la propre sortie de l'agent : la relayer ferait boucler ses messages sur eux-mêmes.
+        files = sorted(path for path in logs.glob("*.log") if path.name.casefold() != "agent.log") if logs.is_dir() else []
         bridge = self.root / "workspace" / "orca_bridge.log"
         if bridge.is_file():
             files.append(bridge)

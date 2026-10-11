@@ -128,7 +128,7 @@ Bureau** (`C:\Users\<ton compte>\Desktop\alpine-makers-worker`). Les anciens emp
 | `workspace\` | Fichiers de travail 3D et de tranchage, reçus Orca (`_worker_jobs`). | Jamais. |
 | `runtime\` | État vivant : `worker-journal.sqlite3` (journal durable), une fiche `<outil>.json` par moteur lancé, `local-control\` (boîte aux lettres des outils locaux), `identity-deps\`, éventuel `python-3.12\` privé. | **Jamais, et ne rien y supprimer.** |
 | `config\` | Secrets locaux : `identity\` (clé privée du PC, chiffrée), jetons internes des moteurs. | **Jamais. Ne pas ouvrir, ne pas copier.** |
-| `logs\` | Journaux des moteurs (`image_generation.log`, `ai3d.log`, `printguard.log`, `model-studio.log`) et journal des outils du menu (`outils-worker.log`). | Jamais (tu peux les lire). |
+| `logs\` | Journaux des moteurs (`image_generation.log`, `ai3d.log`, `printguard.log`, `model-studio.log`), journal des outils du menu (`outils-worker.log`) et, quand le Worker démarre par la tâche planifiée ou l'entrée de démarrage de session, journal de l'agent (`agent.log` : sa sortie, ses arrêts et la trace d'un plantage ; MENU-WORKER > 3, clé « agent »). En service Windows, cette sortie va dans `C:\ProgramData\AlpineMakers\logs\AlpineWorker.log`. | Jamais (tu peux les lire). |
 | `temp\` | Fichiers temporaires des installations et mises à jour. | Jamais (le nettoyage léger du menu sait quoi y retirer). |
 | `storage.json` | Réglages des emplacements de cache et de temporaires. | Jamais. |
 | `config.json` | Adresse du site, identifiant du Worker, nom, réglages. **Secret.** | **Jamais. Ne pas partager.** |

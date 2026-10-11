@@ -71,12 +71,8 @@ function Confirm-ActionVisible {
     #>
     param([string]$Question, [string]$MotExact = '', [switch]$Oui)
     if ($Oui) { return $true }
-    $entreeRedirigee = $false
-    try { $entreeRedirigee = [Console]::IsInputRedirected } catch { }
-    if ($entreeRedirigee) {
-        if ($MotExact) { Write-Host ('   ' + $Question + ' Tape ' + $MotExact + ' pour confirmer :') -ForegroundColor White }
-        else { Write-Host ('   ' + $Question + ' [O/N] :') -ForegroundColor White }
-    }
+    # Depuis l'agent 1.49.1, Read-Host du socle (commun.ps1) écrit lui-même l'invite quand l'entrée est un tube :
+    # l'écrire ici aussi la doublait.
     return (Confirm-Action -Question $Question -MotExact $MotExact)
 }
 

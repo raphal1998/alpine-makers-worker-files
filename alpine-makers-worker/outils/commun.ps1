@@ -186,6 +186,31 @@ function Write-Explication {
     Write-Host ''
 }
 
+function Test-EntreeRedirigee {
+    try { return [bool][Console]::IsInputRedirected } catch { return $false }
+}
+
+function Read-Host {
+    <#
+        Sous worker.exe, l'entrée de l'outil est un tube : PowerShell n'y écrit pas l'invite de Read-Host et la
+        question restait invisible (« Rallumer », incident du 11/10 : fenêtre figée, réponse attendue sans le dire).
+        Cette fonction, chargée par tous les outils avec commun.ps1, écrit alors l'invite en clair avant de lire.
+        Dans une console, rien ne change.
+    #>
+    param([Parameter(Position = 0)][object]$Prompt, [switch]$AsSecureString)
+    $invite = if ($null -eq $Prompt) { '' } else { ([string]$Prompt).TrimEnd() }
+    if ($invite -and (Test-EntreeRedirigee)) {
+        Write-Host ($invite + ' :') -ForegroundColor White
+        $invite = ''
+    }
+    if ($AsSecureString) {
+        if ($invite) { return (Microsoft.PowerShell.Utility\Read-Host -Prompt $invite -AsSecureString) }
+        return (Microsoft.PowerShell.Utility\Read-Host -AsSecureString)
+    }
+    if ($invite) { return (Microsoft.PowerShell.Utility\Read-Host -Prompt $invite) }
+    return (Microsoft.PowerShell.Utility\Read-Host)
+}
+
 function Confirm-Action {
     <#
         Demande une confirmation. -MotExact impose de taper un mot précis (actions

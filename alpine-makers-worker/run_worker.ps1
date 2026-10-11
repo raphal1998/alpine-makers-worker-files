@@ -47,6 +47,26 @@ try {
 $restartDelay = 3
 # L'agent sait ainsi que ce superviseur s'arrete de lui-meme sur le code 64.
 $env:ALPINE_WORKER_SUPERVISOR_EXIT_CODES = "64"
+# Agent 1.49.1 : tache planifiee ou entree de demarrage de session = console cachee que personne ne lit.
+# L'agent ecrit alors sa sortie (et la trace d'un plantage) dans logs\agent.log. Le service (nssm) recueille
+# deja la sortie : rien ne change pour lui.
+$agentLog = $null
+$outputRedirected = $false
+try { $outputRedirected = [Console]::IsOutputRedirected } catch { $outputRedirected = $false }
+if (-not $outputRedirected) {
+  $logsDirectory = Join-Path $PSScriptRoot "logs"
+  try {
+    if (!(Test-Path -LiteralPath $logsDirectory -PathType Container)) { New-Item -ItemType Directory -Path $logsDirectory -Force | Out-Null }
+    $agentLog = Join-Path $logsDirectory "agent.log"
+    $env:ALPINE_WORKER_LOG_FILE = $agentLog
+  } catch { $agentLog = $null }
+}
+function Write-SupervisorLog([string]$Message) {
+  Write-Host $Message
+  if ($agentLog) {
+    try { Add-Content -LiteralPath $agentLog -Value ((Get-Date -Format "yyyy-MM-dd HH:mm:ss") + " [superviseur] " + $Message) -Encoding UTF8 } catch { }
+  }
+}
 try {
   while ($true) {
     $startedAt = [DateTime]::UtcNow
@@ -55,12 +75,12 @@ try {
       & $python "agent.py" --config "config.json"
       $agentExitCode = $LASTEXITCODE
     } catch {
-      Write-Warning "Impossible de lancer le Worker. Nouvelle tentative automatique."
+      Write-SupervisorLog ("Impossible de lancer le Worker (" + $_.Exception.Message + "). Nouvelle tentative automatique.")
     }
     # Deconnexion demandee depuis le dashboard : aucune relance automatique.
     # Sortie 0 pour que la tache planifiee ne la traite pas comme un echec.
     if ($agentExitCode -eq 64) {
-      Write-Host "Worker deconnecte depuis le dashboard. Relance MENU-WORKER.bat > 5 (Reconnecter le Worker) ou redemarre le PC pour le reconnecter."
+      Write-SupervisorLog "Worker deconnecte depuis le dashboard. Relance MENU-WORKER.bat > 5 (Reconnecter le Worker) ou redemarre le PC pour le reconnecter."
       break
     }
     # An intentional update/restart (75), or an otherwise stable run, should
@@ -68,7 +88,7 @@ try {
     if ($agentExitCode -eq 75 -or ([DateTime]::UtcNow - $startedAt).TotalSeconds -ge 60) {
       $restartDelay = 3
     }
-    Write-Host "Worker arrete (code $agentExitCode). Relance automatique dans $restartDelay s."
+    Write-SupervisorLog "Worker arrete (code $agentExitCode). Relance automatique dans $restartDelay s."
     Start-Sleep -Seconds $restartDelay
     if ($agentExitCode -ne 75) {
       $restartDelay = [Math]::Min(60, $restartDelay * 2)

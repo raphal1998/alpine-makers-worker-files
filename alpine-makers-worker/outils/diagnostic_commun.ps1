@@ -59,6 +59,7 @@ function Get-JournauxConnus {
         @('orca',           'Bridge Orca (moteur)',             (Join-Path $Racine 'logs\model-studio.log')),
         @('orca-bridge',    'Bridge Orca (détail)',             (Join-Path $Racine 'workspace\orca_bridge.log')),
         @('outils',         'Actions faites avec ces outils',   (Join-Path $Racine 'logs\outils-worker.log')),
+        @('agent',          'Agent (tâche planifiée, session)', (Join-Path $Racine 'logs\agent.log')),
         @('service',        'Service AlpineWorker (sortie)',    (Join-Path $commun 'logs\AlpineWorker.log')),
         @('service-erreurs','Service AlpineWorker (erreurs)',   (Join-Path $commun 'logs\AlpineWorker.err.log')),
         @('service-precedent',        'Service, fois précédente (sortie)',  (Get-JournalServicePrecedent -Dossier $logsService)),

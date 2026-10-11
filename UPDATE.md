@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.49.1 — 2026-10-11
+
+**worker.exe affiche les questions des outils, et l'agent tient un journal hors service**
+
+### Ajouté
+- Journal de l'agent (logs\agent.log) quand le Worker démarre par la tâche planifiée ou par l'entrée de démarrage de session : sa sortie, ses arrêts (avec leur code) et la trace d'un éventuel plantage, consultables dans MENU-WORKER > 3 (Journaux), clé « agent ». Avant, cette sortie partait dans une console cachée et un Worker qui s'arrêtait au démarrage ne laissait aucune trace.
+
+### Corrigé
+- worker.exe : les questions posées par les outils (par exemple « Rallumer ce Worker maintenant ? [O/N] ») n'apparaissaient pas, la fenêtre semblait figée en attendant une réponse. Elles s'affichent maintenant avant chaque saisie, pour tous les outils.
+
+### Technique
+- Empreinte du paquet publié : `5a57b5afb553c0fd…` (dossier du paquet).
+
 ## Version 1.49.0 — 2026-10-09
 
 **Préparer pour une CNC : FreeCAD CAM calcule les parcours d'usinage sur le Worker**
