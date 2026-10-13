@@ -207,6 +207,13 @@ def package_installed(name, marker):
     return any((location / marker).is_file() for location in locations)
 
 
+def winrt_installed(target):
+    """Paquets WinRT de la capture Media Foundation présents dans le dossier de dépendances. ``winrt`` est un paquet
+    d'espace de noms (sans __init__.py, agent 1.50.6) : on regarde le module natif et l'espace Windows.Media.Capture.Frames."""
+    folder = Path(target) / "winrt"
+    return (folder / "windows" / "media" / "capture" / "frames" / "__init__.py").is_file() and any(folder.glob("_winrt.*.pyd"))
+
+
 def purge_partial_package(target, name):
     """Retire du dossier de dépendances un dossier de paquet sans __init__.py (copie interrompue),
     pour que pip le réinstalle en entier ; jamais ailleurs que sous ce dossier."""
@@ -444,7 +451,29 @@ def usb_camera_settings(cfg):
     fps = cfg.get("fps", 10)
     if isinstance(fps, bool) or not re.fullmatch(r"\d{1,2}", str(fps)) or not 1 <= int(fps) <= 30:
         raise ValueError("Cadence de caméra USB invalide (1 à 30 images par seconde).")
-    return {"index": int(index), "name": name, "width": size["width"], "height": size["height"], "fps": int(fps)}
+    # Agent 1.50.1 : backend OpenCV choisi sur la fiche ; absent (fiche d'avant) = automatique.
+    backend = str(cfg.get("camera_backend") or "auto").strip().lower()
+    if backend not in USB_BACKENDS:
+        raise ValueError("Backend OpenCV de caméra USB invalide (auto, msmf, dshow ou v4l2).")
+    return {"index": int(index), "name": name, "width": size["width"], "height": size["height"], "fps": int(fps),
+            "backend": backend}
+
+
+# Backend OpenCV de capture (fiche « Caméra USB ») → nom de la constante cv2. « auto » : sous Windows, Media Foundation
+# d'abord puis DirectShow (mesuré le 11/10/2026 sur deux caméras UVC d'un même PC : DSHOW+DSHOW échoue, MSMF+MSMF et
+# DSHOW+MSMF passent, MSMF+DSHOW lit mal) ; ailleurs, le backend par défaut d'OpenCV (V4L2 sous Linux).
+USB_BACKENDS = {"auto": None, "msmf": "CAP_MSMF", "dshow": "CAP_DSHOW", "v4l2": "CAP_V4L2"}
+USB_BACKEND_LABELS = {"CAP_MSMF": "MSMF", "CAP_DSHOW": "DirectShow", "CAP_V4L2": "V4L2", None: "backend par défaut"}
+
+
+def usb_backend_candidates(cv2, backend):
+    """Constantes cv2 à essayer dans l'ordre (None = VideoCapture(index) sans backend) ; jamais vide."""
+    if backend == "auto":
+        names = ("CAP_MSMF", "CAP_DSHOW") if os.name == "nt" else ()
+    else:
+        names = (USB_BACKENDS[backend],)
+    found = [getattr(cv2, name) for name in names if getattr(cv2, name, None) is not None]
+    return found or [None]   # constante absente de cet OpenCV : backend par défaut, comme avant
 
 
 def usb_capture_module():
@@ -473,18 +502,50 @@ def raise_current_thread_priority():
 
 
 def usb_open_capture(cv2, options):
-    """Ouvre la caméra USB : DirectShow sous Windows (index stable), backend par défaut ailleurs.
+    """Ouvre la caméra USB avec le backend de la fiche (ou, en automatique, MSMF puis DirectShow sous Windows).
+
+    En automatique, un backend qui n'ouvre pas la caméra ou ne livre pas d'image est libéré et le suivant est essayé :
+    les autres captures du Worker ne sont jamais touchées (chaque fiche a son propre VideoCapture).
+    L'objet rendu porte ``backend_label`` (nom affiché sur la fiche).
 
     Ordre imposé par DirectShow : taille, cadence, PUIS le format MJPEG. Mesuré le 2 octobre 2026 sur la caméra d'une
     Falcon2 (Creality Falcon Camera) en 1280×960 : MJPEG demandé en dernier → 30 i/s ; demandé avant la cadence, le
     réglage de cadence ramène le format non compressé (YUY2) → 1,2 i/s (surveillance IA « dégradée », lectures lentes
     jusqu'à la déconnexion). Une caméra sans MJPEG garde son format habituel."""
-    backend = getattr(cv2, "CAP_DSHOW", None) if os.name == "nt" else None
+    candidates = usb_backend_candidates(cv2, options.get("backend", "auto"))
+    capture = None
+    for position, backend in enumerate(candidates):
+        capture = usb_configure_capture(cv2, options, backend)
+        if position == len(candidates) - 1:
+            break   # dernier candidat : rendu tel quel, l'appelant juge isOpened() et les lectures
+        probed = usb_probe(capture)
+        if probed:
+            break
+        try:
+            capture.release()
+        except Exception:
+            pass
+    label = next((name for name, value in ((n, getattr(cv2, n, None)) for n in ("CAP_MSMF", "CAP_DSHOW", "CAP_V4L2"))
+                  if value is not None and value == backend), None)
+    options["backend_used"] = USB_BACKEND_LABELS[label]   # l'objet OpenCV n'accepte pas d'attribut libre
+    try:
+        capture.backend_label = options["backend_used"]
+    except Exception:
+        pass
+    return capture
+
+
+def usb_configure_capture(cv2, options, backend):
     capture = cv2.VideoCapture(options["index"], backend) if backend is not None else cv2.VideoCapture(options["index"])
     if options["width"] and options["height"]:
         capture.set(cv2.CAP_PROP_FRAME_WIDTH, options["width"])
         capture.set(cv2.CAP_PROP_FRAME_HEIGHT, options["height"])
     capture.set(cv2.CAP_PROP_FPS, options["fps"])
+    # Agent 1.50.2 : le format MJPEG et la taille de tampon ne sont imposés qu'à DirectShow (voir l'ordre ci-dessus).
+    # Media Foundation choisit lui-même son format ; les lui imposer après l'ouverture faisait échouer la première
+    # lecture (atelier, 11/10/2026) et l'automatique retombait sur DirectShow.
+    if backend is not None and backend == getattr(cv2, "CAP_MSMF", object()):
+        return capture
     fourcc, prop_fourcc = getattr(cv2, "VideoWriter_fourcc", None), getattr(cv2, "CAP_PROP_FOURCC", None)
     if callable(fourcc) and prop_fourcc is not None:
         capture.set(prop_fourcc, fourcc(*"MJPG"))
@@ -494,6 +555,52 @@ def usb_open_capture(cv2, options):
     return capture
 
 
+def usb_probe(capture, attempts=3):
+    """Vrai si la caméra ouverte livre une image (plusieurs essais : la première image MSMF peut tarder)."""
+    if not capture.isOpened():
+        return False
+    for _ in range(attempts):
+        try:
+            if capture.read()[0]:
+                return True
+        except Exception:
+            return False
+        time.sleep(0.3)
+    return False
+
+
+def usb_enumerate(cv2, limit=4):
+    """Index 0..limit-1 qui s'ouvrent, par backend, pour le message d'échec de la fiche (ouverture puis libération
+    immédiate, sans lecture). Rend par exemple « MSMF : 0, 1 · DirectShow : 1 »."""
+    parts = []
+    for name, label in (("CAP_MSMF", "MSMF"), ("CAP_DSHOW", "DirectShow"), ("CAP_V4L2", "V4L2")):
+        backend = getattr(cv2, name, None)
+        if backend is None or (name == "CAP_V4L2") == (os.name == "nt"):
+            continue
+        found = []
+        for index in range(limit):
+            capture = None
+            try:
+                capture = cv2.VideoCapture(index, backend)
+                if capture.isOpened():
+                    found.append(str(index))
+            except Exception:
+                pass
+            finally:
+                if capture is not None:
+                    try:
+                        capture.release()
+                    except Exception:
+                        pass
+        parts.append(f"{label} : {', '.join(found) if found else 'aucune'}")
+    return " · ".join(parts)
+
+
+# Agent 1.50.3 : sous Windows, chaque caméra USB est capturée dans son propre processus (usb_camera_capture.py).
+# Deux captures DirectShow dans un même processus se font tomber l'une l'autre avec certains pilotes (atelier,
+# 11/10/2026 : deux caméras qui marchent chacune seule, jamais ensemble), deux processus coexistent.
+USB_ISOLATED_CAPTURE = os.name == "nt"
+USB_ISOLATED_SCRIPT = "usb_camera_capture.py"
 USB_FPS_WINDOW_S = 5.0          # cadence de capture mesurée sur les 5 dernières secondes
 USB_MAX_FRAME_BYTES = 1024 * 1024
 
@@ -513,11 +620,13 @@ def usb_encode_frame(cv2, image, quality=80):
         quality -= 15
 
 
-def usb_capture_message(measured, wanted):
-    """Message de la fiche : cadence réellement capturée, et la cause probable quand elle reste loin du réglage."""
+def usb_capture_message(measured, wanted, backend=""):
+    """Message de la fiche : backend utilisé, cadence réellement capturée, et la cause probable quand elle reste loin
+    du réglage."""
+    where = f" ({backend})" if backend else ""
     if measured is None:
-        return "Caméra USB connectée — images capturées par le Worker."
-    text = f"Caméra USB connectée — {measured:.1f} image(s)/s capturée(s) par le Worker".replace(".", ",", 1)
+        return f"Caméra USB connectée{where} — images capturées par le Worker."
+    text = f"Caméra USB connectée{where} — {measured:.1f} image(s)/s capturée(s) par le Worker".replace(".", ",", 1)
     if measured < wanted * 0.6:
         text += (f" pour {wanted} demandée(s) : la caméra ne fournit pas plus à cette résolution "
                  "(baisse la résolution ou vérifie qu'elle propose le format MJPEG)")
@@ -762,6 +871,84 @@ class Device:
             if self.stop.wait(2):
                 break
 
+    def _usb_camera_isolated(self, options):
+        """Même déroulé que la capture en processus, mais OpenCV tourne dans un processus fils par caméra."""
+        script = Path(__file__).with_name(USB_ISOLATED_SCRIPT)
+        delay = 2
+        while not self.stop.is_set():
+            process = None
+            try:
+                self.progress(20, "Ouverture de la caméra USB sur le Worker…")
+                if not script.is_file():
+                    raise FileNotFoundError("usb_camera_capture.py absent : lance « Réparer » ou mets le Worker à jour")
+                env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+                process = subprocess.Popen([sys.executable, str(script), "--root", str(self.root), "--options", json.dumps(options),
+                                            "--parent", str(os.getpid())],
+                                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, env=env,
+                                           cwd=str(self.root), creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                # L'arrêt demandé tue le processus : la lecture bloquante ci-dessous se termine alors sur une fin de flux.
+                threading.Thread(target=self._usb_kill_on_stop, args=(process,), daemon=True).start()
+                stamps, reported, measured, backend = [], 0.0, False, ""
+                self.capture_fps = None
+                while True:
+                    header = process.stdout.readline()
+                    if not header:
+                        raise ConnectionError("La capture de la caméra USB s’est arrêtée")
+                    if header.startswith(b"STATUS "):
+                        status = json.loads(header[7:].decode("utf-8", "replace"))
+                        if status.get("dependency"):
+                            self.progress(0, str(status.get("error") or usb_dependency_error(ImportError(name="cv2"))))
+                            return
+                        if not status.get("opened") or status.get("error"):
+                            seen = str(status.get("seen") or "")
+                            raise ConnectionError(str(status.get("error") or "Caméra USB indisponible")
+                                                  + (f". Caméras ouvrables vues par le Worker (index) — {seen}" if seen else ""))
+                        backend = str(status.get("backend") or "")
+                        self.progress(60, "Caméra USB ouverte — attente de la première image…")
+                        continue
+                    if not header.startswith(b"FRAME "):
+                        continue
+                    size = int(header.split()[1])
+                    frame = process.stdout.read(size)
+                    if len(frame) != size:
+                        raise ConnectionError("La capture de la caméra USB s’est arrêtée")
+                    self.validate_frame(frame)
+                    with self.lock:
+                        self.frame, self.frame_at = frame, time.time()
+                    now = time.monotonic()
+                    stamps = [stamp for stamp in stamps if now - stamp <= USB_FPS_WINDOW_S] + [now]
+                    if len(stamps) >= 2 and now - stamps[0] >= 1.0:
+                        self.capture_fps = (len(stamps) - 1) / (now - stamps[0])
+                    if reported == 0.0 or now - reported >= USB_FPS_WINDOW_S or (self.capture_fps and not measured):
+                        reported, measured = now, bool(self.capture_fps)
+                        self.progress(100, usb_capture_message(self.capture_fps, options["fps"], backend), True)
+                    delay = 2
+            except Exception as error:
+                if self.stop.is_set():
+                    break
+                detail = str(error)
+                self.progress(15, f"Caméra USB indisponible ({type(error).__name__}) — nouvel essai automatique." + (f" {detail}." if detail else ""))
+            finally:
+                if process is not None:
+                    try:
+                        process.kill()
+                    except Exception:
+                        pass
+                    try:
+                        process.stdout.close()
+                    except Exception:
+                        pass
+            if self.stop.wait(delay):
+                break
+            delay = min(30, delay * 2)
+
+    def _usb_kill_on_stop(self, process):
+        self.stop.wait()
+        try:
+            process.kill()
+        except Exception:
+            pass
+
     def _camera(self):
         cfg = self.spec["settings"]
         connector = validate_connector(self.spec)
@@ -841,10 +1028,14 @@ class Device:
     def _usb_camera(self):
         """Caméra USB (UVC) branchée au Worker : capture OpenCV, images JPEG comme les autres caméras."""
         options = usb_camera_settings(self.spec["settings"])
+        if USB_ISOLATED_CAPTURE:
+            self._usb_camera_isolated(options)
+            return
         target = runtime_dependencies(self.root)
         if str(target) not in sys.path:
             sys.path.insert(0, str(target))
         delay = 2
+        enumerated = False
         while not self.stop.is_set():
             capture = None
             try:
@@ -853,6 +1044,7 @@ class Device:
                 capture = usb_open_capture(cv2, options)
                 if not capture.isOpened():
                     raise ConnectionError("Caméra USB introuvable ou déjà utilisée par un autre programme")
+                enumerated = False
                 self.progress(60, "Caméra USB ouverte — attente de la première image…")
                 interval, misses, quality, stamps, reported, measured = 1.0 / options["fps"], 0, 80, [], 0.0, False
                 self.capture_fps = None
@@ -879,7 +1071,7 @@ class Device:
                         # Message mis à jour au plus toutes les 5 s : la fiche affiche la cadence réelle.
                         if reported == 0.0 or now - reported >= USB_FPS_WINDOW_S or (self.capture_fps and not measured):
                             reported, measured = now, bool(self.capture_fps)
-                            self.progress(100, usb_capture_message(self.capture_fps, options["fps"]), True)
+                            self.progress(100, usb_capture_message(self.capture_fps, options["fps"], options.get("backend_used", "")), True)
                         delay = 2
                     # La lecture attend déjà l'image suivante de la caméra : seul le reste de la période est attendu
                     # (attendre une période entière en plus divisait la cadence par deux).
@@ -889,7 +1081,15 @@ class Device:
                 self.progress(0, usb_dependency_error(error))
                 return
             except Exception as error:
-                self.progress(15, f"Caméra USB indisponible ({type(error).__name__}) — nouvel essai automatique.")
+                seen = ""
+                if not enumerated and options["backend"] == "auto":
+                    # Une fois par série d'échecs : ce que ce Worker voit vraiment (index ouvrables par backend).
+                    enumerated = True
+                    try:
+                        seen = " Caméras ouvrables vues par le Worker (index) — " + usb_enumerate(cv2) + "."
+                    except Exception:
+                        seen = ""
+                self.progress(15, f"Caméra USB indisponible ({type(error).__name__}) — nouvel essai automatique.{seen}")
             finally:
                 if capture is not None:
                     try:
@@ -1275,16 +1475,21 @@ class EquipmentRelay:
                 if str(target) not in sys.path:
                     sys.path.insert(0, str(target))
                 steps = []
-                if not package_installed("cv2", "__init__.py"):
+                # Agent 1.50.5 : Media Foundation (WinRT, Windows) fait partie du profil ; un Worker qui avait déjà
+                # OpenCV repasse par l'installation tant que winrt manque (incident de l'atelier, 12/10).
+                winrt_missing = os.name == "nt" and not winrt_installed(target)
+                if not package_installed("cv2", "__init__.py") or winrt_missing:
                     if purge_partial_package(target, "cv2"):
                         self.agent.command_progress(command_id, 5, "Dossier OpenCV incomplet retiré (copie interrompue) ; réinstallation…")
-                    self.agent.command_progress(command_id, 10, "OpenCV absent : installation de la capture vidéo USB (opencv-python-headless, sans GPU)…")
+                    self.agent.command_progress(command_id, 10, "Installation de la capture vidéo USB (OpenCV sans GPU" + (" et Media Foundation / WinRT" if os.name == "nt" else "") + ")…")
                     self.agent.run_installer([sys.executable, str(Path(__file__).with_name("equipment_video_relay.py")), "--install-profile", str(target), "--profile", "usb_camera"], os.environ.copy(), command_id)
                     if not package_installed("cv2", "__init__.py"):
                         raise ValueError("OpenCV reste introuvable ou incomplet après l’installation : vérifie les droits du dossier Worker et l’accès réseau à PyPI, puis relance Installer.")
-                    steps.append("OpenCV installé")
+                    if os.name == "nt" and not winrt_installed(target):
+                        raise ValueError("Media Foundation (paquets winrt) reste introuvable après l’installation : vérifie l’accès réseau à PyPI, puis relance Installer.")
+                    steps.append("OpenCV installé" if winrt_missing is False else "OpenCV et Media Foundation installés")
                 else:
-                    steps.append("OpenCV présent")
+                    steps.append("OpenCV et Media Foundation présents" if os.name == "nt" else "OpenCV présent")
                 if not dependency_health(target)["ok"]:
                     self.agent.command_progress(command_id, 50, "Dépendances JPEG du Worker absentes : installation des dépendances épinglées du relais…")
                     self.agent.run_installer([sys.executable, str(Path(__file__).with_name("equipment_video_relay.py")), "--install-dependencies", str(target)], os.environ.copy(), command_id)

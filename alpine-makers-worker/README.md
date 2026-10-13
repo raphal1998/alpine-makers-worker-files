@@ -57,6 +57,15 @@ pas le Worker. `worker.exe` et l'installateur sont signés par un certificat aut
 peut tout de même afficher un avertissement au premier lancement (détails dans `docs/worker_signing/README.md`
 du dashboard).
 
+**★ Gestion complète** (bouton de la barre latérale de `worker.exe`, ou `worker.exe --gestion-complete
+[--onglet installations]`) fait tout ce que fait la page Mes Workers du Dashboard : modules (démarrer, arrêter,
+associer, dissocier, par sélection ou tous), installations (tout le catalogue, installer ou désinstaller une
+sélection, réparer un moteur, annuler), réglages (nom, limites de génération image, jobs simultanés, Worker
+principal, acceptation automatique), maintenance, partage, jobs et demandes de jobs, console, révocation et
+suppression avec ou sans désinstallation. Elle est **désactivée par défaut** : le propriétaire l'active pour ce
+Worker dans le Dashboard (Mes Workers → carte du Worker → « worker.exe : gestion complète »). Le PC ne peut pas
+l'activer lui-même ; chaque action passe par une demande signée de l'agent et est notifiée au propriétaire.
+
 La **version** installée n'est volontairement écrite nulle part dans ce document : lis-la
 dans l'en-tête du menu, ou dans le fichier `agent_manifest.json` (ligne `agent_version`).
 
@@ -559,7 +568,10 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
 
 - **Quand** : après l'entrée 11.
 - **Fait** : remet le service en démarrage **Automatique**, le démarre, et redemande le
-  démarrage des **moteurs qui tournaient** au moment de l'extinction.
+  démarrage des **moteurs qui tournaient** au moment de l'extinction. En tâche planifiée ou
+  entrée de session, vérifie d'abord que ton compte peut lire la clé du Worker
+  (`config\identity`) sans droits administrateur ; sinon (installation faite en administrateur),
+  te demande l'accord Windows et lui rend ce dossier (agent 1.49.2). La clé n'est ni lue ni modifiée.
 - **Ne fait PAS** : n'installe rien, ne change pas l'identité.
 - **Résultat attendu** : service « Running / Auto », Worker en ligne, moteurs qui reviennent
   en quelques minutes (le chargement d'un moteur est long, c'est normal).

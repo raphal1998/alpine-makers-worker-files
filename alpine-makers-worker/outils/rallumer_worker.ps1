@@ -9,7 +9,8 @@
     -DejaEleve est posé par Invoke-OutilEleve : l'instance administrateur ne fait QUE
     remettre le service en Automatique et le démarrer ; avec -SeulementTache elle ne
     fait QUE réactiver la tâche planifiée (le Worker, lui, est toujours lancé SANS
-    droits administrateur).
+    droits administrateur) ; avec -SeulementIdentite elle ne fait QUE rendre la clé du
+    Worker (config\identity) accessible au compte -PourSid (agent 1.49.2).
 #>
 param(
     [string]$Racine = '',
@@ -18,7 +19,9 @@ param(
     [switch]$SansMoteurs,
     [switch]$SansPause,
     [switch]$DejaEleve,
-    [switch]$SeulementTache
+    [switch]$SeulementTache,
+    [switch]$SeulementIdentite,
+    [string]$PourSid = ''
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'commun.ps1')
@@ -106,6 +109,20 @@ try {
     if ($DejaEleve) {
         Write-Cadre -Titre 'RALLUMER LE WORKER : phase administrateur' -Lignes @('Cette fenêtre se ferme seule ; la suite s''affiche dans la première.')
         if (-not (Test-Administrateur)) { Write-Erreur 'Cette fenêtre n''a pas les droits administrateur.'; exit 3 }
+        if ($SeulementIdentite) {
+            # Phase dédiée : droits sur config\identity pour le compte qui lance le Worker, RIEN d'autre.
+            if ($PourSid -notmatch '^S-1-5-21-[\d-]+$') { Write-Erreur 'Compte Windows invalide pour la réparation de la clé.'; exit 1 }
+            try {
+                $n = Repair-AccesIdentite -Racine $Racine -Sid $PourSid
+                Write-Ok ('Clé du Worker de nouveau accessible à ton compte (' + $n + ' élément(s) corrigé(s)).')
+                Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message ('accès à config\identity rendu au compte ' + $PourSid + ' (' + $n + ' élément(s))')
+                Exit-Outil -Code 0 -SansPause
+            } catch {
+                Write-Erreur ('Réparation de l''accès à la clé impossible : ' + $_.Exception.Message)
+                Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message ('ÉCHEC réparation de config\identity : ' + $_.Exception.Message)
+                Exit-Outil -Code 1 -SansPause
+            }
+        }
         if ($SeulementTache) {
             # Phase dédiée : réactiver la tâche, RIEN d'autre. Le Worker est lancé par l'instance non administrateur.
             $e = Enable-TachesDuWorker -Racine $Racine -Taches @((Get-TachesAReactiver -Racine $Racine).AReactiver)
@@ -278,6 +295,34 @@ try {
         Write-Erreur 'Cette fenêtre est administrateur et la tâche planifiée est désactivée : impossible de lancer le Worker sans lui donner des droits administrateur.'
         Write-Conseil 'Ferme-la, puis relance cet outil depuis une fenêtre normale (double-clic).'
         Exit-Outil -Code 1 -SansPause:$SansPause
+    }
+
+    # ------------------------------------------------------------ clé du Worker (agent 1.49.2)
+    # Sans élévation, un agent qui ne peut pas lire config\identity\private.key meurt à chaque relance sur
+    # « Accès refusé » (dossier créé depuis une fenêtre administrateur). Le service tourne en SYSTEM : non concerné.
+    if (-not $dejaEnMarche -and $mode.Mode -ne 'service') {
+        $sidCompte = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        if (Test-Administrateur) {
+            # La tâche lancera l'agent SANS élévation : l'accès vu d'ici ne prouve rien, on le rend au compte.
+            try { [void](Repair-AccesIdentite -Racine $Racine -Sid $sidCompte) } catch { Write-Alerte ('Accès à la clé du Worker non vérifié : ' + $_.Exception.Message) }
+        } elseif (-not (Test-IdentiteLisible -Racine $Racine)) {
+            Write-Section 'Étape 0 bis : accès à la clé du Worker'
+            Write-Alerte 'Ton compte ne peut pas lire la clé du Worker (config\identity) sans droits administrateur :'
+            Write-Info '      l''agent s''arrêterait aussitôt sur « Accès refusé ». Cause habituelle : installation faite en administrateur.'
+            Write-Info 'Windows va te demander ton accord : la fenêtre administrateur rend seulement ce dossier à ton compte.'
+            $codeCle = Invoke-OutilEleve -Script $PSCommandPath -Arguments ((Get-ArgumentsCommuns -Racine $Racine) + @('-SeulementIdentite', '-PourSid', $sidCompte))
+            if ($null -eq $codeCle) {
+                Write-Erreur 'Tu as refusé la fenêtre administrateur : le Worker ne peut pas démarrer sans sa clé.'
+                Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'élévation refusée (accès à la clé)'
+                Exit-Outil -Code 3 -SansPause:$SansPause
+            }
+            if ($codeCle -ne 0 -or -not (Test-IdentiteLisible -Racine $Racine)) {
+                Write-Erreur 'La clé du Worker reste illisible pour ton compte : le Worker ne démarrerait pas.'
+                Show-TraceOutil -Racine $Racine -Outil $NomOutil
+                Exit-Outil -Code 1 -SansPause:$SansPause
+            }
+            Write-Ok 'Clé du Worker accessible à ton compte.'
+        }
     }
 
     # ------------------------------------------------------------ démarrage

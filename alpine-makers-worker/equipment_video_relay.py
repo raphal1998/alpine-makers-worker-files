@@ -163,9 +163,17 @@ class VideoRelay:
 PINNED_REQUIREMENTS = ("paho-mqtt==2.1.0", "pyserial==3.5", "cryptography>=43.0.3", "Pillow==11.3.0")
 # Dépendances posées seules, à la demande d'un connecteur : le reste du relais n'est jamais
 # recopié (un module chargé par le relais en cours ne peut pas être écrasé sous Windows).
+# Agent 1.50.4 : capture par Media Foundation (WinRT) des caméras USB, Windows seulement (wheels purs, ~6 Mo).
+USB_CAMERA_WINRT_REQUIREMENTS = tuple(
+    name + "==3.2.1" for name in ("winrt-runtime", "winrt-Windows.Foundation", "winrt-Windows.Foundation.Collections",
+                                  "winrt-Windows.Devices.Enumeration", "winrt-Windows.Media", "winrt-Windows.Media.Capture",
+                                  "winrt-Windows.Media.Capture.Frames", "winrt-Windows.Media.MediaProperties",
+                                  "winrt-Windows.Media.Devices", "winrt-Windows.Graphics.Imaging", "winrt-Windows.Storage.Streams")
+) if __import__("os").name == "nt" else ()
 EXTRA_PROFILES = {
     "serial": {"requirements": ("pyserial==3.5",), "label": "de la liaison série GRBL (pyserial)"},
-    "usb_camera": {"requirements": ("opencv-python-headless==4.11.0.86",), "label": "de capture vidéo USB (OpenCV, sans GPU)"},
+    "usb_camera": {"requirements": ("opencv-python-headless==4.11.0.86",) + USB_CAMERA_WINRT_REQUIREMENTS,
+                   "label": "de capture vidéo USB (OpenCV et Media Foundation, sans GPU)"},
 }
 
 

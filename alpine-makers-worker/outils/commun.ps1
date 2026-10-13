@@ -364,6 +364,79 @@ function Test-Administrateur {
     return (New-Object Security.Principal.WindowsPrincipal($identite)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Test-IdentiteLisible {
+    <#
+        Agent 1.49.2 (incident de l'atelier du 11/10) : la clé config\identity\private.key est-elle accessible à CE
+        compte, tel qu'il tourne ? Python crée config\identity réservé à SYSTEM, Administrateurs et au propriétaire ;
+        créé depuis une fenêtre administrateur, le propriétaire est le groupe Administrateurs, et l'agent lancé SANS
+        élévation (tâche planifiée, entrée de session, Rallumer) mourait sur « Accès refusé » à chaque relance.
+        Ouvre le fichier sans en lire un octet. $true aussi quand il n'y a pas encore de clé.
+    #>
+    param([string]$Racine)
+    $cle = Join-Path $Racine 'config\identity\private.key'
+    try {
+        if (-not [IO.File]::Exists($cle)) {
+            # Exists répond « non » aussi quand le dossier est fermé : on le distingue en le listant.
+            $dossier = Join-Path $Racine 'config\identity'
+            if ([IO.Directory]::Exists($dossier)) { [void][IO.Directory]::GetFiles($dossier) }
+            return $true
+        }
+        $flux = [IO.File]::Open($cle, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+        $flux.Dispose()
+        return $true
+    } catch [UnauthorizedAccessException] {
+        return $false
+    } catch {
+        if ($_.Exception.InnerException -is [UnauthorizedAccessException]) { return $false }
+        return $true
+    }
+}
+
+function Repair-AccesIdentite {
+    <#
+        Administrateur : redonne au compte $Sid (celui qui lance le Worker, pas forcément celui de la fenêtre
+        administrateur) le contrôle de config\identity et de ses fichiers, et l'en fait propriétaire quand Windows
+        l'accepte. Les autorisations SYSTEM et Administrateurs restent ; personne d'autre n'est ajouté ; la clé
+        n'est ni lue ni modifiée. Refuse un lien ou une jonction. Renvoie le nombre d'éléments corrigés.
+    #>
+    param([string]$Racine, [string]$Sid)
+    $compte = [Security.Principal.SecurityIdentifier]::new($Sid)
+    $dossier = Join-Path $Racine 'config\identity'
+    if (-not [IO.Directory]::Exists($dossier)) { return 0 }
+    $racineDossier = [IO.DirectoryInfo]::new($dossier)
+    $dossierConfig = [IO.DirectoryInfo]::new((Join-Path $Racine 'config'))
+    foreach ($d in @($dossierConfig, $racineDossier)) {
+        if ($d.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw ('Lien refusé sur le chemin de la clé : ' + $d.FullName) }
+    }
+    $corriges = 0
+    # Le dossier d'abord : tant qu'il est fermé à ce compte, ses fichiers ne se listent même pas.
+    $file = New-Object System.Collections.Queue
+    $file.Enqueue($racineDossier)
+    while ($file.Count -gt 0) {
+        $e = $file.Dequeue()
+        $estDossier = $e -is [IO.DirectoryInfo]
+        if ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw ('Lien refusé dans le dossier de la clé : ' + $e.FullName) }
+        if ($estDossier) {
+            $acl = [IO.Directory]::GetAccessControl($e.FullName)
+            $regle = [Security.AccessControl.FileSystemAccessRule]::new($compte, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+        } else {
+            $acl = [IO.File]::GetAccessControl($e.FullName)
+            $regle = [Security.AccessControl.FileSystemAccessRule]::new($compte, 'FullControl', 'Allow')
+        }
+        $acl.AddAccessRule($regle)
+        if ($estDossier) { [IO.Directory]::SetAccessControl($e.FullName, $acl) } else { [IO.File]::SetAccessControl($e.FullName, $acl) }
+        # Propriétaire : seulement possible quand la fenêtre administrateur est celle de ce même compte.
+        try {
+            if ($estDossier) { $proprio = [Security.AccessControl.DirectorySecurity]::new() } else { $proprio = [Security.AccessControl.FileSecurity]::new() }
+            $proprio.SetOwner($compte)
+            if ($estDossier) { [IO.Directory]::SetAccessControl($e.FullName, $proprio) } else { [IO.File]::SetAccessControl($e.FullName, $proprio) }
+        } catch { }
+        $corriges++
+        if ($estDossier) { foreach ($enfant in $e.GetFileSystemInfos()) { $file.Enqueue($enfant) } }
+    }
+    return $corriges
+}
+
 function ConvertTo-ArgumentCite {
     <# Start-Process ne cite pas ses arguments : un chemin avec espace arriverait coupé en deux. #>
     param([string]$Valeur)

@@ -55,6 +55,8 @@ LAZY_ACTIONS = {
     "duplicates-plan": "duplicates", "duplicates-apply": "duplicates",
     "site-state": "self_service", "site-update": "self_service", "site-repair": "self_service",
     "jobs-stop": "self_service", "sharing-set": "self_service", "relay-status": "self_service",
+    # Agent 1.50.0 : gestion complète depuis worker.exe (route signée self/manage).
+    "manage": "full_control",
 }
 PARAMS_MAX_BYTES = 2048
 # Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.

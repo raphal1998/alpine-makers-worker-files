@@ -261,6 +261,31 @@ foreach ($workerSid in $workerSids) {
 # API .NET et non Set-Acl : sur un dossier Worker deja installe, Set-Acl exige SeSecurityPrivilege
 # (droits administrateur) et faisait echouer toute reinstallation ; l'API ecrit proprietaire + DACL seulement.
 [IO.Directory]::SetAccessControl($agentRoot, $workerAcl)
+# Agent 1.49.2 : Python cree config\identity reserve a SYSTEM, Administrateurs et au PROPRIETAIRE. Installe depuis
+# une fenetre administrateur, ce proprietaire est le groupe Administrateurs : l'agent lance ensuite SANS elevation
+# (tache planifiee, entree de session) mourait sur "Acces refuse" a chaque relance. On rend ce dossier au compte
+# qui installe, sans rien retirer et sans lire la cle.
+function Grant-WorkerIdentityToInstaller {
+  $identityFolder = Join-Path $agentRoot "config\identity"
+  if (![IO.Directory]::Exists($identityFolder)) { return }
+  try {
+    $items = @([IO.DirectoryInfo]::new($identityFolder)) + @(([IO.DirectoryInfo]::new($identityFolder)).GetFiles())
+    if (@($items | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) { throw "lien refuse dans config\identity" }
+    foreach ($item in $items) {
+      if ($item -is [IO.DirectoryInfo]) {
+        $itemAcl = [IO.Directory]::GetAccessControl($item.FullName)
+        $itemAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($identity.User, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"))
+        [IO.Directory]::SetAccessControl($item.FullName, $itemAcl)
+      } else {
+        $itemAcl = [IO.File]::GetAccessControl($item.FullName)
+        $itemAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($identity.User, "FullControl", "Allow"))
+        [IO.File]::SetAccessControl($item.FullName, $itemAcl)
+      }
+    }
+  } catch {
+    Write-Host "Acces du compte a la cle du Worker non verifie ($($_.Exception.Message)). Si le Worker ne demarre pas, lance MENU-WORKER > 12 (Rallumer le Worker)." -ForegroundColor Yellow
+  }
+}
 $preservedWorkerItems = @("config.json", "storage.json", "components", "cache", "temp", "runtime", "logs", "data", "outputs", "workspace", "jobs", "config", "python_path.txt", "git_path.txt", "supervisor.lock", ".worker-detached")
 if ([IO.Path]::GetFullPath($PSScriptRoot) -ne [IO.Path]::GetFullPath($agentRoot)) {
   foreach ($workerItem in Get-ChildItem -LiteralPath $PSScriptRoot -Force) {
@@ -304,6 +329,7 @@ if ($RecoverExisting) {
   if ($ServerUrl) { $recoveryArguments += @("--server-url", $ServerUrl) }
   & $python @recoveryArguments
   if ($LASTEXITCODE -ne 0) { throw "Recuperation non terminee. Aucun nouvel appairage ni changement de demarrage automatique. Lis le message ci-dessus." }
+  Grant-WorkerIdentityToInstaller
   & (Join-Path $agentRoot "configure_autostart.ps1") -AutoStart $AutoStart
   Write-Host "Identite existante verifiee dans $agentRoot. Avec AutoStart=No, lance MENU-WORKER.bat > 5 (Reconnecter le Worker) manuellement."
   exit 0
@@ -312,6 +338,7 @@ $existingIdentity = if (Test-Path -LiteralPath $config) { Get-Content -LiteralPa
 if ($existingIdentity.worker_id -and $existingIdentity.token) {
   if ($ServerUrl -and $ServerUrl.TrimEnd('/') -ne ([string]$existingIdentity.server_url).TrimEnd('/')) { throw "Ce Worker est deja associe a un autre site. Association conservee." }
   Write-Host "Identite existante conservee : aucune nouvelle association. Utilise MENU-WORKER.bat > 5 (Reconnecter le Worker) pour relancer, ou > 7 (Recuperer une inscription) si le site refuse l'identite."
+  Grant-WorkerIdentityToInstaller
   & (Join-Path $agentRoot "configure_autostart.ps1") -AutoStart $AutoStart
   exit 0
 }
@@ -339,5 +366,6 @@ if($pairExitCode -ne 0){
   Write-Host "Association du Worker impossible. Vérifie le code et crée-en un nouveau s'il a plus de 10 minutes." -ForegroundColor Red
   exit $pairExitCode
 }
+Grant-WorkerIdentityToInstaller
 & (Join-Path $agentRoot "configure_autostart.ps1") -AutoStart $AutoStart
 Write-Host "Worker associe dans $agentRoot. Choix de demarrage automatique : $AutoStart."

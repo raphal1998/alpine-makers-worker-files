@@ -254,7 +254,9 @@ def call(args, cwd=None, timeout=3600, *, progress_value=None, progress_label="I
         options = {**_process_options(env, low_priority), "encoding": "utf-8", "errors": "replace"}
     result = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout, check=False, **options)
     if result.returncode:
-        raise RuntimeError((result.stderr or result.stdout)[-2500:] or "Commande d’installation échouée.")
+        # winget (hébergé AppInstaller) peut rendre .stdout et .stderr à None malgré
+        # capture_output=True (incident 13/10) : [-2500:] plantait alors sur None.
+        raise RuntimeError((result.stderr or result.stdout or "")[-2500:] or "Commande d’installation échouée.")
     return result.stdout
 
 

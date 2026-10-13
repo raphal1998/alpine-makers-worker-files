@@ -1,5 +1,112 @@
 # Historique des mises à jour
 
+## Version 1.50.9 — 2026-10-12
+
+**Capture USB : le processus de capture s'arrête avec l'agent (plus d'orphelin qui garde la caméra)**
+
+### Corrigé
+- Quand l'agent était arrêté net (mise à jour, redémarrage), un processus de capture sans image à envoyer restait vivant, caméra en main : toutes les ouvertures suivantes réussissaient sans jamais recevoir d'image (« reçues : 0 »). Le processus surveille maintenant son agent et sort dès qu'il disparaît. Les orphelins déjà présents disparaissent au redémarrage du PC.
+
+### Technique
+- Empreinte du paquet publié : `aa3a98bbf3afdf64…` (dossier du paquet).
+
+## Version 1.50.8 — 2026-10-12
+
+**Media Foundation : image MJPEG reçue compressée prise telle quelle, 640×480 par défaut**
+
+### Ajouté
+- Sans largeur ni hauteur sur la fiche, Media Foundation choisit 640×480 si la caméra le propose.
+
+### Corrigé
+- Certaines caméras livrent leur flux MJPEG compressé, sans image décodée : l'agent l'ignorait et annonçait « ne fournit pas d'images ». Le JPEG est maintenant transmis tel quel. Le message d'échec donne le format retenu et le compte des images reçues, décodées, JPEG et vides.
+
+## Version 1.50.7 — 2026-10-12
+
+**Caméra USB sans image en Media Foundation : repli DirectShow en automatique, noms des caméras sur la fiche**
+
+### Ajouté
+- La fiche connectée nomme la caméra ouverte (« Media Foundation · Logitech StreamCam · MJPG 640×480 ») : l'ordre des index de Media Foundation n'est pas celui de DirectShow.
+
+### Corrigé
+- Une caméra ouverte par Media Foundation mais sans image (tenue par un autre programme, ou mauvais index) faisait recommencer l'agent en boucle ; en automatique il passe maintenant à DirectShow, et en « Media Foundation » forcé la fiche liste les caméras dans l'ordre des index.
+
+## Version 1.50.6 — 2026-10-12
+
+**« Installer la capture USB » reconnaît les paquets Media Foundation une fois posés**
+
+### Corrigé
+- Les paquets WinRT de Media Foundation, une fois installés, étaient tenus pour absents (paquet sans __init__.py) : « reste introuvable après l’installation ». La présence est maintenant vérifiée sur les fichiers réels du paquet.
+
+## Version 1.50.5 — 2026-10-12
+
+**« Installer la capture USB » pose aussi Media Foundation sur un Worker qui avait déjà OpenCV**
+
+### Corrigé
+- Un Worker où OpenCV était déjà installé répondait « OpenCV présent » sans poser les paquets WinRT de Media Foundation : la caméra restait sur « dépendances WinRT absentes ». L'installation reprend tant qu'ils manquent.
+
+## Version 1.50.4 — 2026-10-12
+
+**Caméras USB : capture par Media Foundation (Windows), deux caméras sur un même PC**
+
+### Ajouté
+- Capture des caméras USB par Media Foundation, le mécanisme de Windows lui-même (application Caméra, Teams) : les paquets OpenCV n'en disposent pas, l'agent passe par WinRT (dépendances posées par « Installer la capture USB »). Windows partage alors les caméras entre programmes et négocie le format (MJPEG préféré : moins de bande passante USB, deux caméras possibles sur un même contrôleur).
+- Mode Automatique : Media Foundation d'abord, DirectShow (OpenCV) si la caméra n'y est pas ; le choix « Media Foundation » l'impose. La fiche affiche le format retenu (« Media Foundation · MJPG 640×480 »).
+
+### Modifié
+- En cas d'échec, la fiche nomme les caméras que Media Foundation voit, dans l'ordre des index.
+
+## Version 1.50.3 — 2026-10-11
+
+**Deux caméras USB sur un même Worker : une capture par processus**
+
+### Corrigé
+- Sous Windows, chaque caméra USB est maintenant capturée dans son propre processus (usb_camera_capture.py) : deux captures DirectShow dans un même programme se faisaient tomber l'une l'autre avec certains pilotes (deux caméras qui marchaient chacune seule, jamais ensemble, et se reconnectaient à tour de rôle). Les images suivent le même chemin qu'avant ; l'agent n'ouvre plus OpenCV lui-même.
+- Media Foundation : les paquets OpenCV installés par pip n'en livrent pas le module ; le choix « MSMF » de la fiche ne peut donc rien ouvrir, le mode Automatique le constate et passe à DirectShow.
+
+## Version 1.50.2 — 2026-10-11
+
+**Caméras USB : Media Foundation ouvre vraiment, et la fiche dit quelles caméras le Worker voit**
+
+### Ajouté
+- Quand une caméra USB ne s'ouvre pas en mode automatique, le message de la fiche liste les index que le Worker peut ouvrir, par backend (« MSMF : 0, 1 · DirectShow : 1 ») : plus besoin de deviner l'index.
+
+### Corrigé
+- Media Foundation : l'agent lui imposait le format MJPEG et une taille de tampon après l'ouverture, ce qui faisait échouer la première image ; l'automatique retombait alors sur DirectShow, qui refuse une seconde caméra. Ces réglages ne sont plus envoyés qu'à DirectShow, et la première image MSMF est attendue jusqu'à trois fois.
+
+## Version 1.50.1 — 2026-10-11
+
+**Caméras USB : choix du backend OpenCV et deux caméras sur un même Worker**
+
+### Ajouté
+- Fiche « Caméra USB branchée au Worker (UVC) » : champ « Backend OpenCV » (Automatique = Media Foundation puis DirectShow sous Windows ; MSMF ; DirectShow ; V4L2 sous Linux). Le backend retenu est affiché sur la fiche (« Caméra USB connectée (MSMF) — … »).
+
+### Modifié
+- Un agent plus ancien ignore le nouveau réglage et garde DirectShow : les fiches existantes ne changent pas.
+
+### Corrigé
+- Deux caméras USB d'un même PC (index 0 et 1) : DirectShow, imposé jusqu'ici, refusait la seconde ; en automatique l'agent ouvre maintenant chaque caméra avec Media Foundation et ne retombe sur DirectShow que pour celle qui n'ouvre pas ou ne livre pas d'image, sans toucher à l'autre capture.
+
+## Version 1.50.0 — 2026-10-11
+
+**worker.exe fait tout ce que fait Mes Workers (gestion complète, à activer par le propriétaire)**
+
+### Ajouté
+- Fenêtre « ★ Gestion complète » dans worker.exe : démarrer et arrêter tous les modules ou une sélection, associer ou dissocier le Worker de ses pages d'outils (sélection, tout associer, tout dissocier), tout le catalogue des installations avec installation et désinstallation par sélection (plan et avertissements calculés par le site), réparation d'un moteur, annulation des installations, limites de génération image, nom, jobs simultanés, Worker principal, partage, jobs en cours et demandes de jobs, console, révocation et suppression avec ou sans désinstallation.
+- Sécurité : désactivée par défaut. Le propriétaire l'active Worker par Worker dans Mes Workers (bouton « worker.exe : gestion complète » de la carte) ; la machine ne peut jamais l'activer elle-même. Chaque action passe par une demande signée de l'agent, reste limitée à CE Worker et est notifiée au propriétaire.
+
+### Modifié
+- worker.exe --gestion-complete [--onglet installations] ouvre directement cette fenêtre.
+
+## Version 1.49.2 — 2026-10-11
+
+**Un Worker installé en administrateur démarre de nouveau par la tâche planifiée**
+
+### Modifié
+- Quand la clé est illisible, logs\agent.log l'explique en clair et indique l'outil qui la répare.
+
+### Corrigé
+- Un Worker installé depuis une fenêtre administrateur ne démarrait plus par la tâche planifiée, l'entrée de démarrage de session ni « Rallumer » : sa clé (config\identity) n'était lisible qu'en administrateur, et l'agent s'arrêtait sur « Accès refusé » à chaque relance. « Rallumer le Worker » (MENU-WORKER > 12) détecte maintenant ce cas et, avec ton accord Windows, rend ce dossier à ton compte avant de lancer le Worker ; l'installateur le fait aussi dès l'installation. La clé n'est ni lue ni modifiée.
+
 ## Version 1.49.1 — 2026-10-11
 
 **worker.exe affiche les questions des outils, et l'agent tient un journal hors service**

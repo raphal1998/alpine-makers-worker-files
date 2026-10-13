@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.49.1"
+AGENT_VERSION = "1.50.9"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Maintenance des environnements (agent 1.35.17) : Python isolé et pip/wheel/setuptools des .venv gérés rafraîchis
@@ -145,6 +145,9 @@ AGENT_CAPABILITIES += ("worker_self_service_v1",)  # littéral : le site lit ces
 # Agent 1.49.0, Préparer pour une CNC : runners/freecad.py lance freecad_cam.py (FreeCAD CAM) sur un projet déclaratif revalidé par
 # cam_payload ; le G-code produit est relu par cam_gcode_check avant d'être rendu. Aucune commande vers une machine.
 AGENT_CAPABILITIES += ("freecad_cam_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.50.0 : gestion complète depuis worker.exe. L'action locale « manage » (full_control.py) relaie une opération
+# de Mes Workers vers la route signée self/manage ; le site ne l'accepte que si le propriétaire l'a activée.
+AGENT_CAPABILITIES += ("worker_full_control_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -910,6 +913,10 @@ class Agent:
                     required = {"agent.py", "safety.py", "job_state.py", "process_control.py", "equipment_runtime.py", "equipment_signing.py", "equipment_video_relay.py"}
                     if version_parts >= (1, 12, 0):
                         required.update({"identity.py", "identity_setup.py"})
+                    if version_parts >= (1, 50, 3):
+                        required.add("usb_camera_capture.py")   # capture USB isolée (un processus par caméra)
+                    if version_parts >= (1, 50, 4):
+                        required.add("usb_camera_mf.py")        # capture USB par Media Foundation (WinRT)
                     if version_parts >= (1, 13, 0):
                         required.update({"installers/model_catalog.py", "hunyuan_worker.py"})
                     if version_parts >= (1, 14, 0):

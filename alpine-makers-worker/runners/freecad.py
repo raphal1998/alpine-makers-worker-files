@@ -98,7 +98,13 @@ def _run(job, workdir, state):
         process = _launch(state, command, stdout_path, stderr_path)
     details = _supervise(state, process, stdout_path)
     if not details.get("ok") or not destination.is_file():
-        raise ValueError(str(details.get("error") or "Conversion FreeCAD échouée ou sortie incomplète."))
+        # FreeCADCmd peut s'arrêter nativement (entité DXF/IGES mal formée, par exemple) avant
+        # d'écrire sa ligne RAPHAL_FREECAD_RESULT= : aucune exception Python à rapporter, mais sa
+        # sortie d'erreur garde souvent la trace utile (incident 13/10, conversion muette).
+        detail = str(details.get("error") or "").strip()
+        if not detail and stderr_path.is_file():
+            detail = stderr_path.read_text(encoding="utf-8", errors="replace").strip()[-800:]
+        raise ValueError(detail or "Conversion FreeCAD échouée ou sortie incomplète.")
     details.pop("ok", None)
     details["artifacts"] = [destination.name]
     state.finish("completed", result=details)

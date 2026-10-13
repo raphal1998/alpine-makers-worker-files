@@ -63,8 +63,20 @@ def dpapi(data, decrypt=False):
         kernel.LocalFree(result.data)
 
 
+IDENTITY_ACCESS_DENIED = ("La clé du Worker (config\\identity) est illisible pour ce compte Windows sans droits "
+                          "administrateur (dossier créé depuis une fenêtre administrateur). Lance MENU-WORKER > "
+                          "12 (Rallumer le Worker) : il la rend à ton compte.")
+
+
 class Identity:
     def __init__(self, root, create=False):
+        try:
+            self._load(root, create)
+        except PermissionError as error:
+            # Agent 1.49.2 : l'agent lancé sans élévation mourait sur un « Accès refusé » muet à chaque relance.
+            raise PermissionError("%s (%s)" % (IDENTITY_ACCESS_DENIED, error)) from error
+
+    def _load(self, root, create):
         self.root = Path(root).resolve()
         directory = self.root / "config" / "identity"
         path = directory / "private.key"
@@ -72,6 +84,11 @@ class Identity:
         for entry in (self.root / "config", directory, path):
             if entry.is_symlink() or (entry.exists() and getattr(entry.lstat(), "st_file_attributes", 0) & 0x400):
                 raise ValueError("Identity paths must not be links")
+        # Selon la version de Python, exists()/is_symlink() avalent un refus d'accès et la clé paraîtrait absente.
+        try:
+            os.stat(path)
+        except FileNotFoundError:
+            pass
         Private, _, serialization = crypto()
         if not path.exists():
             if not create:
