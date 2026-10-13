@@ -11,7 +11,32 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-COMPONENT_VERSION = "1.0.0"
+# 1.1.0 (agent 1.50.10) : cadence (fps), largeur/hauteur par source, redimensionnement Pillow mis en cache par trame.
+COMPONENT_VERSION = "1.1.0"
+RESIZE_UNAVAILABLE = "Redimensionnement indisponible (Pillow absent des dépendances du relais) : flux transmis tel quel."
+
+
+def component_version():
+    """Lu par le Worker pour comparer le composant chargé/installé à celui du paquet."""
+    return COMPONENT_VERSION
+
+
+def _positive_int(value, maximum):
+    try:
+        number = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return number if 0 < number <= maximum else 0
+
+
+def source_options(fps=None, width=None, height=None):
+    """Options normalisées d'une source : 0/None = valeur par défaut (10 i/s) ou taille d'origine."""
+    try:
+        rate = float(fps or 0)
+    except (TypeError, ValueError):
+        rate = 0.0
+    rate = min(max(rate, 0.5), 60.0) if rate > 0 else 10.0
+    return {"fps": rate, "width": _positive_int(width, 4096), "height": _positive_int(height, 4096)}
 
 
 def dependency_directory(root):
@@ -70,9 +95,69 @@ class VideoRelay:
         self.lock = threading.RLock()
         self.servers = {}
         self.sources = {}
+        self.options = {}          # (port, source_id) -> {"fps", "width", "height"}
+        self.rendered = {}         # (port, source_id) -> (trame d'origine, trame servie) : une conversion par trame
+        self.render_locks = {}     # (port, source_id) -> verrou de conversion (lecteurs multiples)
+        self.resize_errors = {}    # (port, source_id) -> message si Pillow manque (repli : trame telle quelle)
         self.slots = threading.BoundedSemaphore(8)
 
-    def add(self, port, source_id, get_frame):
+    def source_options(self, port, source_id):
+        with self.lock:
+            return dict(self.options.get((int(port), source_id)) or source_options())
+
+    def render(self, key, frame):
+        """Trame servie pour ``key`` : redimensionnée (Pillow, JPEG qualité 80) si la source le demande.
+
+        Le résultat est mis en cache par identité de trame : plusieurs lecteurs d'une même source
+        partagent une seule conversion. Sans Pillow, la trame est transmise telle quelle et le
+        message est conservé dans ``resize_errors``.
+        """
+        with self.lock:
+            options = self.options.get(key) or source_options()
+            cached = self.rendered.get(key)
+            render_lock = self.render_locks.setdefault(key, threading.Lock())
+        width, height = options["width"], options["height"]
+        if not width and not height:
+            return frame
+        if cached and cached[0] is frame:
+            return cached[1]
+        with render_lock:
+            with self.lock:
+                cached = self.rendered.get(key)
+            if cached and cached[0] is frame:
+                return cached[1]
+            try:
+                import importlib
+                import io
+                Image = importlib.import_module("PIL.Image")
+                with Image.open(io.BytesIO(frame)) as picture:
+                    picture.load()
+                    original = picture.size
+                    if width and height:
+                        picture.thumbnail((width, height))
+                    elif width and picture.width > width:
+                        picture = picture.resize((width, max(1, round(picture.height * width / picture.width))))
+                    elif height and picture.height > height:
+                        picture = picture.resize((max(1, round(picture.width * height / picture.height)), height))
+                    if picture.size == original:
+                        output = frame
+                    else:
+                        buffer = io.BytesIO()
+                        picture.convert("RGB").save(buffer, format="JPEG", quality=80)
+                        output = buffer.getvalue()
+                with self.lock:
+                    self.resize_errors.pop(key, None)
+            except ImportError:
+                output = frame
+                with self.lock:
+                    self.resize_errors[key] = RESIZE_UNAVAILABLE
+            except Exception:
+                output = frame  # trame indécodable : le lecteur la reçoit telle quelle, le lecteur natif la rejettera
+            with self.lock:
+                self.rendered[key] = (frame, output)
+            return output
+
+    def add(self, port, source_id, get_frame, *, fps=None, width=None, height=None):
         port = int(port)
         if not 1024 <= port <= 65535 or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", source_id):
             raise ValueError("Port ou identifiant du relais invalide.")
@@ -113,6 +198,7 @@ class VideoRelay:
                             self.send_header("Cache-Control", "no-store")
                             self.send_header("X-Content-Type-Options", "nosniff")
                             if parsed.path == "/api/frame.jpeg":
+                                frame = hub.render(key, frame)
                                 self.send_header("Content-Type", "image/jpeg")
                                 self.send_header("Content-Length", str(len(frame)))
                                 self.end_headers()
@@ -121,18 +207,24 @@ class VideoRelay:
                             self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=alpine-frame")
                             self.end_headers()
                             previous = 0
+                            next_due = 0.0
                             while True:
                                 with hub.lock:
                                     if hub.sources.get(key) is not callback:
                                         break
+                                    period = 1.0 / (hub.options.get(key) or source_options())["fps"]
                                 frame, stamp = callback()
                                 if not frame or time.time() - stamp >= 8:
                                     break
-                                if stamp != previous:
+                                now = time.time()
+                                if stamp != previous and now >= next_due:
+                                    frame = hub.render(key, frame)
                                     self.wfile.write(b"--alpine-frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(frame)).encode() + b"\r\n\r\n" + frame + b"\r\n")
                                     self.wfile.flush()
                                     previous = stamp
-                                time.sleep(.1)
+                                    next_due = now + period
+                                # Une période par trame servie ; sondage borné pour suivre un arrêt de la source.
+                                time.sleep(min(period, .1))
                         except (OSError, ValueError):
                             pass
                         finally:
@@ -142,12 +234,20 @@ class VideoRelay:
                 thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": .1}, name=f"equipment-video-{port}", daemon=True)
                 self.servers[port] = (server, thread)
                 thread.start()
-            self.sources[(port, source_id)] = get_frame
+            key = (port, source_id)
+            self.sources[key] = get_frame
+            self.options[key] = source_options(fps, width, height)
+            self.rendered.pop(key, None)
+            self.resize_errors.pop(key, None)
         return f"http://127.0.0.1:{port}/api/stream.mjpeg?src={source_id}"
 
     def remove(self, port, source_id):
+        port = int(port)
         with self.lock:
-            self.sources.pop((port, source_id), None)
+            key = (port, source_id)
+            self.sources.pop(key, None)
+            for table in (self.options, self.rendered, self.render_locks, self.resize_errors):
+                table.pop(key, None)
             pair = self.servers.pop(port, None) if not any(key[0] == port for key in self.sources) else None
         if pair:
             server, thread = pair

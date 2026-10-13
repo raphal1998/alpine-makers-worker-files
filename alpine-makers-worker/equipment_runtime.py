@@ -27,11 +27,68 @@ from urllib.parse import parse_qs, urlsplit
 try:
     from .safety import protect_credentials
     from .equipment_signing import DeviceSigner
-    from .equipment_video_relay import dependency_directory
+    from .equipment_video_relay import dependency_directory, COMPONENT_VERSION as RELAY_COMPONENT_VERSION
 except ImportError:
     from safety import protect_credentials
     from equipment_signing import DeviceSigner
-    from equipment_video_relay import dependency_directory
+    from equipment_video_relay import dependency_directory, COMPONENT_VERSION as RELAY_COMPONENT_VERSION
+
+# Composant relais trop ancien pour la cadence et la taille (agent 1.50.10, composant 1.1.0).
+RELAY_OPTIONS_MIN_VERSION = (1, 1, 0)
+RELAY_OUTDATED_MESSAGE = "Relance Installer pour la cadence et la taille du relais (composant vidéo à mettre à jour)."
+RELAY_RESTART_MESSAGE = "Composant vidéo mis à jour : redémarre le Worker pour appliquer la cadence et la taille du relais."
+
+
+def version_tuple(value):
+    """« 1.1.0 » → (1, 1, 0) ; une valeur illisible vaut (0,) (composant d'avant le versionnage)."""
+    parts = re.findall(r"\d+", str(value or ""))
+    return tuple(int(part) for part in parts) if parts else (0,)
+
+
+def component_file_version(path):
+    """Version déclarée dans un composant relais sur disque, sans l'importer."""
+    try:
+        match = re.search(r'^COMPONENT_VERSION\s*=\s*"([^"]+)"', Path(path).read_text(encoding="utf-8"), re.M)
+    except (OSError, ValueError):
+        return (0,)
+    return version_tuple(match.group(1)) if match else (0,)
+
+
+def relay_configured(spec):
+    """Relais MJPEG local demandé pour cette caméra : réglage relay_enabled du site, ou mode relais P1S.
+
+    Clé relay_enabled absente = False : un Worker à jour ne change rien tant que le site n'envoie pas la clé.
+    Une caméra mjpeg_http dont l'URL d'entrée est déjà ce relais (même port, même source) est exclue : elle
+    se lirait elle-même.
+    """
+    if spec.get("kind") != "camera":
+        return False
+    settings = spec.get("settings") or {}
+    if settings.get("camera_mode") == "relay":
+        return True
+    if settings.get("relay_enabled") is not True:
+        return False
+    if settings.get("connector") == "mjpeg_http":
+        try:
+            parsed = urlsplit(str(settings.get("stream_url") or ""))
+            source = settings.get("source_id") or "cam_" + str(spec.get("id", "")).replace("-", "")
+            if parsed.port == port_number(settings.get("relay_port"), 1984, 1024) and parse_qs(parsed.query).get("src") == [source]:
+                return False
+        except ValueError:
+            return False
+    return True
+
+
+def relay_options(settings):
+    """Noms lus dans settings : relay_fps, relay_width, relay_height (0/absent = défaut 10 i/s, taille d'origine)."""
+    def number(key, maximum):
+        try:
+            value = float(settings.get(key) or 0)
+        except (TypeError, ValueError):
+            value = 0
+        return value if 0 < value <= maximum else 0
+
+    return {"fps": number("relay_fps", 60) or None, "width": int(number("relay_width", 4096)) or None, "height": int(number("relay_height", 4096)) or None}
 
 
 def runtime_dependencies(root):
@@ -738,8 +795,13 @@ class Device:
                 result["connected"] = False
             if self.spec["kind"] == "camera":
                 result["relay_installed"] = (self.root / "components" / "printer-link" / "equipment_video_relay.py").is_file()
+                # Lien MJPEG local rapporté pour toute caméra (P1S, flux MJPEG, USB) ; absent = arrêté.
+                result.update(relay_running=False, relay_verified=False)
             result.update(self.relay_state)
+            if self.spec["kind"] == "camera" and not result.get("relay_running"):
+                result.pop("relay_url", None)
             if self.spec["settings"].get("camera_mode") == "relay":
+                # Seul le mode relais P1S exige l'image vérifiée par le relais pour être « connecté ».
                 result["connected"] = bool(result.get("connected") and result.get("relay_running") and result.get("relay_verified"))
                 if not result["connected"]:
                     result.pop("relay_url", None)
@@ -1363,6 +1425,8 @@ class EquipmentRelay:
         self.testing = set()
         self.video = None
         self.video_sources = {}
+        self.video_options = {}   # identifiant -> options (fps, width, height) passées au relais
+        self.video_version = None  # version du composant relais chargé en mémoire
         self.relay_intent = {}
         # Surveillance incendie (agent 1.34.0) : garde de départ posée par l'agent (start_refusal / is_latched),
         # et état des arrêts par machine (arrêt en cours, dernier arrêt confirmé) pour les rendre idempotents.
@@ -1403,10 +1467,30 @@ class EquipmentRelay:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             self.video = module.VideoRelay()
+            self.video_version = version_tuple(getattr(module, "COMPONENT_VERSION", "1.0.0"))
         return self.video
+
+    def _relay_wanted(self, spec):
+        return bool(spec.get("enabled")) and relay_configured(spec)
+
+    def _relay_outdated_message(self):
+        """Message quand le composant chargé ne connaît pas la cadence/taille ; vide s'il est à jour."""
+        if self.video is None or (self.video_version or (0,)) >= RELAY_OPTIONS_MIN_VERSION:
+            return ""
+        return RELAY_RESTART_MESSAGE if component_file_version(self._component()) >= RELAY_OPTIONS_MIN_VERSION else RELAY_OUTDATED_MESSAGE
+
+    def _refresh_component(self):
+        """Recopie le composant relais du paquet dans components/printer-link/ s'il y est absent ou plus ancien."""
+        destination = self._component()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if not destination.is_file() or component_file_version(destination) < version_tuple(RELAY_COMPONENT_VERSION):
+            shutil.copy2(Path(__file__).with_name("equipment_video_relay.py"), destination)
+            return True
+        return False
 
     def _remove_source(self, identifier):
         previous = self.video_sources.pop(identifier, None)
+        self.video_options.pop(identifier, None)
         if previous and self.video:
             self.video.remove(*previous)
 
@@ -1414,13 +1498,22 @@ class EquipmentRelay:
         cfg = device.spec["settings"]
         source = cfg.get("source_id") or "cam_" + device.spec["id"].replace("-", "")
         pair = (port_number(cfg.get("relay_port"), 1984, 1024), source)
+        options = relay_options(cfg)
         previous = self.video_sources.get(device.spec["id"])
         if previous and previous != pair:
             self._remove_source(device.spec["id"])
-        url = (f"http://127.0.0.1:{pair[0]}/api/stream.mjpeg?src={pair[1]}" if previous == pair
-               else self._hub().add(*pair, device.frame_value))
+            previous = None
+        if previous == pair and self.video_options.get(device.spec["id"]) == options:
+            url = f"http://127.0.0.1:{pair[0]}/api/stream.mjpeg?src={pair[1]}"
+        else:
+            hub = self._hub()
+            if (self.video_version or (0,)) >= RELAY_OPTIONS_MIN_VERSION:
+                url = hub.add(*pair, device.frame_value, **options)
+            else:
+                url = hub.add(*pair, device.frame_value)  # composant 1.0.0 : ni cadence ni taille
         self.video_sources[device.spec["id"]] = pair
-        device.relay_state.update(relay_running=True, relay_url=url, relay_message="Relais démarré — attente de validation du flux vidéo.")
+        self.video_options[device.spec["id"]] = options
+        device.relay_state.update(relay_running=True, relay_url=url, relay_message=self._relay_outdated_message() or "Relais démarré — attente de validation du flux vidéo.")
         device.start()
 
     def _probe_source(self, device):
@@ -1434,7 +1527,8 @@ class EquipmentRelay:
                 raise ValueError("Réponse vidéo invalide")
             frame = response.read(1024*1024+1)
         device.validate_frame(frame)
-        device.relay_state.update(relay_verified=True, relay_message="Relais MJPEG actif — image vérifiée sur ce Worker.")
+        resize_error = getattr(self.video, "resize_errors", {}).get(pair) if self.video else ""
+        device.relay_state.update(relay_verified=True, relay_message=self._relay_outdated_message() or resize_error or "Relais MJPEG actif — image vérifiée sur ce Worker.")
 
     def install(self, payload, command_id):
         with self.install_lock:
@@ -1496,10 +1590,10 @@ class EquipmentRelay:
                     if not dependency_health(target)["ok"]:
                         raise ValueError("Dépendances JPEG non utilisables par le Python du Worker. Installation non validée ; réessaie Installer.")
                     steps.append("dépendances JPEG installées")
-                destination = self._component()
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(Path(__file__).with_name("equipment_video_relay.py"), destination)  # relais loopback (PrintGuard)
+                self._refresh_component()  # relais loopback (PrintGuard, lien MJPEG local)
                 message = ", ".join(steps) + " : la caméra USB est utilisable depuis ce Worker. Connecte-la, puis vérifie l’image."
+                if self._relay_outdated_message():
+                    message += " " + self._relay_outdated_message()
                 self.agent.command_progress(command_id, 100, message)
                 return {"installed": True, "message": message}
             destination = self._component()
@@ -1513,8 +1607,7 @@ class EquipmentRelay:
             if not dependency_health(target)["ok"]:
                 raise ValueError("Dépendances du relais non utilisables par le Python du Worker. Installation non validée ; vérifie les droits du dossier Worker et réessaie Installer.")
             self.agent.command_progress(command_id, 70, "Installation du composant MJPEG inclus dans le paquet Worker…")
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(Path(__file__).with_name("equipment_video_relay.py"), destination)
+            self._refresh_component()
             if str(target) not in sys.path:
                 sys.path.insert(0, str(target))
             importlib.invalidate_caches()
@@ -1536,13 +1629,15 @@ class EquipmentRelay:
             # or become a failed installation merely because the P1S is offline.
             # sync() continues any relay that was explicitly requested before.
             result["message"] += " La connexion de l’équipement se vérifie séparément avec Tester ou Démarrer le relais."
+            if self._relay_outdated_message():
+                result["message"] += " " + self._relay_outdated_message()
             self.agent.command_progress(command_id, 100, result["message"])
             return result
 
     def start_relay(self, payload, command_id):
         spec = self._spec(payload)
-        if spec["kind"] != "camera" or spec["settings"].get("connector", "p1s_tls") != "p1s_tls" or spec["settings"].get("camera_mode") != "relay":
-            raise ValueError("Démarrage MJPEG réservé au mode relais de la caméra P1S.")
+        if not relay_configured(spec):
+            raise ValueError("Démarrage MJPEG réservé aux caméras dont le relais local est activé (ou au mode relais P1S).")
         if not spec.get("enabled"):
             raise ValueError("Connecte d’abord cette caméra sur le site.")
         self.agent.command_progress(command_id, 85, "Démarrage du relais vidéo sur l’interface locale du Worker…")
@@ -1597,7 +1692,7 @@ class EquipmentRelay:
 
     def stop_relay(self, payload, command_id):
         spec = self._spec(payload)
-        if spec["kind"] != "camera" or spec["settings"].get("camera_mode") != "relay":
+        if not relay_configured(spec):
             raise ValueError("Cet équipement n’utilise pas le relais vidéo.")
         self.agent.command_progress(command_id, 30, "Arrêt du flux MJPEG et fermeture de la source caméra…")
         with self.lock:
@@ -2402,23 +2497,33 @@ class EquipmentRelay:
             for key, spec in wanted.items():
                 if key in self.testing:
                     continue
+                wanted_relay = self._relay_wanted(spec)
                 if key not in self.devices:
                     device = self.devices[key] = Device(spec, self.agent.root)
                     if spec["settings"].get("camera_mode") != "relay":
                         device.start()
+                    if wanted_relay and spec["settings"].get("camera_mode") != "relay" and not self.relay_intent.get(key):
+                        # Lien MJPEG local automatique (relay_enabled sur le site) : la fiche enregistrée vaut
+                        # intention ; une sauvegarde (revision+1) ou un redémarrage de l'agent relance le relais.
+                        # Un « Arrêter le relais » explicite reste respecté jusqu'à la prochaine fiche.
+                        self._save_intent(key, True)
                 device = self.devices[key]
                 if (spec["kind"] == "camera" and spec.get("enabled") and key == self._printguard_camera_id() and key not in self.video_sources
-                        and spec["settings"].get("connector") != "mjpeg_http" and spec["settings"].get("camera_mode") != "relay"):
+                        and spec["settings"].get("connector") != "mjpeg_http" and not wanted_relay):
                     # PrintGuard reads this camera on the loopback relay: bring the
                     # relay back after an agent restart so the hub does not stay blind.
                     try:
                         self._start_source(device)
                     except Exception:
                         pass
-                if spec["kind"] != "camera" or spec["settings"].get("camera_mode") != "relay":
+                if not relay_configured(spec):
+                    if spec["kind"] == "camera" and key not in self.video_sources and device.relay_state.get("relay_running"):
+                        device.relay_state.update(relay_running=False, relay_verified=False)
                     continue
                 device.relay_state["relay_installed"] = self._component().is_file()
-                if not spec.get("enabled") or not self.relay_intent.get(key):
+                if not wanted_relay or not self.relay_intent.get(key):
+                    if key in self.video_sources:
+                        self._remove_source(key)
                     device.relay_state.update(relay_running=False, relay_verified=False, relay_message="Relais arrêté. Utilise Installer puis Démarrer le relais.")
                     continue
                 try:

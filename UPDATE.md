@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.50.10 — 2026-10-14
+
+**Lien MJPEG local pour chaque caméra (cadence, largeur et hauteur réglables)**
+
+### Ajouté
+- Chaque caméra du Worker (P1S, flux MJPEG existant ou USB) obtient automatiquement un lien MJPEG local http://127.0.0.1:<port>/api/stream.mjpeg?src=camera_<id>, lisible uniquement sur le PC du Worker (OBS, LightBurn, PrintGuard…). La fiche de Mes équipements règle le port, les images par seconde, la largeur et la hauteur ; le relais recadre et ré-encode chaque image une seule fois pour tous les lecteurs. Capacité equipment_camera_relay_v2, composant relais 1.1.0 : relance « Installer » sur la fiche caméra après la mise à jour pour obtenir la cadence et la taille choisies.
+
+### Modifié
+- Le relais loopback n'est plus réservé au mode « relais » de la caméra P1S.
+
+### Technique
+- Empreinte du paquet publié : `1d5a3b5ad694ee65…` (dossier du paquet).
+
 ## Version 1.50.9 — 2026-10-12
 
 **Capture USB : le processus de capture s'arrête avec l'agent (plus d'orphelin qui garde la caméra)**
