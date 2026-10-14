@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.17 — 2026-10-15
+
+**Paramètres GRBL du contrôleur : modification contrôlée depuis Mes équipements**
+
+### Ajouté
+- Écriture groupée des réglages GRBL ($n=v) demandée depuis Mes équipements → Paramètres GRBL : machine au repos (Idle ou Alarm) et aucun travail en cours, $$ relu juste avant, seuls les réglages que la carte rapporte (réglages constructeur compris), paramètres critiques ($0-$6, $20-$23, $32, pas par mm, courses, réglages hors catalogue) acquittés un à un, écriture ligne par ligne avec attente du ok ou de l'error de la carte, arrêt au premier refus, relecture de $$ et vérification de chaque valeur. Jamais $RST, $X, $H, $N, $SLP ni mouvement. Capacité equipment_grbl_firmware_v1.
+
+### Technique
+- Empreinte du paquet publié : `2b68e2c76b00db8f…` (dossier du paquet).
+
 ## Version 1.50.16 — 2026-10-14
 
 **worker.exe : co-propriétaire avec équipements choisis, connexion autorisée et droits précis**

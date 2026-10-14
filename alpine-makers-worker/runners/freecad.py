@@ -147,9 +147,12 @@ def _supervise(state, process, stdout_path):
 
 def _launch(state, command, stdout_path, stderr_path):
     state.submit_intent(engine="freecad")
+    # Sans PYTHONIOENCODING, FreeCADCmd encode son stdout selon la page de code de la console
+    # Windows (pas UTF-8) ; lu ensuite en UTF-8 ici, tout accent devenait "�" (incident 14/10).
+    environment = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
     with stdout_path.open("w", encoding="utf-8") as stdout, stderr_path.open("w", encoding="utf-8") as stderr:
         try:
-            process = subprocess.Popen(command, stdout=stdout, stderr=stderr,
+            process = subprocess.Popen(command, stdout=stdout, stderr=stderr, env=environment,
                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         except OSError as error:
             state.finish("failed", error=str(error))

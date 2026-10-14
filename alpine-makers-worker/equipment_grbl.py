@@ -41,6 +41,7 @@ SETTLE_QUIET = 0.2      # s : silence attendu après la bannière avant la premi
 SETTLE_LIMIT = 1.0      # s : au plus, pour une carte qui parle encore après son démarrage
 RESYNC_GRACE = 0.25     # s : délai après le dernier « ok » avant de conclure que des accusés sont perdus
 MAX_LINE_LENGTH = 79      # LINE_BUFFER_SIZE 80 : error:11 au-delà.
+SETTINGS_TOLERANCE = 0.0015   # relecture $$ (3 décimales) comparée à la valeur écrite par lot
 MACHINE_KINDS = ("laser", "cnc")
 STATES = ("Idle", "Run", "Hold", "Jog", "Alarm", "Door", "Check", "Home", "Sleep")
 # Commandes temps réel : un seul octet, traité par GRBL sans passer par le tampon de lignes.
@@ -1283,6 +1284,76 @@ class GrblController:
             self._expect_ok(f"${number}={text}", timeout)
             self.settings = parse_settings(self._expect_ok("$$", timeout))
             return dict(self.settings)
+
+    def write_settings_batch(self, entries, timeout=5.0, tolerance=SETTINGS_TOLERANCE):
+        """Paramètres du contrôleur (agent 1.50.17) : écrit ``$n=v`` ligne par ligne, puis relit ``$$`` et compare.
+
+        ``entries`` = ``[{"number": int, "value": nombre}]`` déjà validés par le runtime (numéros présents dans le
+        dernier ``$$``, critiques acquittés). Chaque ligne attend son « ok » ; au premier ``error:N`` (ou alarme,
+        délai, liaison coupée, reset de la carte) l'envoi s'arrête : les lignes suivantes restent ``not_sent``.
+        Seules des lignes ``$<numéro>=<valeur>`` sont construites ici : jamais ``$RST``, ``$X``, ``$H``, ``$N``,
+        ``$SLP`` ni ``$J``, et aucun mouvement. Renvoie ``{"results": [...], "settings": {...}, "stopped": bool,
+        "readback_ok": bool}`` ; un réglage acquitté mais non relu (liaison perdue avant ``$$``) reste en ``error``
+        plutôt que compté comme écrit.
+        """
+        prepared = []
+        for entry in entries:
+            number = entry.get("number") if isinstance(entry, dict) else None
+            if isinstance(number, bool) or not isinstance(number, int) or not 0 <= number <= 999:
+                raise ValueError("Numéro de réglage GRBL invalide.")
+            amount = _number(entry.get("value"), f"Valeur du réglage ${number}")
+            prepared.append((number, amount, str(int(amount)) if amount == int(amount) else _format(amount)))
+        if not prepared:
+            raise ValueError("Aucun réglage à écrire.")
+        results = [{"number": number, "value": amount, "status": "not_sent", "message": "", "readback": None} for number, amount, _ in prepared]
+        stopped = False
+        stopped_at = None
+        with self._lock:
+            self._require_ready()
+            for index, (number, amount, text) in enumerate(prepared):
+                command = f"${number}={text}"
+                try:
+                    self._expect_ok(command, timeout)
+                except GrblCommandError as error:
+                    results[index].update(status="error", message=f"error:{error.code} — {describe_error(error.code)}")
+                    stopped = True
+                except GrblAlarm as error:
+                    results[index].update(status="error", message=str(error))
+                    stopped = True
+                except (GrblError, OSError, socket.timeout) as error:
+                    detail = str(error) if isinstance(error, GrblError) else f"liaison GRBL interrompue ({type(error).__name__})"
+                    results[index].update(status="error", message=f"Écriture de {command} non confirmée : {detail}")
+                    stopped = True
+                if stopped:
+                    stopped_at = number
+                    self._log(f"Paramètres : arrêt après {command} ({results[index]['message']}).")
+                    break
+                results[index].update(status="ok", message="acquitté par la carte")
+            readback = {}
+            readback_ok = False
+            try:
+                readback = parse_settings(self._expect_ok("$$", timeout))
+                readback_ok = bool(readback)
+            except (GrblError, OSError, socket.timeout) as error:
+                detail = str(error) if isinstance(error, GrblError) else f"liaison GRBL interrompue ({type(error).__name__})"
+                self._log(f"Paramètres : relecture $$ impossible ({detail}).")
+            if readback_ok:
+                self.settings = readback
+            for item in results:
+                if item["status"] != "ok":
+                    continue
+                if not readback_ok:
+                    item.update(status="error", message="acquitté par la carte, mais relecture $$ impossible : relis les réglages après la reconnexion")
+                    continue
+                value = readback.get(item["number"])
+                item["readback"] = value
+                if value is None:
+                    item.update(status="mismatch", message="acquitté mais absent de la relecture $$")
+                elif abs(float(value) - float(item["value"])) > tolerance:
+                    item.update(status="mismatch", message=f"acquitté mais la carte relit {value:g} au lieu de {item['value']:g}")
+                else:
+                    item["message"] = "écrit et relu"
+            return {"results": results, "settings": dict(self.settings), "stopped": stopped, "stopped_at": stopped_at, "readback_ok": readback_ok}
 
     def info(self, timeout=5.0):
         """Informations de la carte : ``$I`` (version, options), ``$G`` (état du parseur), ``$#`` (décalages)."""

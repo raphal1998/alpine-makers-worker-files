@@ -272,6 +272,21 @@ GRBL_LASER_TEST_MS_RANGE = (50, 3000)   # durée réglable (agent 1.33.0) ; 1000
 # accélérations ($120-$122), courses ($130-$132). Jamais les pas par mm, les inversions, les fins de course
 # ni l'activation du homing ($0, $2-$6, $20-$23, $100-$102) ; jamais $RST.
 GRBL_WRITABLE_SETTINGS = frozenset({1, 10, 11, 12, 13, 24, 25, 26, 27, 30, 31, 32, 110, 111, 112, 120, 121, 122, 130, 131, 132})
+# Paramètres du contrôleur (agent 1.50.17, capacité equipment_grbl_firmware_v1) : action « write_batch » des réglages.
+# Tout numéro présent dans le dernier ``$$`` peut être écrit, un à la fois avec attente de l'accusé ; les réglages
+# critiques (impulsions, inversions, limites/référencement, pas par mm, courses, mode laser) et tout numéro hors du
+# catalogue GRBL 1.1 / grblHAL exigent ``critical_ack`` ; jamais $RST, $X, $H, $N…, $SLP ni $J. Même liste que
+# laser_grbl_catalog.CRITICAL_SETTINGS côté site (le Worker n'importe pas le catalogue).
+GRBL_KNOWN_SETTINGS = frozenset({*range(0, 7), 10, 11, 12, 13, *range(20, 29), 30, 31, 32, 40, *range(100, 106), *range(110, 116),
+                                 *range(120, 126), *range(130, 136)})
+GRBL_CRITICAL_SETTINGS = frozenset({*range(0, 7), 20, 21, 22, 23, 32, *range(100, 106), *range(130, 136)})
+GRBL_SETTINGS_BATCH_MAX = 64
+GRBL_SETTINGS_TOLERANCE = 0.0015
+
+
+def grbl_setting_critical(number):
+    """Réglage à acquitter explicitement : critique du catalogue, ou inconnu de celui-ci (constructeur)."""
+    return number in GRBL_CRITICAL_SETTINGS or number not in GRBL_KNOWN_SETTINGS
 GRBL_PROBE_MAX_TRAVEL_MM = 500.0
 GRBL_OVERRIDE_LABELS = {"feed": "d’avance", "rapid": "des rapides", "power": "de puissance"}
 GRBL_OVERRIDE_ACTION_LABELS = {"reset": "retour à 100 %", "plus10": "+10 %", "minus10": "−10 %", "plus1": "+1 %", "minus1": "−1 %",
@@ -2512,6 +2527,58 @@ class EquipmentRelay:
         report.close = poster.close
         return report
 
+    def _grbl_write_batch(self, controller, request, result):
+        """Paramètres du contrôleur (agent 1.50.17) : ``settings`` / ``write_batch``, revalidé ici en entier.
+
+        Contrôles avant tout envoi : 1 à 64 entrées, numéro et valeur valides, numéro présent dans un ``$$`` relu
+        à l'instant, ``expected`` (facultatif) égal à la valeur relue, critique acquitté, machine Idle ou Alarm
+        (aucun job : déjà refusé par ``_grbl_command``). Puis écriture ligne à ligne avec arrêt au premier échec,
+        relecture et comparaison par le contrôleur. Un échec partiel rend ses résultats (commande terminée, non
+        confirmée) : le site les lit un à un au lieu d'un succès global.
+        """
+        entries = request.get("entries")
+        if not isinstance(entries, list) or not 1 <= len(entries) <= GRBL_SETTINGS_BATCH_MAX:
+            raise ValueError(f"Lot de réglages invalide (1 à {GRBL_SETTINGS_BATCH_MAX} entrées).")
+        prepared = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValueError("Entrée de réglage invalide.")
+            number = entry.get("number")
+            if isinstance(number, bool) or not re.fullmatch(r"[0-9]{1,3}", str(number)):
+                raise ValueError("Numéro de réglage GRBL invalide.")
+            number = int(number)
+            value = entry.get("value")
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or abs(value) > 1e7:
+                raise ValueError(f"Valeur du réglage ${number} invalide.")
+            expected = entry.get("expected")
+            if expected is not None and (isinstance(expected, bool) or not isinstance(expected, (int, float)) or not math.isfinite(expected)):
+                raise ValueError(f"Valeur attendue du réglage ${number} invalide.")
+            if any(item["number"] == number for item in prepared):
+                raise ValueError(f"Réglage ${number} présent deux fois dans le lot.")
+            if grbl_setting_critical(number) and entry.get("critical_ack") is not True:
+                raise ValueError(f"Réglage ${number} critique : acquitte-le explicitement avant l’écriture.")
+            prepared.append({"number": number, "value": value, "expected": expected})
+        self._grbl_ready_to_move(controller, allowed=("Idle", "Alarm"))  # $n=v : Idle ou Alarm, sinon error:8 ou ligne en attente
+        current = controller.read_settings()
+        for item in prepared:
+            if item["number"] not in current:
+                raise ValueError(f"Réglage ${item['number']} absent du $$ de cette carte : écriture refusée.")
+            if item["expected"] is not None and abs(float(current[item['number']]) - float(item["expected"])) > GRBL_SETTINGS_TOLERANCE:
+                raise ValueError(f"Réglage ${item['number']} : la carte relit {current[item['number']]:g}, pas {item['expected']:g} ; relis les réglages avant d’écrire.")
+        outcome = controller.write_settings_batch([{"number": item["number"], "value": item["value"]} for item in prepared])
+        results = outcome["results"]
+        written = sum(1 for item in results if item["status"] == "ok")
+        # Ligne qui a arrêté l'envoi d'abord (error:N, alarme, liaison coupée), sinon premier écart à la relecture.
+        failed = next((item for item in results if item["number"] == outcome.get("stopped_at")), None) \
+            or next((item for item in results if item["status"] in {"error", "mismatch"}), None)
+        if failed is None:
+            message = f"{written} réglage(s) écrit(s) et relu(s) sur la carte."
+        else:
+            message = (f"Écriture interrompue au réglage ${failed['number']} ({failed['message']}) : {written} écrit(s), "
+                       f"{sum(1 for item in results if item['status'] == 'not_sent')} non envoyé(s).")
+        return result(message, confirmed=failed is None, results=results, settings=outcome["settings"], stopped=outcome["stopped"],
+                      readback_ok=outcome["readback_ok"])
+
     def _grbl_command(self, device, spec, payload, command_id):
         """Commande laser/CNC déjà validée par le site, revalidée ici avec les réglages de la machine."""
         grbl = grbl_module()
@@ -2622,8 +2689,10 @@ class EquipmentRelay:
             if action == "read":
                 settings = controller.read_settings()
                 return result(f"{len(settings)} réglages GRBL relus ($$).", settings=settings)
+            if action == "write_batch":
+                return self._grbl_write_batch(controller, request, result)
             if action != "write":
-                raise ValueError("Action de réglage invalide (read ou write).")
+                raise ValueError("Action de réglage invalide (read, write ou write_batch).")
             number = request.get("number")
             if isinstance(number, bool) or not re.fullmatch(r"[0-9]{1,3}", str(number)):
                 raise ValueError("Numéro de réglage GRBL invalide.")
