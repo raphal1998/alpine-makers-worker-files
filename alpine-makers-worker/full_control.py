@@ -17,10 +17,10 @@ import time
 
 if __package__:
     from . import self_service
-    from .local_control import checked, v_choice, v_hex
+    from .local_control import v_choice, v_hex
 else:
     import self_service
-    from local_control import checked, v_choice, v_hex
+    from local_control import v_choice, v_hex
 
 MANAGE_PATH = "/api/worker-protocol/self/manage"
 # Mêmes opérations que worker_full_control.OPS côté site (une opération inconnue y est de toute façon refusée).
@@ -59,24 +59,9 @@ def v_args(value):
 
 
 def _args_from_file(agent, token):
-    """Lit puis efface ``runtime/local-control/<token>.args.json`` (écrit par worker.exe juste avant la demande)."""
-    path = checked(agent.root, f"runtime/local-control/{token}.args.json")
-    try:
-        if not path.is_file():
-            raise ValueError("Fichier d'arguments introuvable : relance l'action.")
-        if path.stat().st_size > ARGS_MAX_BYTES:
-            raise ValueError("Fichier d'arguments trop volumineux.")
-        raw = path.read_text(encoding="utf-8-sig")
-    finally:
-        try:
-            path.unlink()
-        except OSError:
-            pass
-    try:
-        value = json.loads(raw)
-    except ValueError as error:
-        raise ValueError("Fichier d'arguments illisible.") from error
-    return v_args(value)
+    """Lit puis efface ``runtime/local-control/<token>.args.json`` (écrit par worker.exe juste avant la demande).
+    Lecture partagée avec « login » (self_service.args_from_file, agent 1.50.12)."""
+    return self_service.args_from_file(agent, token, v_args, ARGS_MAX_BYTES)
 
 
 def _call(agent, body):

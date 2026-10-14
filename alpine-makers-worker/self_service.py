@@ -2,7 +2,8 @@
 
 Chargé à la demande par ``local_control`` (table ``LOCAL_ACTIONS``). Chaque action rend aussitôt : tout appel au
 site part dans un fil démon, jamais dans la boucle du contrôle local (le bandeau des outils n'attend ``status`` que
-quelques secondes). Un seul relais à la fois, suivi par ``relay-status``.
+quelques secondes). Un seul relais à la fois, suivi par ``relay-status``. Seule exception : ``login`` (agent 1.50.12)
+attend la réponse du site, au plus quinze secondes, car worker.exe a besoin du verdict tout de suite.
 
 Rien n'est décidé ici à la place du site : compte propriétaire, admission, équipe et confirmation sont vérifiés par
 les routes signées ``/api/worker-protocol/self/…``. Ce module ne crée aucune commande serveur et ne pilote aucun
@@ -16,11 +17,20 @@ import threading
 import time
 
 if __package__:
-    from .local_control import v_bool, v_hex, v_list_of
+    from .local_control import checked, v_bool, v_hex, v_list_of
 else:
-    from local_control import v_bool, v_hex, v_list_of
+    from local_control import checked, v_bool, v_hex, v_list_of
 
 STATE_PATH = "/api/worker-protocol/self/state"
+# Agent 1.50.12 : connexion du compte depuis worker.exe (route signée self/login). Le mot de passe passe par un fichier
+# d'arguments lu une fois puis effacé, jamais par la ligne de commande ni par un journal.
+LOGIN_PATH = "/api/worker-protocol/self/login"
+LOGIN_TIMEOUT = 15.0            # attente maximale de la réponse du site, en secondes (appel synchrone)
+LOGIN_LOCK_RETRIES = 6          # « déjà en cours » : jusqu'à six essais espacés d'un demi-seconde
+LOGIN_LOCK_RETRY_DELAY = 0.5
+LOGIN_ARGS_MAX_BYTES = 4096
+LOGIN_FIELDS = ("ok", "code", "error", "totp", "username")  # seuls champs de la réponse du site recopiés
+USERNAME_MAX, PASSWORD_MAX, TOTP_MAX = 120, 512, 16
 RELAY_PATHS = {
     "site-update": "/api/worker-protocol/self/update",
     "site-repair": "/api/worker-protocol/self/repair",
@@ -110,6 +120,31 @@ def _clean(action, params):
             raise ValueError("Paramètre local non autorisé : " + str(name)[:40])
         cleaned[name] = validators[name](value)
     return cleaned
+
+
+def args_from_file(agent, token, check, limit):
+    """Lit puis efface ``runtime/local-control/<token>.args.json`` (écrit par worker.exe juste avant la demande).
+
+    ``token`` a déjà passé ``v_hex(32)`` ; ``checked`` refuse de toute façon un chemin hors du dossier du Worker. Le
+    fichier est effacé avant toute lecture de son contenu, donc aussi quand il est trop gros ou illisible. ``check``
+    valide la valeur JSON et rend la valeur nettoyée."""
+    path = checked(agent.root, f"runtime/local-control/{token}.args.json")
+    try:
+        if not path.is_file():
+            raise ValueError("Fichier d'arguments introuvable : relance l'action.")
+        if path.stat().st_size > limit:
+            raise ValueError("Fichier d'arguments trop volumineux.")
+        raw = path.read_text(encoding="utf-8-sig")
+    finally:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+    try:
+        value = json.loads(raw)
+    except ValueError as error:
+        raise ValueError("Fichier d'arguments illisible.") from error
+    return check(value)
 
 
 # --- État de ce Worker lu sur le site -----------------------------------------------------------------------------
@@ -405,6 +440,115 @@ def jobs_stop(agent, params):
     return _relay(agent, "jobs-stop", lambda: _stop_jobs(agent))
 
 
+# --- Connexion du compte depuis worker.exe (agent 1.50.12) --------------------------------------------------------
+
+def _check_login_args(value):
+    """Contenu du fichier d'arguments : {"username", "password", "totp_code"?}, chaînes bornées, rien d'autre."""
+    if not isinstance(value, dict):
+        raise ValueError("Fichier d'arguments illisible : un objet est attendu.")
+    unknown = sorted(str(key)[:40] for key in set(value) - {"username", "password", "totp_code"})
+    if unknown:
+        raise ValueError("Argument de connexion non autorisé : " + unknown[0])
+    username, password, totp = value.get("username"), value.get("password"), value.get("totp_code", "")
+    if not isinstance(username, str) or not username.strip() or len(username) > USERNAME_MAX:
+        raise ValueError("Identifiant de connexion manquant ou trop long.")
+    if not isinstance(password, str) or not password or len(password) > PASSWORD_MAX:
+        raise ValueError("Mot de passe manquant ou trop long.")
+    if totp is None:
+        totp = ""
+    if not isinstance(totp, str) or len(totp) > TOTP_MAX:
+        raise ValueError("Code de validation illisible.")
+    return {"username": username.strip(), "password": password, "totp_code": totp.strip()}
+
+
+def _login_failure(message, code="", http=None, site_missing=False, unreachable=False):
+    return {"ok": False, "code": code, "error": message, "totp": "", "username": "", "http": http,
+            "site_missing": site_missing, "unreachable": unreachable}
+
+
+def _login_outcome(outcome):
+    """Réponse de « login » à partir des champs de ``_call`` : seuls les champs connus du site sont recopiés."""
+    if outcome["state"] != "done":
+        return _login_failure(outcome["error"], outcome["site_code"], outcome["http"], outcome["site_missing"],
+                              outcome["unreachable"])
+    answer = outcome["response"]
+    result = {"ok": answer.get("ok") is True, "code": "", "error": "", "totp": "", "username": "", "http": None,
+              "site_missing": False, "unreachable": False}
+    for name in LOGIN_FIELDS:
+        value = answer.get(name)
+        if name != "ok" and isinstance(value, str):
+            result[name] = value[:300]
+    if not result["ok"] and not result["error"]:
+        result["error"] = "Connexion refusée par le site."
+    return result
+
+
+def _login_worker(agent, body, holder, done):
+    try:
+        holder["outcome"] = _call(agent, LOGIN_PATH, body)
+    except Exception as error:  # filet : aucune exception (ni son texte) ne sort du fil
+        holder["outcome"] = {"state": "failed", "http": None, "site_code": "", "site_missing": False,
+                             "unreachable": False, "error": f"Connexion interrompue ({type(error).__name__})."}
+    finally:
+        try:
+            done.set()
+        finally:
+            agent.self_relay_lock.release()
+
+
+def login(agent, params):
+    """Connecte le compte par la route signée self/login, de façon synchrone (au plus LOGIN_TIMEOUT secondes).
+
+    Le fichier d'arguments est lu puis effacé avant tout appel ; le mot de passe ne va que dans le corps de la
+    requête signée. Rien n'est inscrit dans ``self_ops`` ni dans l'état du site : la réponse est rendue à l'appelant
+    et oubliée. Une demande déjà en cours est attendue un court instant avant d'être refusée."""
+    params = _clean("login", params)
+    if "args_file" not in params:
+        raise ValueError("Fichier d'arguments manquant : écris runtime/local-control/<32 hex>.args.json.")
+    body = args_from_file(agent, params["args_file"], _check_login_args, LOGIN_ARGS_MAX_BYTES)
+    acquired = False
+    for attempt in range(LOGIN_LOCK_RETRIES):
+        if agent.self_relay_lock.acquire(blocking=False):
+            acquired = True
+            break
+        if attempt + 1 < LOGIN_LOCK_RETRIES:
+            agent.stop_requested.wait(LOGIN_LOCK_RETRY_DELAY)
+    if not acquired:
+        raise ValueError("Une demande au site est déjà en cours ; attends sa fin.")
+    holder, done = {}, threading.Event()
+    try:
+        threading.Thread(target=_login_worker, args=(agent, body, holder, done), name="local-relay-login",
+                         daemon=True).start()
+    except BaseException:
+        agent.self_relay_lock.release()
+        raise
+    finally:
+        body = None
+    if not done.wait(LOGIN_TIMEOUT):
+        # L'appel continue dans son fil (il rendra le verrou tout seul) ; sa réponse tardive est oubliée.
+        return _login_failure("Le site n'a pas répondu à temps : réessaie dans un instant.", "LOGIN_TIMEOUT",
+                              unreachable=True)
+    result = _login_outcome(holder["outcome"])
+    if not agent.stop_requested.is_set():
+        try:
+            site_state(agent, {"refresh": True})  # l'état (verrou, compteur d'échecs) est relu en arrière-plan
+        except Exception:
+            pass
+    return result
+
+
+def login_state(agent, params):
+    """État du verrou de connexion de worker.exe, lu dans le dernier état connu du site (``exe_login``)."""
+    view = site_state(agent, params)
+    site = view["site"] if isinstance(view.get("site"), dict) else {}
+    exe_login = site.get("exe_login") if isinstance(site.get("exe_login"), dict) else {}
+    failed = exe_login.get("failed_count")
+    return {"locked": exe_login.get("locked") is True,
+            "failed_count": failed if isinstance(failed, int) and not isinstance(failed, bool) and failed >= 0 else 0,
+            "known": view["known"], "refreshing": view["refreshing"], "age_seconds": view["age_seconds"],
+            "missing": view["missing"], "unreachable": view["unreachable"], "error": view["error"]}
+
+
 LOCAL_ACTIONS = {
     "site-state": {"handler": site_state, "params": {"refresh": v_bool}, "read": True},
     "site-update": {"handler": site_update, "params": {}, "read": False},
@@ -415,4 +559,7 @@ LOCAL_ACTIONS = {
                                "tools": v_list_of(SHARING_TOOLS, 3), "expected": v_hex(16),
                                "auto_accept_jobs": v_bool, "confirm_everyone_auto": v_bool}},
     "relay-status": {"handler": relay_status, "params": {"operation": v_hex(32)}, "read": True},
+    # Agent 1.50.12 : connexion depuis worker.exe ; les identifiants passent par le fichier d'arguments, jamais ici.
+    "login": {"handler": login, "params": {"args_file": v_hex(32)}, "read": False},
+    "login-state": {"handler": login_state, "params": {"refresh": v_bool}, "read": True},
 }

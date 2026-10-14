@@ -1,5 +1,24 @@
 # Historique des mises à jour
 
+## Version 1.50.12 — 2026-10-14
+
+**worker.exe : connexion du propriétaire avec son compte du site (2FA, verrou après 3 échecs)**
+
+### Ajouté
+- À l'installation et à chaque lancement de worker.exe, le propriétaire du Worker se connecte avec son compte du dashboard (même base) ; le code 2FA n'est demandé que si le compte l'a activé. Une fois l'application ouverte, aucune reconnexion tant qu'elle n'est pas fermée. Un autre compte est refusé et le propriétaire, les admins et le propriétaire du site en sont notifiés. Après 3 échecs, l'application est bloquée : un e-mail avec un lien de déblocage part au propriétaire, qui peut aussi débloquer depuis Mes Workers.
+- Capacité worker_exe_login_v1 ; le mot de passe ne transite que par un fichier local lu une seule fois, jamais dans les journaux.
+- Une webcam branchée au PC du Worker peut être utilisée de deux façons : le connecteur « Caméra USB » (inchangé), ou le connecteur « Flux MJPEG » avec l'origine « Webcam de ce Worker ». Dans ce second mode, le Worker capture la webcam (même capture que le mode USB), la publie sur son lien MJPEG local (port, images par seconde, largeur et hauteur de la fiche), démarre ce lien à la connexion et après un redémarrage, et la caméra lit ses images par ce lien. Le lien reste utilisable par OBS, LightBurn ou PrintGuard sur ce PC. Capacité equipment_camera_webcam_link_v1.
+
+### Modifié
+- Une même webcam n'est plus ouverte par deux fiches à la fois (fiche USB et fiche par lien) : la seconde reçoit un refus explicite au lieu d'une image absente.
+- « Installer » et « Tester » d'une fiche par lien posent la capture USB et vérifient toute la chaîne (capture, lien, lecture).
+
+### Corrigé
+- Une fiche « Flux MJPEG » qui prenait son propre lien local comme adresse restait sur « ouverture du flux MJPEG (HTTPError) » : rien n'alimentait ce lien. Le formulaire propose maintenant l'origine « Webcam de ce Worker » et le refus du site indique ce choix.
+
+### Technique
+- Empreinte du paquet publié : `9e3d308d81b61fb4…` (dossier du paquet).
+
 ## Version 1.50.10 — 2026-10-14
 
 **Lien MJPEG local pour chaque caméra (cadence, largeur et hauteur réglables)**

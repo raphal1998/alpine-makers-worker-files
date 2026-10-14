@@ -54,6 +54,41 @@ def component_file_version(path):
     return version_tuple(match.group(1)) if match else (0,)
 
 
+def webcam_link(settings):
+    """Fiche « webcam par lien MJPEG local » (agent 1.50.11) : connecteur mjpeg_http dont l'origine est une webcam
+    de ce Worker (source_mode = "webcam"). Le Worker capture la webcam avec la chaîne du connecteur usb_camera, la
+    publie sur son relais loopback, et la fiche lit ses images par ce lien (stream_url = lien de la fiche)."""
+    return bool(settings) and settings.get("connector") == "mjpeg_http" and settings.get("source_mode") == "webcam"
+
+
+# Webcams ouvertes par les fiches de ce Worker : (index, backend) -> {fiche: webcam par lien ?}. Une webcam n'alimente
+# qu'une fiche à la fois dès que l'une d'elles est une « webcam par lien » ; deux fiches usb_camera gardent le
+# comportement d'avant (le système refuse la seconde ouverture, la fiche le dit).
+WEBCAM_CLAIMS = {}
+WEBCAM_CLAIMS_LOCK = threading.Lock()
+WEBCAM_BUSY_MESSAGE = ("Cette webcam (index {index}) est déjà ouverte par une autre fiche caméra de ce Worker : une webcam ne peut "
+                       "alimenter qu’une fiche à la fois. Déconnecte l’autre fiche, ou lis son « Lien local » depuis celle-ci.")
+
+
+def webcam_claim(key, owner, link):
+    """Réserve la webcam ``key`` pour ``owner`` ; False si une autre fiche la tient et que l'une des deux est « par lien »."""
+    with WEBCAM_CLAIMS_LOCK:
+        holders = WEBCAM_CLAIMS.get(key) or {}
+        if any(other is not owner and (link or other_link) for other, other_link in holders.items()):
+            return False
+        WEBCAM_CLAIMS.setdefault(key, {})[owner] = bool(link)
+        return True
+
+
+def webcam_release(key, owner):
+    with WEBCAM_CLAIMS_LOCK:
+        holders = WEBCAM_CLAIMS.get(key)
+        if holders is not None:
+            holders.pop(owner, None)
+            if not holders:
+                WEBCAM_CLAIMS.pop(key, None)
+
+
 def relay_configured(spec):
     """Relais MJPEG local demandé pour cette caméra : réglage relay_enabled du site, ou mode relais P1S.
 
@@ -68,6 +103,8 @@ def relay_configured(spec):
         return True
     if settings.get("relay_enabled") is not True:
         return False
+    if webcam_link(settings):
+        return True  # le lien est la source de la fiche : le relais est alimenté par la capture de la webcam
     if settings.get("connector") == "mjpeg_http":
         try:
             parsed = urlsplit(str(settings.get("stream_url") or ""))
@@ -476,6 +513,17 @@ def validate_connector(spec):
     if connector == USB_CAMERA_CONNECTOR:
         usb_camera_settings(cfg)  # index et format seulement : rien de réseau, aucun secret
         return connector
+    if connector == "mjpeg_http" and cfg.get("source_mode") not in (None, "", "url"):
+        if cfg.get("source_mode") != "webcam":
+            raise ValueError("Origine d’image non prise en charge par ce Worker.")
+        usb_camera_settings(cfg)  # même périphérique et même format que le connecteur usb_camera
+        relay_port = port_number(cfg.get("relay_port"), 1984, 1024)
+        source = str(cfg.get("source_id") or "")
+        if (cfg.get("relay_enabled") is not True or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", source)
+                or cfg.get("stream_url") != f"http://127.0.0.1:{relay_port}/api/stream.mjpeg?src={source}"
+                or port_number(cfg.get("port"), 1984) != relay_port):
+            raise ValueError("Webcam par lien MJPEG local : le lien de la fiche doit être sa propre source.")
+        return connector
     if connector in {"bambu_mqtt_tls", "p1s_tls", *HTTP_PRINTER_PORTS}:
         local_host(cfg["host"])
     port_number(cfg.get("port"), HTTP_PRINTER_PORTS.get(connector, 6000 if connector == "p1s_tls" else 1984 if connector == "mjpeg_http" else 8883))
@@ -719,6 +767,13 @@ class Device:
         self.acks = {}
         self.signer = DeviceSigner(root)
         self.relay_state = {}
+        # Webcam par lien MJPEG local : la capture de la webcam vit dans un Device fils (chaîne usb_camera), publié
+        # sur le relais ; cette fiche lit ses images par le lien. Un Device fils porte capture_owner (réservation).
+        self.webcam_link = spec.get("kind") == "camera" and webcam_link(spec.get("settings") or {})
+        self.webcam = None
+        self.webcam_started = 0.0
+        self.capture_owner = self
+        self.capture_link = False
         # Machines GRBL : contrôleur connecté, job en cours (fil dédié) et confirmation opérateur.
         self.grbl = None
         self.grbl_job = {}
@@ -730,6 +785,14 @@ class Device:
     def frame_value(self):
         with self.lock:
             return self.frame, self.frame_at
+
+    def source_frame_value(self):
+        """Image que le relais publie pour cette fiche : celle de la capture de la webcam pour une « webcam par
+        lien » (la fiche elle-même ne détient que ce qu'elle a relu par le lien), sinon l'image de la fiche."""
+        if not self.webcam_link:
+            return self.frame_value()
+        capture = self.webcam
+        return capture.frame_value() if capture is not None else (None, 0)
 
     def validate_frame(self, frame):
         if not 100 <= len(frame) < 1024*1024 or not frame.startswith(b"\xff\xd8") or not frame.endswith(b"\xff\xd9"):
@@ -755,6 +818,9 @@ class Device:
 
     def close(self):
         self.stop.set()
+        capture = self.webcam
+        if capture is not None:
+            capture.close()  # arrête la capture de la webcam (processus fils compris) et libère sa réservation
         if self.client:
             self.client.disconnect()
             self.client.loop_stop()
@@ -827,6 +893,9 @@ class Device:
         except Exception as error:
             # Never copy socket URLs, tokens or MQTT exceptions into browser logs.
             self.progress(0, f"Connexion impossible ({type(error).__name__}). Vérifie le réseau local, le code et l’installation du relais.")
+        finally:
+            if self.webcam_link:
+                self._webcam_link_close()  # la capture de la webcam ne survit jamais au lecteur de la fiche
 
     def _printer(self):
         target = runtime_dependencies(self.root)
@@ -1018,11 +1087,17 @@ class Device:
             self._usb_camera()
             return
         delay = 2
+        link = self.webcam_link
         while not self.stop.is_set():
             stream = None
             stage = "ouverture du flux MJPEG" if connector == "mjpeg_http" else "connexion TCP à la caméra"
+            if link and not self._webcam_link_ready():
+                # Relais arrêté, webcam pas encore ouverte ou déjà prise : rien à lire sur le lien pour l'instant.
+                if self.stop.wait(1):
+                    break
+                continue
             try:
-                self.progress(20, "Connexion caméra depuis le réseau du Worker…")
+                self.progress(20, "Lecture de la webcam par son lien MJPEG local…" if link else "Connexion caméra depuis le réseau du Worker…")
                 # A managed MJPEG relay consumes this native reader; it never
                 # opens its own output URL as an input (which would deadlock).
                 url = cfg.get("stream_url") if connector == "mjpeg_http" else ""
@@ -1071,25 +1146,76 @@ class Device:
                             self.validate_frame(frame)
                             with self.lock:
                                 self.frame, self.frame_at = frame, time.time()
-                            self.progress(100, "Caméra connectée — images reçues via le Worker.", True)
+                            self.progress(100, "Webcam connectée — images lues par son lien MJPEG local." if link else "Caméra connectée — images reçues via le Worker.", True)
                             last_image = time.monotonic()
                             delay = 2
             except ImportError as error:
                 self.progress(0, dependency_error(error))
                 return
             except Exception as error:
-                self.progress(15, f"Caméra indisponible : {stage} ({type(error).__name__}) — nouvel essai automatique.")
+                if link:
+                    self.progress(15, f"Lien MJPEG local de la webcam illisible : {stage} ({type(error).__name__}) — nouvel essai automatique.")
+                else:
+                    self.progress(15, f"Caméra indisponible : {stage} ({type(error).__name__}) — nouvel essai automatique.")
             finally:
                 if stream:
                     stream.close()
                 self.socket = None
-            if self.stop.wait(delay):
+            if self.stop.wait(1 if link else delay):
                 break
             delay = min(30, delay*2)
 
+    def _webcam_link_ready(self):
+        """Webcam par lien : le relais de la fiche tourne et la capture de la webcam fournit une image fraîche.
+
+        La capture réutilise telle quelle la chaîne du connecteur usb_camera (Device fils, processus de capture
+        sous Windows) ; elle n'est ouverte que si le relais tourne, et fermée dès qu'il est arrêté. Le message de
+        la fiche reprend celui de la capture (webcam introuvable, déjà ouverte, OpenCV absent…)."""
+        if self.relay_state.get("relay_running") is not True:
+            self._webcam_link_close()
+            self.progress(10, str(self.relay_state.get("relay_message") or "Lien MJPEG local arrêté : clique « Démarrer le relais » (ou Connecter) pour lancer la webcam."))
+            return False
+        capture = self.webcam
+        ended = capture is not None and (capture.stop.is_set() or not (capture.thread and capture.thread.is_alive()))
+        # Capture terminée d'elle-même (OpenCV absent…) : son message reste affiché, relance au plus toutes les 10 s.
+        if capture is None or (ended and time.monotonic() - self.webcam_started >= 10):
+            if capture is not None:
+                capture.close()
+            self.webcam_started = time.monotonic()
+            settings = dict(self.spec["settings"], connector=USB_CAMERA_CONNECTOR)
+            capture = Device({"id": self.spec["id"], "revision": self.spec["revision"], "kind": "camera", "enabled": True, "settings": settings}, self.root)
+            capture.capture_owner, capture.capture_link = self, True
+            self.webcam = capture
+            capture.start()
+        self.capture_fps = getattr(capture, "capture_fps", None)
+        frame, stamp = capture.frame_value()
+        if frame and time.time() - stamp < 8:
+            return True
+        with capture.lock:
+            percent, detail = capture.snapshot.get("progress", 0), str(capture.snapshot.get("message") or "")
+        self.progress(min(60, int(percent or 0)), detail or "Ouverture de la webcam sur le Worker…")
+        return False
+
+    def _webcam_link_close(self):
+        capture, self.webcam = self.webcam, None
+        if capture is not None:
+            capture.close()
+
     def _usb_camera(self):
-        """Caméra USB (UVC) branchée au Worker : capture OpenCV, images JPEG comme les autres caméras."""
+        """Caméra USB (UVC) branchée au Worker : la webcam est réservée à cette fiche le temps de la capture."""
         options = usb_camera_settings(self.spec["settings"])
+        key = (options["index"], options["backend"])
+        while not webcam_claim(key, self.capture_owner, self.capture_link):
+            self.progress(0, WEBCAM_BUSY_MESSAGE.format(index=options["index"]))
+            if self.stop.wait(5):
+                return
+        try:
+            self._usb_camera_capture(options)
+        finally:
+            webcam_release(key, self.capture_owner)
+
+    def _usb_camera_capture(self, options):
+        """Caméra USB (UVC) branchée au Worker : capture OpenCV, images JPEG comme les autres caméras."""
         if USB_ISOLATED_CAPTURE:
             self._usb_camera_isolated(options)
             return
@@ -1508,9 +1634,9 @@ class EquipmentRelay:
         else:
             hub = self._hub()
             if (self.video_version or (0,)) >= RELAY_OPTIONS_MIN_VERSION:
-                url = hub.add(*pair, device.frame_value, **options)
+                url = hub.add(*pair, device.source_frame_value, **options)
             else:
-                url = hub.add(*pair, device.frame_value)  # composant 1.0.0 : ni cadence ni taille
+                url = hub.add(*pair, device.source_frame_value)  # composant 1.0.0 : ni cadence ni taille
         self.video_sources[device.spec["id"]] = pair
         self.video_options[device.spec["id"]] = options
         device.relay_state.update(relay_running=True, relay_url=url, relay_message=self._relay_outdated_message() or "Relais démarré — attente de validation du flux vidéo.")
@@ -1561,8 +1687,8 @@ class EquipmentRelay:
                     message = "Aucune dépendance supplémentaire : la liaison TCP GRBL utilise la bibliothèque standard du Worker. Teste la connexion."
                 self.agent.command_progress(command_id, 100, message)
                 return {"installed": True, "message": message}
-            if spec["settings"].get("connector") == USB_CAMERA_CONNECTOR:
-                # Caméra USB : OpenCV seul (profil ciblé), les dépendances JPEG du relais si elles
+            if spec["settings"].get("connector") == USB_CAMERA_CONNECTOR or webcam_link(spec["settings"]):
+                # Caméra USB (et webcam par lien MJPEG local, même capture) : OpenCV seul (profil ciblé), les dépendances JPEG du relais si elles
                 # manquent encore, et le composant relais loopback pour PrintGuard. Rien de recopié
                 # par-dessus un module déjà à jour.
                 target = dependency_directory(self.agent.root)
@@ -1744,12 +1870,19 @@ class EquipmentRelay:
                 self.devices[spec["id"]] = device
                 device.start()
         try:
+            if temporary and device.webcam_link:
+                # Webcam par lien : l'essai porte sur toute la chaîne (capture, relais, lecture du lien) ; le relais
+                # ouvert pour l'essai est retiré ensuite, sans toucher à l'intention enregistrée.
+                with self.lock:
+                    self._start_source(device)
             report = self._wait_connected(device, command_id, relay=spec["settings"].get("camera_mode") == "relay")
             self._spec(payload)
             return {"tested": True, "connected": True, "message": "Connexion validée sur le Worker (test en lecture seule).", "camera_frame_valid": spec["kind"] == "camera"}
         finally:
             if temporary:
                 with self.lock:
+                    if device.webcam_link:
+                        self._remove_source(spec["id"])
                     device.close()
                     self.testing.discard(spec["id"])
                     if self.devices.get(spec["id"]) is device:

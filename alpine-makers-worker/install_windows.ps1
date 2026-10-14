@@ -369,3 +369,14 @@ if($pairExitCode -ne 0){
 Grant-WorkerIdentityToInstaller
 & (Join-Path $agentRoot "configure_autostart.ps1") -AutoStart $AutoStart
 Write-Host "Worker associe dans $agentRoot. Choix de demarrage automatique : $AutoStart."
+# Premiere connexion du proprietaire : worker.exe demande le compte du proprietaire a chaque lancement d'un Worker
+# associe (agent 1.50.12). On l'ouvre a la fin de l'installation, sans attendre, et seulement dans une session
+# interactive (jamais depuis une tache planifiee ou un bac a sable). Sans lui, le raccourci « Alpine Makers Worker » suffit.
+if (-not $sandboxOnly -and [Environment]::UserInteractive -and (Test-Path -LiteralPath $workerManager -PathType Leaf)) {
+  try {
+    Start-Process -FilePath $workerManager -WorkingDirectory $agentRoot
+    Write-Host "worker.exe s'ouvre pour la premiere connexion du proprietaire (compte du site, code 2FA si active)." -ForegroundColor Green
+  } catch {
+    Write-Host "worker.exe non lance ($($_.Exception.Message)) : ouvre le raccourci « Alpine Makers Worker » pour te connecter." -ForegroundColor Yellow
+  }
+}

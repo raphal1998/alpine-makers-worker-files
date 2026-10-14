@@ -66,6 +66,17 @@ suppression avec ou sans désinstallation. Elle est **désactivée par défaut**
 Worker dans le Dashboard (Mes Workers → carte du Worker → « worker.exe : gestion complète »). Le PC ne peut pas
 l'activer lui-même ; chaque action passe par une demande signée de l'agent et est notifiée au propriétaire.
 
+**Connexion du propriétaire dans `worker.exe`.** Dès que le Worker est associé à un compte (fichier `config.json`
+avec un `worker_id`), chaque lancement de `worker.exe` commence par un écran de connexion : pseudo ou e-mail du
+compte et mot de passe, puis le code 2FA (application d'authentification ou code de secours) si le compte l'a
+activée. Le menu ne s'ouvre qu'une fois le **propriétaire du Worker** reconnu ; un autre compte, même valide, est
+refusé. La connexion vaut pour la fenêtre ouverte seulement : rien n'est mémorisé sur le PC, et le mot de passe ne
+passe ni par la ligne de commande ni par les journaux. Après **3 échecs**, l'application est bloquée : le
+propriétaire la débloque par le lien reçu par e-mail ou depuis Mes Workers sur le site, puis clique « Réessayer ».
+L'installateur ouvre `worker.exe` à la fin de l'installation pour cette première connexion. Un Worker pas encore
+associé ouvre le menu sans connexion (l'association se fait par le menu). Le menu console `MENU-WORKER.bat` n'est
+pas concerné par cette connexion.
+
 La **version** installée n'est volontairement écrite nulle part dans ce document : lis-la
 dans l'en-tête du menu, ou dans le fichier `agent_manifest.json` (ligne `agent_version`).
 

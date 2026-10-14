@@ -57,6 +57,9 @@ LAZY_ACTIONS = {
     "jobs-stop": "self_service", "sharing-set": "self_service", "relay-status": "self_service",
     # Agent 1.50.0 : gestion complète depuis worker.exe (route signée self/manage).
     "manage": "full_control",
+    # Agent 1.50.12 : connexion du compte depuis worker.exe (route signée self/login). Les identifiants passent par
+    # runtime/local-control/<32 hex>.args.json, lu puis efface par l'agent ; params ne porte que « args_file ».
+    "login": "self_service", "login-state": "self_service",
 }
 PARAMS_MAX_BYTES = 2048
 # Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.
@@ -851,7 +854,8 @@ def main():
                         help="status : etat de l'agent et des moteurs ; engines-stop / engines-start : moteurs IA ; "
                              "fire-watch : etat de la surveillance IA des graveuses (lecture seule) ; "
                              "reconnect / network / cleanup : maintenance ; "
-                             "duplicates-* / site-* / jobs-stop / sharing-set / relay-status : gestion du Worker")
+                             "duplicates-* / site-* / jobs-stop / sharing-set / relay-status / manage : gestion du Worker ; "
+                             "login / login-state : connexion du compte depuis worker.exe (identifiants dans le fichier args)")
     parser.add_argument("--json", action="store_true", help="n'imprime qu'une ligne JSON : la reponse de l'agent")
     parser.add_argument("--timeout", type=int, default=120, help="attente maximale en secondes (1 a 600)")
     parser.add_argument("--params-b64", default=None,
