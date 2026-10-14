@@ -1,8 +1,8 @@
 {
   "worker_type": "FILES",
   "version": "1.50.17",
-  "source_hash": "2b68e2c76b00db8f11d409a37d2484b12eb496c35209a5c21e247707dc8c449f",
-  "published_at": "2026-10-15_00-58-10-750",
-  "dashboard_commit": "27aedd825fce683b6565e8d897ec544e1c5dd6cd",
+  "source_hash": "1e57405d5f7b18ce746affc853c595083982379287a07cd8f2766f9ee2550011",
+  "published_at": "2026-10-15_01-47-12-052",
+  "dashboard_commit": "887f52cea301ee88c4cb227f3e332e03853f6657",
   "hash_method": "SHA-256 de la liste triée « chemin, SHA-256 du contenu » des fichiers du paquet"
 }

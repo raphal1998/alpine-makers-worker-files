@@ -2,6 +2,12 @@
 
 ## Version 1.50.17 — 2026-10-15
 
+### Technique
+- Révision du paquet : contenu du paquet modifié sans changement de numéro de version.
+- Empreinte du paquet publié : `1e57405d5f7b18ce…` (dossier du paquet).
+
+## Version 1.50.17 — 2026-10-15
+
 **Paramètres GRBL du contrôleur : modification contrôlée depuis Mes équipements**
 
 ### Ajouté
