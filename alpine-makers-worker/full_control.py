@@ -27,8 +27,10 @@ MANAGE_PATH = "/api/worker-protocol/self/manage"
 OPS = ("worker", "installations", "installations-plan", "installations-batch", "installations-cancel",
        "commands-status", "command", "settings", "primary", "associations", "tools-control", "repair",
        "cancel-jobs", "cancel-job", "console", "job-requests", "job-request-decide", "sharing-user",
-       "sharing-user-remove", "team-sharing", "revoke", "forget", "delete")
-READ_OPS = frozenset({"worker", "installations", "installations-plan", "commands-status", "console", "job-requests"})
+       "sharing-user-remove", "team-sharing", "revoke", "forget", "delete",
+       # Co-propriétaires (1.50.13)
+       "co-owners", "co-owner-add", "co-owner-set", "co-owner-remove")
+READ_OPS = frozenset({"worker", "installations", "installations-plan", "commands-status", "console", "job-requests", "co-owners"})
 ARGS_MAX_BYTES = 65536
 ANSWER_MAX_BYTES = 8 * 1024 * 1024  # inventaire des installations compris
 ARGS_DEPTH_MAX = 5

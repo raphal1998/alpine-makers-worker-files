@@ -12,7 +12,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 # 1.1.0 (agent 1.50.10) : cadence (fps), largeur/hauteur par source, redimensionnement Pillow mis en cache par trame.
-COMPONENT_VERSION = "1.1.0"
+# 1.2.0 : cadence tenue (échéances sur une grille ; « maintenant + période » servait 22 i/s pour 30 demandées),
+#         jusqu'à 120 i/s.
+COMPONENT_VERSION = "1.2.0"
+MAX_FPS = 120.0
 RESIZE_UNAVAILABLE = "Redimensionnement indisponible (Pillow absent des dépendances du relais) : flux transmis tel quel."
 
 
@@ -35,7 +38,7 @@ def source_options(fps=None, width=None, height=None):
         rate = float(fps or 0)
     except (TypeError, ValueError):
         rate = 0.0
-    rate = min(max(rate, 0.5), 60.0) if rate > 0 else 10.0
+    rate = min(max(rate, 0.5), MAX_FPS) if rate > 0 else 10.0
     return {"fps": rate, "width": _positive_int(width, 4096), "height": _positive_int(height, 4096)}
 
 
@@ -216,15 +219,19 @@ class VideoRelay:
                                 frame, stamp = callback()
                                 if not frame or time.time() - stamp >= 8:
                                     break
-                                now = time.time()
+                                now = time.monotonic()
                                 if stamp != previous and now >= next_due:
                                     frame = hub.render(key, frame)
                                     self.wfile.write(b"--alpine-frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(frame)).encode() + b"\r\n\r\n" + frame + b"\r\n")
                                     self.wfile.flush()
                                     previous = stamp
-                                    next_due = now + period
-                                # Une période par trame servie ; sondage borné pour suivre un arrêt de la source.
-                                time.sleep(min(period, .1))
+                                    # Échéance suivante sur la grille de la cadence : le temps d'envoi et le réveil
+                                    # tardif d'un tour ne s'ajoutent plus à chaque période. En retard, pas de rafale.
+                                    next_due = next_due + period if next_due + period > now else now
+                                    continue
+                                # Avant l'échéance : attendre jusqu'à elle. Échéance passée : la trame suivante de
+                                # la source est guettée de près (2 ms). Borne de 0,1 s pour suivre un arrêt.
+                                time.sleep(min(max(next_due - now, .002), .1))
                         except (OSError, ValueError):
                             pass
                         finally:

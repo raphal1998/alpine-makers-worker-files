@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.13 — 2026-10-14
+
+**worker.exe : ajouter un co-propriétaire (Worker, équipements ou les deux)**
+
+### Ajouté
+- Onglet Partage de la Gestion complète : le propriétaire ajoute un co-propriétaire par son pseudo et choisit ce qu'il partage (le Worker seul, ses équipements seuls, ou les deux), le suspend, le reprend ou le retire. Le co-propriétaire voit le Worker et les équipements partagés comme les siens sur le site et peut presque tout faire, sauf révoquer, désinstaller complètement, régler le partage ou se connecter à worker.exe.
+
+### Technique
+- Empreinte du paquet publié : `24190287a3f0adf3…` (dossier du paquet).
+
 ## Version 1.50.12 — 2026-10-14
 
 **worker.exe : connexion du propriétaire avec son compte du site (2FA, verrou après 3 échecs)**

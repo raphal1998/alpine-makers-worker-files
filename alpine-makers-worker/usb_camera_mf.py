@@ -14,7 +14,7 @@ import sys
 import threading
 import time
 
-MAX_FRAME_BYTES = 1024 * 1024
+MAX_FRAME_BYTES = 4 * 1024 * 1024   # même borne que equipment_runtime.CAMERA_MAX_FRAME_BYTES (3840×2160)
 # Formats de la caméra, du plus économe en bande passante USB au plus lourd.
 SUBTYPE_PRIORITY = ("MJPG", "NV12", "YUY2")
 

@@ -5,6 +5,7 @@ import importlib
 import importlib.util
 import io
 import ftplib
+import http.client
 import ipaddress
 import json
 import math
@@ -32,6 +33,13 @@ except ImportError:
     from safety import protect_credentials
     from equipment_signing import DeviceSigner
     from equipment_video_relay import dependency_directory, COMPONENT_VERSION as RELAY_COMPONENT_VERSION
+
+# Format libre des caméras (capacité equipment_camera_live_v1) : capture et lien local jusqu'à 120 i/s, image JPEG
+# jusqu'à 4 Mio sur le Worker (3840×2160). L'image jointe au rapport du site reste sous 1 Mio (voir report_frame).
+CAPTURE_FPS_MAX = 120
+RELAY_FPS_MAX = 120
+CAMERA_MAX_FRAME_BYTES = 4 * 1024 * 1024
+REPORT_MAX_FRAME_BYTES = 1024 * 1024 - 1
 
 # Composant relais trop ancien pour la cadence et la taille (agent 1.50.10, composant 1.1.0).
 RELAY_OPTIONS_MIN_VERSION = (1, 1, 0)
@@ -125,7 +133,7 @@ def relay_options(settings):
             value = 0
         return value if 0 < value <= maximum else 0
 
-    return {"fps": number("relay_fps", 60) or None, "width": int(number("relay_width", 4096)) or None, "height": int(number("relay_height", 4096)) or None}
+    return {"fps": number("relay_fps", RELAY_FPS_MAX) or None, "width": int(number("relay_width", 4096)) or None, "height": int(number("relay_height", 4096)) or None}
 
 
 def runtime_dependencies(root):
@@ -554,8 +562,8 @@ def usb_camera_settings(cfg):
             raise ValueError(f"Résolution de caméra USB invalide ({label}).")
         size[key] = int(value)
     fps = cfg.get("fps", 10)
-    if isinstance(fps, bool) or not re.fullmatch(r"\d{1,2}", str(fps)) or not 1 <= int(fps) <= 30:
-        raise ValueError("Cadence de caméra USB invalide (1 à 30 images par seconde).")
+    if isinstance(fps, bool) or not re.fullmatch(r"\d{1,3}", str(fps)) or not 1 <= int(fps) <= CAPTURE_FPS_MAX:
+        raise ValueError(f"Cadence de caméra USB invalide (1 à {CAPTURE_FPS_MAX} images par seconde).")
     # Agent 1.50.1 : backend OpenCV choisi sur la fiche ; absent (fiche d'avant) = automatique.
     backend = str(cfg.get("camera_backend") or "auto").strip().lower()
     if backend not in USB_BACKENDS:
@@ -707,11 +715,12 @@ def usb_enumerate(cv2, limit=4):
 USB_ISOLATED_CAPTURE = os.name == "nt"
 USB_ISOLATED_SCRIPT = "usb_camera_capture.py"
 USB_FPS_WINDOW_S = 5.0          # cadence de capture mesurée sur les 5 dernières secondes
-USB_MAX_FRAME_BYTES = 1024 * 1024
+USB_MAX_FRAME_BYTES = CAMERA_MAX_FRAME_BYTES
+USB_DECODE_CHECK_S = 1.0        # nos propres encodages : décodage complet d'une image par seconde, en-tête pour les autres
 
 
 def usb_encode_frame(cv2, image, quality=80):
-    """JPEG de moins d'1 Mo : la qualité baisse par paliers au lieu de jeter l'image (une image écartée en silence
+    """JPEG sous USB_MAX_FRAME_BYTES (4 Mio) : la qualité baisse par paliers au lieu de jeter l'image (une image écartée en silence
     ralentissait d'autant la cadence vue par la surveillance IA). Renvoie (octets, qualité retenue) ou (None, qualité)."""
     while True:
         encoded, buffer = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), int(quality)])
@@ -725,13 +734,19 @@ def usb_encode_frame(cv2, image, quality=80):
         quality -= 15
 
 
-def usb_capture_message(measured, wanted, backend=""):
-    """Message de la fiche : backend utilisé, cadence réellement capturée, et la cause probable quand elle reste loin
-    du réglage."""
+def usb_capture_message(measured, wanted, backend="", size=None, wanted_size=None):
+    """Message de la fiche : backend utilisé, taille et cadence réellement capturées, et la cause probable quand
+    elles restent loin du réglage. ``size`` = (largeur, hauteur) obtenues, ``wanted_size`` = celles de la fiche."""
     where = f" ({backend})" if backend else ""
+    obtained = ""
+    if size and size[0] and size[1]:
+        obtained = f"{size[0]}×{size[1]}"
+        if wanted_size and wanted_size[0] and wanted_size[1] and tuple(wanted_size) != tuple(size):
+            obtained += f" obtenu pour {wanted_size[0]}×{wanted_size[1]} demandé"
+        obtained += ", "
     if measured is None:
-        return f"Caméra USB connectée{where} — images capturées par le Worker."
-    text = f"Caméra USB connectée{where} — {measured:.1f} image(s)/s capturée(s) par le Worker".replace(".", ",", 1)
+        return f"Caméra USB connectée{where} — {obtained}images capturées par le Worker."
+    text = f"Caméra USB connectée{where} — {obtained}" + f"{measured:.1f} image(s)/s capturée(s) par le Worker".replace(".", ",", 1)
     if measured < wanted * 0.6:
         text += (f" pour {wanted} demandée(s) : la caméra ne fournit pas plus à cette résolution "
                  "(baisse la résolution ou vérifie qu'elle propose le format MJPEG)")
@@ -774,6 +789,11 @@ class Device:
         self.webcam_started = 0.0
         self.capture_owner = self
         self.capture_link = False
+        self.capture_fps = None       # cadence réellement capturée (caméra USB, webcam par lien)
+        self.capture_size = None      # (largeur, hauteur) réellement obtenues
+        self.link_fps = None          # cadence lue par le lien MJPEG local (webcam par lien)
+        self._decode_checked = 0.0
+        self._report_cache = (None, None)   # (image d'origine, image réduite pour le rapport du site)
         # Machines GRBL : contrôleur connecté, job en cours (fil dédié) et confirmation opérateur.
         self.grbl = None
         self.grbl_job = {}
@@ -794,8 +814,11 @@ class Device:
         capture = self.webcam
         return capture.frame_value() if capture is not None else (None, 0)
 
-    def validate_frame(self, frame):
-        if not 100 <= len(frame) < 1024*1024 or not frame.startswith(b"\xff\xd8") or not frame.endswith(b"\xff\xd9"):
+    def validate_frame(self, frame, decode=True):
+        """JPEG borné (taille, marqueurs, format, dimensions) ; rend (largeur, hauteur). ``decode=False`` ne lit que
+        l'en-tête : réservé aux images que ce Worker vient d'encoder lui-même (capture USB), contrôlées en entier
+        une fois par seconde."""
+        if not 100 <= len(frame) < CAMERA_MAX_FRAME_BYTES or not frame.startswith(b"\xff\xd8") or not frame.endswith(b"\xff\xd9"):
             raise ValueError("Image JPEG invalide")
         target = runtime_dependencies(self.root)
         if str(target) not in sys.path:
@@ -804,7 +827,48 @@ class Device:
         with Image.open(io.BytesIO(frame)) as picture:
             if picture.format != "JPEG" or not 0 < picture.width <= 4096 or not 0 < picture.height <= 4096:
                 raise ValueError("Dimensions JPEG invalides")
-            picture.load()
+            if decode:
+                picture.load()
+            return picture.width, picture.height
+
+    def validate_own_frame(self, frame):
+        """Image encodée par ce Worker (capture USB) : en-tête à chaque image, décodage complet une fois par seconde.
+        Garde la taille obtenue dans ``capture_size``."""
+        now = time.monotonic()
+        decode = now - self._decode_checked >= USB_DECODE_CHECK_S
+        self.capture_size = self.validate_frame(frame, decode=decode)
+        if decode:
+            self._decode_checked = now
+
+    def report_frame(self):
+        """Image jointe au rapport du site : telle quelle sous 1 Mio (toujours le cas jusqu'en 1080p), sinon
+        recompressée (qualité 80, 65, 50, puis moitié de la taille) ; None si la réduction est impossible.
+        Une seule réduction par image (cache), une image par tour de boucle : coût négligeable."""
+        frame = self.frame
+        if frame is None or len(frame) <= REPORT_MAX_FRAME_BYTES:
+            return frame
+        if self._report_cache[0] is frame:
+            return self._report_cache[1]
+        reduced = None
+        try:
+            Image = importlib.import_module("PIL.Image")
+            with Image.open(io.BytesIO(frame)) as picture:
+                picture = picture.convert("RGB")
+                for scale in (1, 2, 4):
+                    if scale > 1:
+                        picture = picture.resize((max(1, picture.width // 2), max(1, picture.height // 2)))
+                    for quality in (80, 65, 50):
+                        buffer = io.BytesIO()
+                        picture.save(buffer, format="JPEG", quality=quality)
+                        if buffer.tell() <= REPORT_MAX_FRAME_BYTES:
+                            reduced = buffer.getvalue()
+                            break
+                    if reduced is not None:
+                        break
+        except Exception:  # noqa: BLE001 - Pillow absent ou image illisible : le rapport part sans image
+            reduced = None
+        self._report_cache = (frame, reduced)
+        return reduced
 
     def progress(self, percent, message, connected=False):
         with self.lock:
@@ -856,7 +920,12 @@ class Device:
             if self.spec["kind"] in GRBL_KINDS:
                 result["grbl"] = self.grbl_report()
             if self.frame and time.time()-self.frame_at < 8:
-                result["frame"] = base64.b64encode(self.frame).decode()
+                frame = self.report_frame()
+                if frame is not None:
+                    result["frame"] = base64.b64encode(frame).decode()
+                else:
+                    result["connected"] = False
+                    result["message"] = "Image trop lourde pour le site et réduction impossible (Pillow absent) : baisse la résolution de la caméra."
             elif self.spec["kind"] == "camera":
                 result["connected"] = False
             if self.spec["kind"] == "camera":
@@ -1020,7 +1089,7 @@ class Device:
                 # L'arrêt demandé tue le processus : la lecture bloquante ci-dessous se termine alors sur une fin de flux.
                 threading.Thread(target=self._usb_kill_on_stop, args=(process,), daemon=True).start()
                 stamps, reported, measured, backend = [], 0.0, False, ""
-                self.capture_fps = None
+                self.capture_fps = self.capture_size = None
                 while True:
                     header = process.stdout.readline()
                     if not header:
@@ -1040,10 +1109,12 @@ class Device:
                     if not header.startswith(b"FRAME "):
                         continue
                     size = int(header.split()[1])
+                    if not 0 < size < CAMERA_MAX_FRAME_BYTES:
+                        raise ConnectionError("La capture de la caméra USB a annoncé une image hors bornes")
                     frame = process.stdout.read(size)
                     if len(frame) != size:
                         raise ConnectionError("La capture de la caméra USB s’est arrêtée")
-                    self.validate_frame(frame)
+                    self.validate_own_frame(frame)
                     with self.lock:
                         self.frame, self.frame_at = frame, time.time()
                     now = time.monotonic()
@@ -1052,7 +1123,8 @@ class Device:
                         self.capture_fps = (len(stamps) - 1) / (now - stamps[0])
                     if reported == 0.0 or now - reported >= USB_FPS_WINDOW_S or (self.capture_fps and not measured):
                         reported, measured = now, bool(self.capture_fps)
-                        self.progress(100, usb_capture_message(self.capture_fps, options["fps"], backend), True)
+                        self.progress(100, usb_capture_message(self.capture_fps, options["fps"], backend, self.capture_size,
+                                                               (options["width"], options["height"])), True)
                     delay = 2
             except Exception as error:
                 if self.stop.is_set():
@@ -1129,12 +1201,13 @@ class Device:
                 stage = "réception/décodage des images après authentification"
                 buffer = b""
                 last_image = time.monotonic()
+                stamps, told = [], 0.0
                 while not self.stop.is_set():
                     chunk = read()
                     if not chunk:
                         raise ConnectionError("Flux fermé")
                     buffer += chunk
-                    if len(buffer) > 2*1024*1024 or time.monotonic()-last_image > 20:
+                    if len(buffer) > 2*CAMERA_MAX_FRAME_BYTES or time.monotonic()-last_image > 20:
                         raise ValueError("Flux JPEG invalide")
                     while True:
                         begin = buffer.find(b"\xff\xd8")
@@ -1142,12 +1215,23 @@ class Device:
                         if begin < 0 or end < 0:
                             break
                         frame, buffer = buffer[begin:end+2], buffer[end+2:]
-                        if len(frame) < 1024*1024:
-                            self.validate_frame(frame)
+                        if len(frame) < CAMERA_MAX_FRAME_BYTES:
+                            if link:
+                                self.validate_own_frame(frame)   # image que ce Worker vient d'encoder et de publier
+                            else:
+                                self.validate_frame(frame)
                             with self.lock:
                                 self.frame, self.frame_at = frame, time.time()
-                            self.progress(100, "Webcam connectée — images lues par son lien MJPEG local." if link else "Caméra connectée — images reçues via le Worker.", True)
                             last_image = time.monotonic()
+                            if link:
+                                stamps = [stamp for stamp in stamps if last_image - stamp <= USB_FPS_WINDOW_S] + [last_image]
+                                if len(stamps) >= 2 and last_image - stamps[0] >= 1.0:
+                                    self.link_fps = (len(stamps) - 1) / (last_image - stamps[0])
+                                if told == 0.0 or last_image - told >= USB_FPS_WINDOW_S:
+                                    told = last_image
+                                    self.progress(100, self._webcam_link_message(), True)
+                            else:
+                                self.progress(100, "Caméra connectée — images reçues via le Worker.", True)
                             delay = 2
             except ImportError as error:
                 self.progress(0, dependency_error(error))
@@ -1196,6 +1280,21 @@ class Device:
         self.progress(min(60, int(percent or 0)), detail or "Ouverture de la webcam sur le Worker…")
         return False
 
+    def _webcam_link_message(self):
+        """Fiche « webcam par lien » : ce que la webcam fournit vraiment et ce que le lien sert, à côté du réglage."""
+        text = "Webcam connectée — images lues par son lien MJPEG local."
+        capture, cfg = self.webcam, self.spec["settings"]
+        size = getattr(capture, "capture_size", None)
+        fps = getattr(capture, "capture_fps", None)
+        parts = []
+        if size or fps:
+            got = (f"{size[0]}×{size[1]}" if size else "") + (" à " if size and fps else "") + (f"{fps:.1f} image(s)/s".replace(".", ",", 1) if fps else "")
+            wanted_size = f"{cfg.get('width')}×{cfg.get('height')} " if cfg.get("width") and cfg.get("height") else ""
+            parts.append(f"Capture : {got} (demandé : {wanted_size}à {cfg.get('fps', 10)} image(s)/s)")
+        if self.link_fps:
+            parts.append(f"lien : {self.link_fps:.1f} image(s)/s".replace(".", ",", 1) + f" (demandé : {cfg.get('relay_fps') or 10})")
+        return text + (" " + " ; ".join(parts) + "." if parts else "")
+
     def _webcam_link_close(self):
         capture, self.webcam = self.webcam, None
         if capture is not None:
@@ -1235,7 +1334,7 @@ class Device:
                 enumerated = False
                 self.progress(60, "Caméra USB ouverte — attente de la première image…")
                 interval, misses, quality, stamps, reported, measured = 1.0 / options["fps"], 0, 80, [], 0.0, False
-                self.capture_fps = None
+                self.capture_fps = self.capture_size = None
                 while not self.stop.is_set():
                     started = time.monotonic()
                     ok, image = capture.read()
@@ -1249,7 +1348,7 @@ class Device:
                     misses = 0
                     frame, quality = usb_encode_frame(cv2, image, quality)
                     if frame is not None:
-                        self.validate_frame(frame)
+                        self.validate_own_frame(frame)
                         with self.lock:
                             self.frame, self.frame_at = frame, time.time()
                         now = time.monotonic()
@@ -1259,7 +1358,8 @@ class Device:
                         # Message mis à jour au plus toutes les 5 s : la fiche affiche la cadence réelle.
                         if reported == 0.0 or now - reported >= USB_FPS_WINDOW_S or (self.capture_fps and not measured):
                             reported, measured = now, bool(self.capture_fps)
-                            self.progress(100, usb_capture_message(self.capture_fps, options["fps"], options.get("backend_used", "")), True)
+                            self.progress(100, usb_capture_message(self.capture_fps, options["fps"], options.get("backend_used", ""), self.capture_size,
+                                                                   (options["width"], options["height"])), True)
                         delay = 2
                     # La lecture attend déjà l'image suivante de la caméra : seul le reste de la période est attendu
                     # (attendre une période entière en plus divisait la cadence par deux).
@@ -1542,6 +1642,321 @@ class Device:
             time.sleep(0.05)
 
 
+# ------------------------------------------------------------------ vue fluide du site (equipment_camera_live_v1)
+# Le site annonce, dans la réponse signée de la boucle d'équipements (clé « camera_live »), les caméras regardées en ce
+# moment, leur profil (cadence, largeur, qualité JPEG) et un ticket à durée courte. Le Worker pousse alors la DERNIÈRE
+# image disponible, réduite au profil, par une connexion gardée ouverte. Rien n'est mis en file : une image en retard
+# est sautée. Sans la clé (site plus ancien) ou sans spectateur, ce code ne fait rien et rien d'autre ne change :
+# l'image du rapport (une par tour de boucle) continue de partir comme avant.
+SITE_LIVE_ROUTE = re.compile(r"/api/worker-protocol/equipment/[a-z][a-z-]{0,40}/")
+SITE_LIVE_WAIT_S = 0.004          # attente d'une nouvelle image de la capture
+SITE_LIVE_TIMEOUT_S = 8           # délai d'un envoi
+SITE_LIVE_LANES_FPS = 10          # à partir de cette cadence, deux connexions envoient en alternance
+SITE_LIVE_WINDOW_S = 2.0          # fenêtre de mesure de la cadence envoyée
+SITE_LIVE_MIN_QUALITY = 35
+SITE_LIVE_MIN_WIDTH = 480
+SITE_LIVE_MAX_STREAMS = 8
+
+
+def site_live_profile(entry):
+    """Profil d'une caméra regardée, tel qu'envoyé par le site, borné ; None s'il est inutilisable."""
+    if not isinstance(entry, dict):
+        return None
+    try:
+        fps = float(entry.get("fps"))
+        width = int(entry.get("width") or 0)
+        quality = int(entry.get("quality"))
+        max_bytes = int(entry.get("max_bytes") or 1024 * 1024)
+        revision = int(entry.get("revision"))
+    except (TypeError, ValueError):
+        return None
+    ticket = entry.get("ticket")
+    if (not isinstance(ticket, str) or not re.fullmatch(r"[A-Za-z0-9_-]{16,128}", ticket) or not 1 <= fps <= 30
+            or not (width == 0 or 160 <= width <= 4096) or not 20 <= quality <= 95 or not 64 * 1024 <= max_bytes <= CAMERA_MAX_FRAME_BYTES):
+        return None
+    return {"fps": fps, "width": width, "quality": quality, "max_bytes": max_bytes, "revision": revision, "ticket": ticket}
+
+
+def site_live_render(frame, width, quality, max_bytes):
+    """Image pour la vue du site : largeur ramenée à ``width`` (0 = d'origine), JPEG de qualité ``quality`` abaissée
+    par paliers tant que l'image dépasse ``max_bytes``. Rend (octets, (largeur, hauteur), (largeur, hauteur) d'origine)
+    ou None si l'image ne tient pas."""
+    Image = importlib.import_module("PIL.Image")
+    with Image.open(io.BytesIO(frame)) as picture:
+        source = picture.size
+        if width and picture.width > width:
+            height = max(1, round(picture.height * width / picture.width))
+            picture.draft("RGB", (width, height))   # réduction à la décompression quand le rapport est d'au moins 2
+            picture = picture.convert("RGB")
+            if picture.width > width:
+                picture = picture.resize((width, height), getattr(Image, "Resampling", Image).BILINEAR)
+        else:
+            picture = picture.convert("RGB")
+        while True:
+            buffer = io.BytesIO()
+            picture.save(buffer, format="JPEG", quality=quality)
+            if buffer.tell() <= max_bytes:
+                return buffer.getvalue(), picture.size, source
+            if quality <= 25:
+                return None
+            quality -= 15
+
+
+class SiteLiveConnection:
+    """Connexion HTTP gardée ouverte vers le site : une négociation TLS pour tout le flux, pas une par image."""
+
+    def __init__(self, server, user_agent):
+        parsed = urlsplit(str(server or ""))
+        if parsed.scheme != "https" and not (parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost", "::1"}):
+            raise ValueError("HTTPS est obligatoire hors connexion locale.")
+        self.secure, self.host, self.port = parsed.scheme == "https", parsed.hostname, parsed.port
+        self.prefix = parsed.path.rstrip("/")
+        self.user_agent = user_agent
+        self.connection = None
+
+    def post(self, path, body, headers):
+        """Envoie une image ; rend (statut, réponse JSON ou {}). La connexion est refermée sur toute erreur."""
+        try:
+            if self.connection is None:
+                factory = http.client.HTTPSConnection if self.secure else http.client.HTTPConnection
+                self.connection = factory(self.host, self.port, timeout=SITE_LIVE_TIMEOUT_S)
+            self.connection.request("POST", self.prefix + path, body=body,
+                                    headers={"User-Agent": self.user_agent, "Accept": "application/json", "Content-Type": "image/jpeg", **headers})
+            response = self.connection.getresponse()
+            content = response.read(64 * 1024)
+            if response.will_close:
+                self.close()
+        except Exception:
+            self.close()
+            raise
+        try:
+            data = json.loads(content.decode("utf-8"))
+        except ValueError:
+            data = {}
+        return response.status, data if isinstance(data, dict) else {}
+
+    def close(self):
+        connection, self.connection = self.connection, None
+        if connection is not None:
+            try:
+                connection.close()
+            except Exception:
+                pass
+
+
+class SiteLiveStream:
+    """Envoi des images d'UNE caméra au site tant qu'un spectateur la regarde et que le bail est renouvelé."""
+
+    def __init__(self, device, profile, route, lease, connect):
+        self.device, self.connect = device, connect
+        self.path = route + urllib.parse.quote(str(device.spec["id"]), safe="")
+        self.stop = threading.Event()
+        self.lock = threading.Lock()
+        self.session = uuid.uuid4().hex
+        self.seq, self.taken, self.next_pick = 0, 0.0, 0.0
+        self.sent, self.busy = [], []          # (instant, durée) des envois réussis ; temps occupé par envoi
+        self.send_ms = None
+        self.calm = 0                          # fenêtres consécutives avec de la marge (pour remonter la qualité)
+        self.adapted = time.monotonic()
+        self.threads = []
+        self.error = ""
+        self.source_width = 0
+        self.renew(profile, lease)
+        self.quality, self.width = self.profile["quality"], self.profile["width"]
+
+    def renew(self, profile, lease):
+        with self.lock:
+            previous = getattr(self, "profile", None)
+            self.profile = profile
+            self.lease_until = time.monotonic() + lease
+            if previous is not None and any(previous[key] != profile[key] for key in ("fps", "width", "quality")):
+                self.quality, self.width, self.calm = profile["quality"], profile["width"], 0
+
+    def start(self):
+        lanes = 2 if self.profile["fps"] >= SITE_LIVE_LANES_FPS else 1
+        for index in range(lanes):
+            thread = threading.Thread(target=self._lane, name=f"site-live-{self.device.spec['id'][:8]}-{index}", daemon=True)
+            self.threads.append(thread)
+            thread.start()
+
+    def alive(self):
+        return any(thread.is_alive() for thread in self.threads)
+
+    def close(self):
+        self.stop.set()
+
+    def stopping(self):
+        return self.stop.is_set() or self.device.stop.is_set() or time.monotonic() > self.lease_until
+
+    def _pick(self):
+        """Image suivante à envoyer : la plus récente de la capture, jamais deux fois la même, à la cadence du profil."""
+        with self.lock:
+            now = time.monotonic()
+            if now < self.next_pick:
+                return None
+            frame, stamp = self.device.source_frame_value()
+            if not frame or stamp <= self.taken or time.time() - stamp > 8:
+                return None
+            self.taken = stamp
+            self.seq += 1
+            period = 1.0 / self.profile["fps"]
+            self.next_pick = max(self.next_pick + period, now)   # en retard : pas de rattrapage en rafale
+            return frame, self.seq, dict(self.profile), self.quality, self.width
+
+    def _record(self, started, finished):
+        with self.lock:
+            self.sent.append(finished)
+            self.busy.append((finished, finished - started))
+            self.send_ms = (finished - started) * 1000 if self.send_ms is None else self.send_ms * 0.8 + (finished - started) * 200
+            horizon = finished - SITE_LIVE_WINDOW_S
+            self.sent = [stamp for stamp in self.sent if stamp >= horizon]
+            self.busy = [item for item in self.busy if item[0] >= horizon]
+            if finished - self.adapted < SITE_LIVE_WINDOW_S:
+                return
+            self.adapted = finished
+            achieved = len(self.sent) / SITE_LIVE_WINDOW_S
+            occupied = sum(duration for _stamp, duration in self.busy) / (SITE_LIVE_WINDOW_S * max(1, len(self.threads)))
+            target = self.profile["fps"]
+            if occupied > 0.85 and achieved < 0.8 * target:
+                # Le lien montant (ou l'encodage) ne suit pas : images plus légères, jamais de file d'attente.
+                self.calm = 0
+                if self.quality > SITE_LIVE_MIN_QUALITY:
+                    self.quality = max(SITE_LIVE_MIN_QUALITY, self.quality - 10)
+                else:
+                    current = self.width or self.source_width or 1280
+                    if current > SITE_LIVE_MIN_WIDTH:
+                        self.width = max(SITE_LIVE_MIN_WIDTH, int(current * 0.8) // 16 * 16)
+            elif occupied < 0.5:
+                self.calm += 1
+                if self.calm >= 5:   # dix secondes de marge : un cran vers le profil demandé
+                    self.calm = 0
+                    wanted = self.profile["width"]
+                    if self.width and (not wanted or self.width < wanted):
+                        grown = int(self.width / 0.8) // 16 * 16
+                        self.width = wanted if (wanted and grown >= wanted) else (0 if not wanted and grown >= 3840 else grown)
+                    elif self.quality < self.profile["quality"]:
+                        self.quality = min(self.profile["quality"], self.quality + 10)
+            else:
+                self.calm = 0
+
+    def stats(self):
+        with self.lock:
+            return {"fps": round(len(self.sent) / SITE_LIVE_WINDOW_S, 1), "quality": self.quality, "width": self.width,
+                    "send_ms": round(self.send_ms, 1) if self.send_ms is not None else None, "error": self.error}
+
+    def _lane(self):
+        connection, failures = None, 0
+        try:
+            while not self.stopping():
+                picked = self._pick()
+                if picked is None:
+                    self.stop.wait(SITE_LIVE_WAIT_S)
+                    continue
+                frame, seq, profile, quality, width = picked
+                started = time.monotonic()
+                try:
+                    rendered = site_live_render(frame, width, quality, profile["max_bytes"])
+                except ImportError:
+                    self.error = "Pillow absent sur ce Worker : clique Installer sur la fiche de la caméra."
+                    self.stop.set()
+                    break
+                except Exception:  # noqa: BLE001 - image illisible : la suivante sera essayée
+                    continue
+                if rendered is None:
+                    continue
+                body, size, source = rendered
+                self.source_width = source[0]
+                capture = self.device.webcam if self.device.webcam is not None else self.device
+                info = {"width": size[0], "height": size[1], "quality": quality, "source_width": source[0], "source_height": source[1]}
+                if getattr(capture, "capture_fps", None):
+                    info["capture_fps"] = round(float(capture.capture_fps), 1)
+                if self.send_ms is not None:
+                    info["send_ms"] = round(self.send_ms, 1)
+                try:
+                    if connection is None:
+                        connection = self.connect()
+                    status, answer = connection.post(self.path, body, {"X-Live-Ticket": profile["ticket"], "X-Stream-Session": self.session,
+                                                                      "X-Frame-Seq": str(seq), "X-Live-Info": json.dumps(info, separators=(",", ":"))})
+                except Exception:  # noqa: BLE001 - réseau : nouvelle connexion, attente bornée, image suivante
+                    failures += 1
+                    if connection is not None:
+                        connection.close()
+                    connection = None
+                    self.stop.wait(min(2.0, 0.25 * 2 ** min(failures, 3)))
+                    continue
+                if status == 200:
+                    failures = 0
+                    self._record(started, time.monotonic())
+                    if answer.get("viewers") == 0:
+                        self.stop.set()      # plus personne ne regarde : arrêt immédiat
+                elif status in {401, 403, 404, 410}:
+                    self.stop.set()          # ticket expiré ou caméra retirée : le prochain tour de boucle décidera
+                elif status == 429:
+                    self.stop.wait(0.5)
+                else:
+                    failures += 1
+                    self.stop.wait(min(2.0, 0.25 * 2 ** min(failures, 3)))
+        finally:
+            if connection is not None:
+                connection.close()
+
+
+class SiteLive:
+    """Flux vers le site des caméras regardées. Inactif tant que le site n'envoie pas « camera_live »."""
+
+    def __init__(self, agent, connect=None):
+        self.agent = agent
+        self.lock = threading.Lock()
+        self.streams = {}
+        self._connect = connect
+
+    def connect(self):
+        if self._connect is not None:
+            return self._connect()
+        return SiteLiveConnection(self.agent.server, worker_site_headers(self.agent)["User-Agent"])
+
+    def update(self, live, devices):
+        """Applique la demande du site (``camera_live`` de la réponse de la boucle, None si absente)."""
+        wanted, route, lease = {}, "", 10.0
+        if isinstance(live, dict) and isinstance(live.get("cameras"), dict) and isinstance(live.get("route"), str) \
+                and SITE_LIVE_ROUTE.fullmatch(live["route"]):
+            route = live["route"]
+            try:
+                lease = min(30.0, max(3.0, float(live.get("lease") or 10.0)))
+            except (TypeError, ValueError):
+                lease = 10.0
+            for identifier, entry in list(live["cameras"].items())[:SITE_LIVE_MAX_STREAMS]:
+                device, profile = devices.get(str(identifier)), site_live_profile(entry)
+                if (device is None or profile is None or device.spec.get("kind") != "camera" or not device.spec.get("enabled")
+                        or device.spec.get("revision") != profile["revision"] or device.stop.is_set()):
+                    continue
+                wanted[str(identifier)] = (device, profile)
+        with self.lock:
+            for identifier in list(self.streams):
+                stream = self.streams[identifier]
+                if identifier not in wanted or stream.device is not wanted[identifier][0] or not stream.alive():
+                    stream.close()
+                    del self.streams[identifier]
+            for identifier, (device, profile) in wanted.items():
+                stream = self.streams.get(identifier)
+                if stream is not None:
+                    stream.renew(profile, lease)
+                    continue
+                stream = self.streams[identifier] = SiteLiveStream(device, profile, route, lease, self.connect)
+                stream.start()
+
+    def stats(self, identifier):
+        with self.lock:
+            stream = self.streams.get(str(identifier))
+        return stream.stats() if stream is not None else None
+
+    def close(self):
+        with self.lock:
+            streams, self.streams = list(self.streams.values()), {}
+        for stream in streams:
+            stream.close()
+
+
 class EquipmentRelay:
     def __init__(self, agent):
         self.agent = agent
@@ -1554,6 +1969,7 @@ class EquipmentRelay:
         self.video_options = {}   # identifiant -> options (fps, width, height) passées au relais
         self.video_version = None  # version du composant relais chargé en mémoire
         self.relay_intent = {}
+        self.site_live = SiteLive(agent)   # vue fluide du site : inactif sans « camera_live » dans la réponse du site
         # Surveillance incendie (agent 1.34.0) : garde de départ posée par l'agent (start_refusal / is_latched),
         # et état des arrêts par machine (arrêt en cours, dernier arrêt confirmé) pour les rendre idempotents.
         self.fire_guard = None
@@ -1651,7 +2067,7 @@ class EquipmentRelay:
         with opener.open(url, timeout=3) as response:
             if response.headers.get_content_type() != "image/jpeg":
                 raise ValueError("Réponse vidéo invalide")
-            frame = response.read(1024*1024+1)
+            frame = response.read(CAMERA_MAX_FRAME_BYTES+1)
         device.validate_frame(frame)
         resize_error = getattr(self.video, "resize_errors", {}).get(pair) if self.video else ""
         device.relay_state.update(relay_verified=True, relay_message=self._relay_outdated_message() or resize_error or "Relais MJPEG actif — image vérifiée sur ce Worker.")
@@ -2672,12 +3088,15 @@ class EquipmentRelay:
         while not self.agent.stop_requested.is_set():
             if getattr(self.agent, "disconnecting", False):
                 # Déconnexion en cours : ne rouvrir aucune liaison ni relais vidéo.
+                self.site_live.close()
                 self.sync([])
                 self.agent.stop_requested.wait(1)
                 continue
             try:
                 response = self.agent.request("/api/worker-protocol/equipment")
                 self.sync(response.get("equipment", []))
+                # Vue fluide du site : caméras regardées en ce moment (clé absente d'un site plus ancien = rien).
+                self.site_live.update(response.get("camera_live"), self.devices)
                 with self.lock:
                     reports = [device.report() for device in self.devices.values()]
                 for offset in range(0, len(reports), 3):
@@ -2685,7 +3104,9 @@ class EquipmentRelay:
                 delay = 2
             except Exception as error:
                 if getattr(error, "code", None) in {401, 403}:
+                    self.site_live.close()
                     self.sync([])
                 delay = min(30, delay*2)
             self.agent.stop_requested.wait(delay)
+        self.site_live.close()
         self.sync([])
