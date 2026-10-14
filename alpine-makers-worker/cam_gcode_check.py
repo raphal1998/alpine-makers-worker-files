@@ -251,7 +251,7 @@ def _move(program, line, values, scale):
     kind = "rapid" if motion == "G0" else "cut"
     program.moves.append({"kind": kind, "line": line, "a": start, "b": end, "feed": program.feed,
                           "tool": program.tool, "arc": arc, "spindle_on": program.spindle_on})
-    program.position = end
+    program.position = list(end)  # copie : le mouvement enregistré garde son point « b » même si la position change ensuite
 
 
 def _canned(program, line, values, scale):
@@ -280,7 +280,7 @@ def _canned(program, line, values, scale):
         up = [current[0], current[1], retract]
         program.moves.append({"kind": "rapid", "a": down, "b": up, **base})
         current = up
-    program.position = current
+    program.position = list(current)  # copie : même raison que dans _move (G28/G53 modifient la position en place)
 
 
 def _arc(program, start, end, values, scale, clockwise):

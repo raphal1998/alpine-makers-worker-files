@@ -67,6 +67,9 @@ CATALOG = {
     # composant n'installe que son Python isolé (.venv) avec Pillow épinglé pour la trame d'image.
     # shapely/svgwrite/segno (agent 1.32.0) : bibliothèques de dessin des scripts de l'assistant de code.
     "laser-engine": {"kind": "python-venv", "packages": ("Pillow==11.0.0", "shapely==2.1.2", "svgwrite==1.4.3", "segno==1.6.6")},
+    # Moteur d'Alpine CNC Studio : le code (cnc_engine/ + cam_gcode_check.py) arrive avec le paquet Worker ;
+    # bibliothèque standard seulement, le composant n'installe que son Python isolé (.venv), comme laser-engine.
+    "cnc-engine": {"kind": "python-venv", "packages": ()},
     # Surveillance IA des graveuses (agent 1.34.0) : module du tool laser-studio, indépendant du moteur
     # laser. Python isolé + ONNX Runtime (GPU NVIDIA si compatible, sinon CPU) ; le code d'analyse
     # (fire_watch_engine/) arrive avec le paquet Worker, les poids sont convertis sur place.
@@ -365,8 +368,11 @@ CUDA_TORCH_PROBE = (
 def selected_profile(component):
     tool = {"comfyui": "image_generation", "hunyuan3d": "ai3d", "cuda-toolkit": "ai3d", "hunyuan3d-21": "ai3d", "open3d-lab": "ai3d",
             "orca": "model-studio", "orca-bridge": "model-studio", "freecad": "converter",
-            "laser-engine": "laser-studio", "fire-watch": "laser-studio"}.get(component, component)
+            "laser-engine": "laser-studio", "fire-watch": "laser-studio", "cnc-engine": "cnc-studio"}.get(component, component)
     profile = runtime_profile(detect_hardware(), tool)
+    if component == "cnc-engine" and profile["status"] == "unsupported" and "profil matériel" in profile["reason"]:
+        # Tant que hardware_profiles ne connaît pas cnc-studio : même profil CPU que le moteur laser.
+        profile = {**runtime_profile(detect_hardware(), "laser-studio"), "label": "Moteur CNC · CPU"}
     if profile["status"] != "supported":
         raise RuntimeError(profile["reason"] or "Matériel du Worker à vérifier avant installation.")
     if component == "fire-watch":
@@ -984,6 +990,45 @@ def install_laser_engine(worker_root, root, spec, upgrade=False):
     progress(99, f"Moteur laser prêt (Pillow {report['pillow']}, shapely {report.get('shapely')}).")
     return (f"Moteur laser installé : Python isolé, Pillow {report['pillow']} et shapely {report.get('shapely')} "
             "prêts sur ce Worker.")
+
+
+# Sonde exécutée dans le .venv du composant CNC : le moteur livré analyse un programme minimal.
+CNC_ENGINE_PROBE = "import json, cam_gcode_check, cnc_engine.cli as cli; print(json.dumps(cli.probe()))"
+
+
+def install_cnc_engine(worker_root, root, spec):
+    """Python isolé pour le moteur CNC livré avec l'agent (bibliothèque standard : pip n'installe rien
+    quand ``spec['packages']`` est vide). Même mécanisme que laser-engine : .venv + marqueur .raphal-ready."""
+    progress(5, "Préparation du moteur CNC (Python isolé)…")
+    worker_dir = Path(__file__).resolve().parents[1]
+    shipped = [worker_dir / "cnc_engine" / name for name in ("__init__.py", "analyze.py", "cli.py")]
+    shipped += [worker_dir / "cam_gcode_check.py", worker_dir / "runners" / "cnc-engine.py"]
+    if not all(path.is_file() and not is_link(path) for path in shipped):
+        raise RuntimeError("Le moteur CNC manque au paquet Worker. Mets à jour le Worker puis relance l’installation.")
+    if shutil.disk_usage(root.parent).free < 512 * 1024 ** 2:
+        raise RuntimeError("Au moins 512 Mio libres sont nécessaires sur le disque du Worker pour le Python isolé.")
+    root.mkdir(parents=True, exist_ok=True)
+    ready = root / ".raphal-ready"
+    if is_link(ready):
+        raise RuntimeError("Marqueur du moteur CNC sous forme de lien ; installation refusée.")
+    ready.unlink(missing_ok=True)
+    py = engine_environment(root)
+    packages = tuple(spec.get("packages") or ())
+    if packages:
+        progress(45, "Environnement Python prêt, installation des bibliothèques du moteur CNC…")
+        call([py, "-m", "pip", "install", "--upgrade", *packages], cwd=root, timeout=1800,
+             progress_value=60, progress_label="Installation des bibliothèques du moteur CNC")
+    progress(88, "Vérification du moteur CNC dans son environnement…")
+    try:
+        report = json.loads(call([py, "-c", CNC_ENGINE_PROBE], cwd=worker_dir, timeout=120).strip().splitlines()[-1])
+    except (RuntimeError, ValueError, IndexError) as error:
+        raise RuntimeError("Le moteur CNC ne démarre pas dans son environnement Python : " + str(error)[-800:]) from error
+    if not isinstance(report, dict) or not report.get("ok") or not report.get("moves"):
+        raise RuntimeError("Vérification du moteur CNC échouée : l’analyse d’un programme minimal ne répond pas comme attendu.")
+    ready.write_text(json.dumps({"component": "cnc-engine", "packages": list(packages),
+                                 "operations": report.get("operations") or []}), encoding="utf-8")
+    progress(99, "Moteur CNC prêt (analyse et simulation de programmes).")
+    return "Moteur CNC installé : Python isolé prêt sur ce Worker (analyse et simulation de programmes G-code)."
 
 
 # ---------------------------------------------------------------- surveillance IA des graveuses (fire-watch)
@@ -1661,7 +1706,7 @@ def install_fire_watch(worker_root, root, upgrade=False):
 
 
 def component_ready(component, root):
-    if component == "laser-engine":
+    if component in {"laser-engine", "cnc-engine"}:
         return (root / ".raphal-ready").is_file() and python_in(root / ".venv").is_file()
     if component == "fire-watch":
         return fire_watch_ready(root)
@@ -1828,6 +1873,8 @@ def _manage(component, action):
     if spec["kind"] == "system-freecad":
         return install_freecad(worker_root, root)
     if spec["kind"] == "python-venv":
+        if component == "cnc-engine":
+            return install_cnc_engine(worker_root, root, spec)
         return install_laser_engine(worker_root, root, spec)
     if spec["kind"] == "fire-watch":
         return install_fire_watch(worker_root, root)

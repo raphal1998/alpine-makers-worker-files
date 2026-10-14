@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.13"
+AGENT_VERSION = "1.50.15"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Maintenance des environnements (agent 1.35.17) : Python isolé et pip/wheel/setuptools des .venv gérés rafraîchis
@@ -158,6 +158,15 @@ AGENT_CAPABILITIES += ("equipment_camera_webcam_link_v1",)  # littéral : le sit
 # d'arguments écrit par worker.exe, l'efface, puis appelle la route signée self/login ; le mot de passe ne passe ni par
 # la ligne de commande, ni par un journal, ni par ETAT-WORKER.txt. « login-state » rend le verrou (exe_login du site).
 AGENT_CAPABILITIES += ("worker_exe_login_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.50.14 : vue fluide des caméras sur le site. Quand le site annonce une caméra regardée (clé « camera_live » de la
+# boucle d'équipements), equipment_runtime.SiteLive pousse la dernière image, réduite au profil de la fiche, par une
+# connexion gardée ouverte. Même capacité pour le format libre : capture et lien MJPEG local jusqu'à 120 i/s, image
+# jusqu'à 4 Mio sur le Worker (3840×2160), composant equipment_video_relay 1.2.0.
+AGENT_CAPABILITIES += ("equipment_camera_live_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.50.15 : Alpine CNC Studio. Validation, analyse et simulation du G-code de fraisage par le moteur du composant
+# « cnc-engine » (cnc_engine/ + cam_gcode_check.py, Python isolé), un processus par job (runners/cnc-engine.py), jamais
+# de commande envoyée à une machine : le pilotage reste celui de l'équipement GRBL.
+AGENT_CAPABILITIES += ("cnc_engine_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -302,10 +311,12 @@ TOOL_HANDLERS = {
     "converter": "freecad", "printguard": "printguard", "model-studio": "orca",
     # Alpine Laser Studio : moteur de parcours (runners/laser-engine.py), un processus par job.
     "laser-studio": "laser-engine",
+    # Alpine CNC Studio (agent 1.50.15) : moteur d'analyse du G-code (runners/cnc-engine.py), un processus par job.
+    "cnc-studio": "cnc-engine",
 }
 # Outils « à la demande » : un interrupteur logique (fiche runtime enabled), un processus par calcul,
 # aucun service résident à démarrer, surveiller ou arrêter.
-ON_DEMAND_TOOLS = ("converter", "laser-studio")
+ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio")
 HUNYUAN_MODELS = {model_id: (folder, *HUNYUAN_REQUIREMENTS[model_id]) for model_id, (_, folder) in HUNYUAN_CATALOG.items()}
 
 
@@ -1719,6 +1730,12 @@ class Agent:
             tools["laser-studio"] = {"tool_id": "laser-studio", "engine_id": "laser-engine", "status": "online" if self._runtime_running("laser-studio") else "ready", "version": "local"}
         elif laser_root.is_dir() and any((laser_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
             tools["laser-studio"] = {"tool_id": "laser-studio", "engine_id": "laser-engine", "status": "incomplete", "version": "local"}
+        # Moteur CNC (agent 1.50.15) : même logique que le moteur laser, composant « cnc-engine ».
+        cnc_root = self.root / "components" / "cnc-engine"
+        if component_ready("cnc-engine", cnc_root):
+            tools["cnc-studio"] = {"tool_id": "cnc-studio", "engine_id": "cnc-engine", "status": "online" if self._runtime_running("cnc-studio") else "ready", "version": "local"}
+        elif cnc_root.is_dir() and any((cnc_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
+            tools["cnc-studio"] = {"tool_id": "cnc-studio", "engine_id": "cnc-engine", "status": "incomplete", "version": "local"}
         for tool_id, engine in TOOL_HANDLERS.items():
             if tool_id in {"image-generation", "3d-generation"}:
                 continue
@@ -1820,6 +1837,17 @@ class Agent:
             return None
         return str(python_in(root / ".venv").resolve())
 
+    def _cnc_engine_python(self):
+        """Python isolé du composant cnc-engine quand le moteur CNC est prêt, sinon None (agent 1.50.15)."""
+        if __package__:
+            from .installers.component_installer import component_ready, python_in
+        else:
+            from installers.component_installer import component_ready, python_in
+        root = self.root / "components" / "cnc-engine"
+        if not component_ready("cnc-engine", root):
+            return None
+        return str(python_in(root / ".venv").resolve())
+
     def _runtime_record_path(self, tool_id):
         runtime = self.root / "runtime"
         runtime.mkdir(parents=True, exist_ok=True)
@@ -1851,6 +1879,8 @@ class Agent:
             return record.get("enabled") is True and bool(self._freecad_executable())
         if tool_id == "laser-studio":
             return record.get("enabled") is True and bool(self._laser_engine_python())
+        if tool_id == "cnc-studio":
+            return record.get("enabled") is True and bool(self._cnc_engine_python())
         pid = record.get("pid")
         root = str(record.get("root") or "").strip()
         expected_identity = str(record.get("process_identity") or "").strip()
@@ -2594,7 +2624,9 @@ class Agent:
                 raise AgentError("FreeCAD n’est pas installé. Installe ou répare le convertisseur.")
             if action == "start" and tool_id == "laser-studio" and not self._laser_engine_python():
                 raise AgentError("Le moteur laser n’est pas installé. Installe ou répare Alpine Laser Studio (Mes Workers → Installations).")
-            # FreeCADCmd and the laser engine are per-job processes, not persistent servers.
+            if action == "start" and tool_id == "cnc-studio" and not self._cnc_engine_python():
+                raise AgentError("Le moteur CNC n’est pas installé. Installe ou répare Alpine CNC Studio (Mes Workers → Installations).")
+            # FreeCADCmd, the laser engine and the CNC engine are per-job processes, not persistent servers.
             atomic_json(record_path, {"enabled": action == "start", "updated_at": time.time()})
             return {"started": action == "start", "stopped": action == "stop", "on_demand": True}
         record = self._runtime_record(tool_id)
@@ -4123,7 +4155,7 @@ class Agent:
         tool_id = str(payload.get("tool_id") or "")
         if not self._valid_execution_id(job_id):
             raise AgentError("Identifiant du job invalide.")
-        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "orca", "laser-engine"}:
+        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "orca", "laser-engine", "cnc-engine"}:
             raise AgentError("Outil de job non autorisé par le Worker.")
         with self.maintenance_lock:
             existing = self.journal.get("jobs", job_id)
@@ -4246,6 +4278,12 @@ class Agent:
                     if not laser_python:
                         raise AgentError("Le moteur laser n’est pas installé sur ce Worker.")
                     environment["LASER_ENGINE_PYTHON"] = laser_python
+                if tool_id == "cnc-studio":
+                    # Le moteur CNC tourne dans le Python isolé du composant cnc-engine (agent 1.50.15).
+                    cnc_python = self._cnc_engine_python()
+                    if not cnc_python:
+                        raise AgentError("Le moteur CNC n’est pas installé sur ce Worker.")
+                    environment["CNC_ENGINE_PYTHON"] = cnc_python
                 # Labo image, restauration des visages (agent 1.44.0) : lanceur dédié, pas un graphe ComfyUI.
                 face_restore = tool_id in {"image_generation", "image-generation"} and parameters.get("lab_tool") == "face_restore"
                 # Outils de cartes du Labo (agent 1.46.0) : lanceur dédié (script Pillow), pas un graphe ComfyUI.
