@@ -77,6 +77,23 @@ L'installateur ouvre `worker.exe` à la fin de l'installation pour cette premiè
 associé ouvre le menu sans connexion (l'association se fait par le menu). Le menu console `MENU-WORKER.bat` n'est
 pas concerné par cette connexion.
 
+**Co-propriétaires dans `worker.exe`.** Le propriétaire accorde la co-propriété depuis la gestion complète
+(onglet Partage → Co-propriétaires), jamais depuis le site. Pour chaque co-propriétaire, il choisit la portée
+(Worker seul, équipements seuls, les deux), les **équipements partagés** (bouton « Équipements… » : liste à cocher
+des équipements du Worker, ou « Tous les équipements », y compris ceux ajoutés plus tard), la case **« Peut se
+connecter à worker.exe »** et, par le bouton « Droits… », les droits reçus parmi : état, journaux et diagnostic ;
+installations ; moteurs et modules ; arrêt des jobs ; équipements partagés ; maintenance (mise à jour et
+redémarrage de l'agent, nettoyage, libération de mémoire) ; console et outils avancés. Un co-propriétaire qui se
+connecte à `worker.exe` voit le bandeau « Connecté comme co-propriétaire … · droits : … » ; les outils du menu hors
+de ses droits sont masqués, la gestion complète n'ouvre que les onglets couverts (modules → moteurs et modules,
+installations, réglages → maintenance, jobs, console), et le menu console de secours exige le droit « console ».
+Restent toujours réservés au propriétaire : partage et mode de partage, co-propriété, réassociation et récupération
+d'inscription, sauvegarde, démarrage automatique, révocation et suppression, extinction du PC, Comptes IA et toute
+la zone rouge. Le site reste le juge : chaque opération de `worker.exe` lui transmet le jeton de la session
+connectée, et il refuse ce qui dépasse les droits accordés. Sur le site, la carte du Worker affiche ces réglages
+en lecture seule (équipements partagés, connexion `worker.exe`, droits) ; le co-propriétaire voit ses droits dans
+le badge « Co-propriété de … ».
+
 La **version** installée n'est volontairement écrite nulle part dans ce document : lis-la
 dans l'en-tête du menu, ou dans le fichier `agent_manifest.json` (ligne `agent_version`).
 

@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.16 — 2026-10-14
+
+**worker.exe : co-propriétaire avec équipements choisis, connexion autorisée et droits précis**
+
+### Ajouté
+- Onglet Partage : pour chaque co-propriétaire, choix précis des équipements partagés (tous ou une sélection), case « Peut se connecter à worker.exe » et boîte des droits (état et journaux, installations, moteurs, jobs, équipements, maintenance, console). Un co-propriétaire connecté voit un menu limité à ses droits ; partage, co-propriété, révocation, désinstallation complète et extinction du PC restent au propriétaire. Chaque action de la Gestion complète porte le jeton de session remis à la connexion : le site vérifie les droits, jamais la machine.
+
+### Technique
+- Empreinte du paquet publié : `911652ddfcacf299…` (dossier du paquet).
+
 ## Version 1.50.15 — 2026-10-14
 
 **Alpine CNC Studio : moteur CNC installable sur le Worker (cnc-engine)**

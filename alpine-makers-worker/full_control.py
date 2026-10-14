@@ -28,9 +28,11 @@ OPS = ("worker", "installations", "installations-plan", "installations-batch", "
        "commands-status", "command", "settings", "primary", "associations", "tools-control", "repair",
        "cancel-jobs", "cancel-job", "console", "job-requests", "job-request-decide", "sharing-user",
        "sharing-user-remove", "team-sharing", "revoke", "forget", "delete",
-       # Co-propriétaires (1.50.13)
-       "co-owners", "co-owner-add", "co-owner-set", "co-owner-remove")
-READ_OPS = frozenset({"worker", "installations", "installations-plan", "commands-status", "console", "job-requests", "co-owners"})
+       # Co-propriétaires (1.50.13) ; 1.50.16 : équipements du Worker à cocher pour un co-propriétaire, et
+       # « args.session_token » (jeton rendu par « login ») joint à chaque opération pour les droits d'un co-propriétaire.
+       "co-owners", "co-owner-add", "co-owner-set", "co-owner-remove", "co-owner-equipment")
+READ_OPS = frozenset({"worker", "installations", "installations-plan", "commands-status", "console", "job-requests", "co-owners",
+                      "co-owner-equipment"})
 ARGS_MAX_BYTES = 65536
 ANSWER_MAX_BYTES = 8 * 1024 * 1024  # inventaire des installations compris
 ARGS_DEPTH_MAX = 5
