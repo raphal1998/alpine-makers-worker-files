@@ -4,7 +4,7 @@ param(
   [int]$Port = 15064
 )
 $ErrorActionPreference="Stop"
-$BridgeVersion = "19.26"
+$BridgeVersion = "19.27"
 $LogPath = Join-Path $Workspace "orca_bridge.log"
 function BridgeLog([string]$Message){
   try{
@@ -69,6 +69,26 @@ function Set-FilamentBedTemperatures($Filament,[string]$BedType){
       else{$Filament|Add-Member -NotePropertyName $name -NotePropertyValue $source.Value}
     }
   }
+}
+# Profil d'impression (process) : uniquement un profil qui se déclare compatible avec « Bambu Lab P1S <buse> nozzle »,
+# le plus proche de la hauteur de couche demandée (à égalité : « Standard », puis l'ordre alphabétique). L'ancien choix
+# prenait toujours un profil « @BBL X1C » de buse 0,4 : avec une buse 0,2, 0,6 ou 0,8, OrcaSlicer refusait le mélange
+# (« Slic3r::CLI::run found error »), même avec les réglages d'origine.
+function Find-P1SProcessProfile([string]$ProcessDir,[string]$Nozzle,[double]$LayerHeight){
+  $printer="Bambu Lab P1S $Nozzle nozzle"
+  $best=$null;$bestScore=$null
+  foreach($file in @(Get-ChildItem -LiteralPath $ProcessDir -File -Filter *.json -ErrorAction SilentlyContinue|Sort-Object Name)){
+    try{$json=Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8|ConvertFrom-Json}catch{continue}
+    if(!(@($json.compatible_printers) -contains $printer)){continue}
+    $height=$null
+    if($file.BaseName -match '^(\d+(?:\.\d+)?)mm'){$height=[double]::Parse($Matches[1],[Globalization.CultureInfo]::InvariantCulture)}
+    elseif($json.layer_height){try{$height=[double]::Parse([string]$json.layer_height,[Globalization.CultureInfo]::InvariantCulture)}catch{}}
+    if($null -eq $height){continue}
+    $score=[Math]::Abs($height-$LayerHeight)*1000
+    if($file.BaseName -notmatch 'Standard'){$score+=0.5}
+    if($null -eq $bestScore -or $score -lt $bestScore){$best=$file.FullName;$bestScore=$score}
+  }
+  return $best
 }
 # --- PROFILS P1S (fin) ---
 Add-Type -AssemblyName System.Web
@@ -425,12 +445,12 @@ while($listener.IsListening){
     $machine=Join-Path $profileRoot "machine\Bambu Lab P1S $nozzle nozzle.json"
     if(!(Test-Path $machine)){throw "Profil P1S $nozzle introuvable"}
 
-    # Process profile: choose nearest stock BBL quality, then override web values.
+    # Process profile: the stock BBL profile declared compatible with this P1S nozzle and nearest to the requested
+    # layer height, then the web values override it.
     $lh=[double]$body.layer_height
-    $processName = if($lh -le .13){"0.12mm Fine @BBL X1C.json"} elseif($lh -le .18){"0.16mm Optimal @BBL X1C.json"} elseif($lh -le .22){"0.20mm Standard @BBL X1C.json"} else {"0.24mm Draft @BBL X1C.json"}
-    $process=Join-Path $profileRoot ("process\"+$processName)
-    if(!(Test-Path $process)){ $process=(Get-ChildItem (Join-Path $profileRoot "process") -File | Where-Object {$_.Name -like "*0.20mm*X1C*.json"} | Select-Object -First 1).FullName }
-    if(!$process){throw "Profil process BBL introuvable"}
+    if($lh -le 0){$lh=0.2}
+    $process=Find-P1SProcessProfile (Join-Path $profileRoot "process") $nozzle $lh
+    if(!$process){throw ("Aucun profil d'impression OrcaSlicer compatible avec la Bambu Lab P1S (buse "+$nozzle+" mm) : choisis la buse réellement montée ou mets OrcaSlicer à jour.")}
 
     $filaDir=Join-Path $profileRoot "filament"
     function Find-FilamentProfile([string]$mat){
@@ -604,6 +624,8 @@ while($listener.IsListening){
       $proc=Start-Process -FilePath $exe -ArgumentList $argumentList -PassThru `
         -WorkingDirectory $OrcaDir -WindowStyle Hidden `
         -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+      # Sans lecture de Handle tout de suite, Windows PowerShell 5.1 rend un ExitCode vide une fois le processus fini.
+      $null=$proc.Handle
       $script:workerSliceProcess=$proc
       Set-WorkerSliceState "running" $false
       while(!$proc.WaitForExit(250)){
@@ -659,6 +681,15 @@ while($listener.IsListening){
 
     if(!(Test-Path $requestedPath)){
       $err=[string]$attempt.text
+      # La ligne de commande d'Orca ne dit que « found error » : la raison est dans son propre journal (--debug 3).
+      try{
+        $orcaLog=Get-ChildItem -LiteralPath (Join-Path $env:APPDATA "OrcaSlicer\log") -File -ErrorAction Stop|
+          Where-Object {$_.LastWriteTime -gt (Get-Date).AddMinutes(-5)}|Sort-Object LastWriteTime -Descending|Select-Object -First 1
+        if($orcaLog){
+          $lines=@(Get-Content -LiteralPath $orcaLog.FullName -Tail 400 -ErrorAction Stop|Where-Object {$_ -match '\[(error|fatal)\]|error|invalid|not compatible|exceed|outside'})
+          if($lines.Count){$err+="`nJournal OrcaSlicer :`n"+(($lines|Select-Object -Last 15) -join "`n")}
+        }
+      }catch{}
       if($err.Length -gt 7000){$err=$err.Substring($err.Length-7000)}
       throw ("OrcaSlicer n'a produit aucun 3MF. Mode="+$attempt.mode+" ExitCode="+$attempt.code+"`n"+$err)
     }
