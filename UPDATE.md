@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.24 — 2026-10-16
+
+**worker.exe : partage par compte plus fin (fonctions, modèles, styles prêtés)**
+
+### Ajouté
+- Onglet Partage de worker.exe : bouton « Régler l'accès du compte choisi… » pour ouvrir à un compte précis Génération et/ou Alpine Labo image, Conversion et/ou Préparer pour une CNC, les modèles d'IA image et d'IA 3D (tous ou une sélection) et prêter ses styles privés (aucun, tous ou une sélection) ; colonne « Fonctions et styles » dans la liste des comptes.
+
+### Technique
+- Empreinte du paquet publié : `79c0d247cd556dfb…` (dossier du paquet).
+
 ## Version 1.50.23 — 2026-10-15
 
 **worker.exe : la connexion du propriétaire est de nouveau reconnue (Gestion complète, Alpine Makers Desktop)**
