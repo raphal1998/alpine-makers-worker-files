@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.23 — 2026-10-15
+
+**worker.exe : la connexion du propriétaire est de nouveau reconnue (Gestion complète, Alpine Makers Desktop)**
+
+### Corrigé
+- Après la connexion dans worker.exe, l'agent ne recopiait pas le jeton de session, le rôle ni les droits rendus par le site : worker.exe se croyait « non connecté » et le site refusait la Gestion complète et la Bibliothèque de Desktop (« session absente »). Ils sont maintenant rendus à worker.exe.
+
+### Technique
+- Empreinte du paquet publié : `e9474ef8e0146e49…` (dossier du paquet).
+
 ## Version 1.50.22 — 2026-10-15
 
 **Alpine Makers Desktop : outils natifs de worker.exe (Model Studio, Laser Studio, CNC Studio, Labo image, Convertisseur) et Bibliothèque du compte**

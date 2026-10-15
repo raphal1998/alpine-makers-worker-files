@@ -29,7 +29,10 @@ LOGIN_TIMEOUT = 15.0            # attente maximale de la réponse du site, en se
 LOGIN_LOCK_RETRIES = 6          # « déjà en cours » : jusqu'à six essais espacés d'un demi-seconde
 LOGIN_LOCK_RETRY_DELAY = 0.5
 LOGIN_ARGS_MAX_BYTES = 4096
-LOGIN_FIELDS = ("ok", "code", "error", "totp", "username")  # seuls champs de la réponse du site recopiés
+LOGIN_FIELDS = ("ok", "code", "error", "totp", "username", "role", "session_token")  # seuls champs de la réponse du site recopiés
+# Agent 1.50.23 : le rôle, les droits et le jeton de session de worker.exe (rendus par self/login depuis le site 1.50.14)
+# n'étaient pas recopiés : worker.exe se croyait non connecté et le site refusait Gestion complète et Desktop.
+LOGIN_RIGHTS_MAX = 32
 USERNAME_MAX, PASSWORD_MAX, TOTP_MAX = 120, 512, 16
 RELAY_PATHS = {
     "site-update": "/api/worker-protocol/self/update",
@@ -463,7 +466,7 @@ def _check_login_args(value):
 
 def _login_failure(message, code="", http=None, site_missing=False, unreachable=False):
     return {"ok": False, "code": code, "error": message, "totp": "", "username": "", "http": http,
-            "site_missing": site_missing, "unreachable": unreachable}
+            "site_missing": site_missing, "unreachable": unreachable, "role": "", "session_token": "", "rights": []}
 
 
 def _login_outcome(outcome):
@@ -473,11 +476,14 @@ def _login_outcome(outcome):
                               outcome["unreachable"])
     answer = outcome["response"]
     result = {"ok": answer.get("ok") is True, "code": "", "error": "", "totp": "", "username": "", "http": None,
-              "site_missing": False, "unreachable": False}
+              "site_missing": False, "unreachable": False, "role": "", "session_token": "", "rights": []}
     for name in LOGIN_FIELDS:
         value = answer.get(name)
         if name != "ok" and isinstance(value, str):
             result[name] = value[:300]
+    rights = answer.get("rights")
+    if isinstance(rights, list):
+        result["rights"] = [item[:40] for item in rights if isinstance(item, str) and item][:LOGIN_RIGHTS_MAX]
     if not result["ok"] and not result["error"]:
         result["error"] = "Connexion refusée par le site."
     return result
