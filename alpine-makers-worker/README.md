@@ -66,6 +66,33 @@ suppression avec ou sans désinstallation. Elle est **désactivée par défaut**
 Worker dans le Dashboard (Mes Workers → carte du Worker → « worker.exe : gestion complète »). Le PC ne peut pas
 l'activer lui-même ; chaque action passe par une demande signée de l'agent et est notifiée au propriétaire.
 
+**▣ Salle de contrôle** (agent 1.50.19 ; bouton en haut de l'état du Worker dans `worker.exe`, ou
+`worker.exe --salle-de-controle`) : mur des caméras de ce Worker et état de ses machines, **sans passer par le
+site**. L'état vient de l'agent local (action `control-room`, lecture seule, relue toutes les 5 s) ; chaque tuile lit
+directement le relais MJPEG local de l'agent sur `127.0.0.1` (adresse et jeton rendus par l'agent). Une tuile dit
+honnêtement ce qu'elle voit : en direct, image figée, déconnectée, relais arrêté (la Salle de contrôle ne le démarre
+pas : « Démarrer le relais » dans Mes équipements), désactivée. Colonnes (Auto, 1 à 4), cadence d'affichage maximale
+(2 à 30 i/s), double-clic ou Entrée pour agrandir une caméra, F11 plein écran, clic droit pour masquer une caméra ;
+ces préférences restent sur ce PC (`%LOCALAPPDATA%\Alpine Makers\worker.exe`). Six flux au plus à la fois (le relais
+en sert huit, PrintGuard compris). Le panneau des machines montre la liaison, la dernière télémétrie lue par l'agent
+et la caméra reliée **quand l'agent la connaît** (surveillance incendie, PrintGuard) ; les noms donnés aux
+équipements et la liaison caméra ↔ machine de Mes équipements ne sont que sur le site et sont dits absents. Aucune
+commande machine ; fermer la fenêtre n'arrête rien. Réservée au propriétaire dans cette version.
+
+**◆ Alpine Makers Desktop** (agent 1.50.22 ; bouton vert de l'état du Worker dans `worker.exe`, ou
+`worker.exe --desktop [--outil files-3d]`) : fenêtre native, sans page web, qui regroupe la Salle de contrôle,
+Alpine Studio et la Bibliothèque du compte. Alpine Studio est natif et calcule sur ce PC avec les moteurs du Worker :
+**Model Studio** (aperçu 3D, primitives, réparation, tranchage OrcaSlicer, impression par le site après confirmation),
+**Laser Studio** (dessin, calques, moteur laser, cadrage et lancement par le site avec check-list), **CNC Studio**
+(analyse et aperçu du G-code, projets, CAM FreeCAD, commandes GRBL par le site avec check-list), **Labo image** (les
+15 outils, moteurs ComfyUI / cartes de ce PC) et **Convertisseur 2D/3D** (formats, réparation, « Préparer pour une
+CNC »). La Bibliothèque (Fichiers 3D, laser, CNC, Bibliothèque image) est lue par l'agent sur le site avec ta
+connexion de worker.exe : liste ou grille, recherche, aperçu, tracé G-code et rendu STL/OBJ locaux, ouvrir ou
+télécharger (copie dans `runtime\desktop\cache` du Worker), « Ouvrir dans » le Studio correspondant, importer (bouton
+ou glisser-déposer), fiche, déplacer, partager, mettre en corbeille après confirmation, vue hors ligne des fichiers déjà
+téléchargés. Détails : `docs/desktop/`. Réservée au propriétaire ; fermer la fenêtre n'arrête rien. Journal et
+réglages : `%LOCALAPPDATA%\Alpine Makers\desktop`.
+
 **Connexion du propriétaire dans `worker.exe`.** Dès que le Worker est associé à un compte (fichier `config.json`
 avec un `worker_id`), chaque lancement de `worker.exe` commence par un écran de connexion : pseudo ou e-mail du
 compte et mot de passe, puis le code 2FA (application d'authentification ou code de secours) si le compte l'a

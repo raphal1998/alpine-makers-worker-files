@@ -36,6 +36,35 @@ def require_current_bridge(info, worker_root):
                          "locales), puis relance le tranchage.")
 
 
+PROFILE_LIST_LIMIT = 4000
+
+
+def _list_profiles(worker_root, state):
+    """Imprimantes que l'OrcaSlicer de ce Worker sait trancher (pont 19.28+, GET /profiles) : lecture seule, aucun
+    tranchage. Chaque entrée : [vendeur, préréglage machine, modèle, buse]."""
+    port = int(os.environ.get("WORKER_ORCA_PORT") or "15064")
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}/ping", timeout=10) as response:
+        info = json.loads(response.read(1024 * 1024))
+    require_current_bridge(info, worker_root)
+    with urllib.request.urlopen(f"http://127.0.0.1:{port}/profiles", timeout=300) as response:
+        data = json.loads(response.read(8 * 1024 * 1024))
+    if not data.get("ok"):
+        raise ValueError(str(data.get("error") or "Le pont OrcaSlicer n'a pas listé ses profils."))
+    machines = []
+    for entry in data.get("machines") or []:
+        if not isinstance(entry, list) or len(entry) != 4:
+            continue
+        vendor, name, model, nozzle = (str(value or "")[:120] for value in entry)
+        if vendor and name:
+            machines.append([vendor, name, model, nozzle])
+        if len(machines) >= PROFILE_LIST_LIMIT:
+            break
+    result = {"kind": "orca_profiles", "artifacts": [], "bridge_version": str(data.get("bridge_version") or "")[:20],
+              "machines": machines}
+    state.finish("completed", result=result)
+    return result
+
+
 def run_job(job, workdir):
     workdir = Path(workdir).resolve()
     state = RunnerState(workdir, job)
@@ -57,6 +86,8 @@ def _run(job, workdir, state):
         raise RuntimeError(state.value.get("error") or "Exécution déjà terminée.")
     parameters = dict(job.get("parameters") or {})
     worker_root = Path(os.environ.get("ALPINE_WORKER_ROOT") or workdir.parent.parent).resolve()
+    if parameters.get("action") == "list_profiles":
+        return _list_profiles(worker_root, state)
     bridge_workspace = worker_root / "workspace"
     bridge_workspace.mkdir(parents=True, exist_ok=True)
     port = int(os.environ.get("WORKER_ORCA_PORT") or "15064")
@@ -151,6 +182,7 @@ def _run(job, workdir, state):
               "fallback_used": bool(result.get("fallback_used")), "bridge_version": result.get("bridge_version"),
               # Ce que le site affiche avant l'impression : plaque et profils filament réellement utilisés.
               "bed_type": str(result.get("bed_type") or "")[:40],
+              "printer_profile": str(result.get("printer_profile") or "")[:120],
               "filament_profiles": [str(name)[:120] for name in (result.get("filament_profiles") or [])
                                     if isinstance(name, str)][:16]}
     state.finish("completed", result=result)

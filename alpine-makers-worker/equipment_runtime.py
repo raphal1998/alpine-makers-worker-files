@@ -29,10 +29,12 @@ try:
     from .safety import protect_credentials
     from .equipment_signing import DeviceSigner
     from .equipment_video_relay import dependency_directory, COMPONENT_VERSION as RELAY_COMPONENT_VERSION
+    from .equipment_video_relay import token_directory as relay_token_directory, with_token as relay_with_token
 except ImportError:
     from safety import protect_credentials
     from equipment_signing import DeviceSigner
     from equipment_video_relay import dependency_directory, COMPONENT_VERSION as RELAY_COMPONENT_VERSION
+    from equipment_video_relay import token_directory as relay_token_directory, with_token as relay_with_token
 
 # Format libre des caméras (capacité equipment_camera_live_v1) : capture et lien local jusqu'à 120 i/s, image JPEG
 # jusqu'à 4 Mio sur le Worker (3840×2160). L'image jointe au rapport du site reste sous 1 Mio (voir report_frame).
@@ -1189,9 +1191,12 @@ class Device:
                 # opens its own output URL as an input (which would deadlock).
                 url = cfg.get("stream_url") if connector == "mjpeg_http" else ""
                 if url:
+                    # Relais loopback 1.3.0 (agent 1.50.20) : jeton de lecture par source. Un lien sans jeton (webcam
+                    # par lien, lien collé avant la mise à jour) reçoit celui que ce Worker a créé pour la source.
+                    url = relay_with_token(url, relay_token_directory(self.root))
                     parsed = urlsplit(url)
                     query = parse_qs(parsed.query)
-                    if parsed.hostname not in {"localhost", "127.0.0.1"} or parsed.port != port_number(cfg.get("port"), 1984) or parsed.scheme != "http" or parsed.path != "/api/stream.mjpeg" or parsed.username or parsed.password or parsed.fragment or set(query) != {"src"} or len(query["src"]) != 1 or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", query["src"][0]):
+                    if parsed.hostname not in {"localhost", "127.0.0.1"} or parsed.port != port_number(cfg.get("port"), 1984) or parsed.scheme != "http" or parsed.path != "/api/stream.mjpeg" or parsed.username or parsed.password or parsed.fragment or not {"src"} <= set(query) <= {"src", "token"} or any(len(values) != 1 for values in query.values()) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", query["src"][0]) or ("token" in query and not re.fullmatch(r"[A-Za-z0-9_-]{16,128}", query["token"][0])):
                         raise ValueError("Flux de caméra non autorisé")
                     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
                     stream = opener.open(url, timeout=5)
@@ -1984,6 +1989,7 @@ class EquipmentRelay:
         self.video_options = {}   # identifiant -> options (fps, width, height) passées au relais
         self.video_version = None  # version du composant relais chargé en mémoire
         self.relay_intent = {}
+        self.config_fetched_at = None   # dernière liste d'équipements lue sur le site (Salle de contrôle de worker.exe)
         self.site_live = SiteLive(agent)   # vue fluide du site : inactif sans « camera_live » dans la réponse du site
         # Surveillance incendie (agent 1.34.0) : garde de départ posée par l'agent (start_refusal / is_latched),
         # et état des arrêts par machine (arrêt en cours, dernier arrêt confirmé) pour les rendre idempotents.
@@ -2020,10 +2026,17 @@ class EquipmentRelay:
             component = self._component()
             if not component.is_file():
                 raise ValueError("Installe d’abord le relais vidéo sur ce Worker.")
+            # Composant posé par une version plus ancienne : recopié avant le chargement, pour que le jeton de lecture
+            # (composant 1.3.0, agent 1.50.20) protège le relais dès le redémarrage qui suit la mise à jour.
+            try:
+                self._refresh_component()
+            except OSError:
+                pass
             spec = importlib.util.spec_from_file_location("alpine_installed_video_relay", component)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            self.video = module.VideoRelay()
+            # 1.3.0 : jetons dans runtime/camera-relay (ACL de l'installation) ; un composant plus ancien n'en a pas.
+            self.video = module.VideoRelay(module.token_directory(self.agent.root)) if hasattr(module, "token_directory") else module.VideoRelay()
             self.video_version = version_tuple(getattr(module, "COMPONENT_VERSION", "1.0.0"))
         return self.video
 
@@ -2061,7 +2074,7 @@ class EquipmentRelay:
             self._remove_source(device.spec["id"])
             previous = None
         if previous == pair and self.video_options.get(device.spec["id"]) == options:
-            url = f"http://127.0.0.1:{pair[0]}/api/stream.mjpeg?src={pair[1]}"
+            url = (self.video.url(*pair) if hasattr(self.video, "url") else "") or f"http://127.0.0.1:{pair[0]}/api/stream.mjpeg?src={pair[1]}"
         else:
             hub = self._hub()
             if (self.video_version or (0,)) >= RELAY_OPTIONS_MIN_VERSION:
@@ -2071,13 +2084,50 @@ class EquipmentRelay:
         self.video_sources[device.spec["id"]] = pair
         self.video_options[device.spec["id"]] = options
         device.relay_state.update(relay_running=True, relay_url=url, relay_message=self._relay_outdated_message() or "Relais démarré — attente de validation du flux vidéo.")
+        self._sync_printguard_url(url)
         device.start()
+
+    def _sync_printguard_url(self, url):
+        """PrintGuard configuré avant le jeton (agent 1.50.20) : son adresse de la même source reçoit le jeton actuel.
+
+        Seules les caméras de data/printguard/state.json dont l'adresse vise ce port et cette source sont réécrites
+        (et le repère alpine_camera.json) ; PrintGuard relit le fichier à son prochain démarrage."""
+        try:
+            target = urlsplit(url)
+            source = parse_qs(target.query).get("src", [""])[0]
+            if "token=" not in target.query or not source:
+                return
+            folder = Path(self.agent.root) / "data" / "printguard"
+            for name, read, write in (("state.json", lambda data: [item.get("source") for item in data.get("cameras", []) if isinstance(item, dict)], "url"),
+                                      ("alpine_camera.json", lambda data: [data], "stream_url")):
+                path = folder / name
+                if not path.is_file():
+                    continue
+                data = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(data, dict):
+                    continue
+                changed = False
+                for holder in read(data):
+                    if not isinstance(holder, dict) or not isinstance(holder.get(write), str):
+                        continue
+                    current = urlsplit(holder[write])
+                    if (current.hostname in {"127.0.0.1", "localhost"} and current.port == target.port and current.path in {"/api/stream.mjpeg", "/api/frame.jpeg"}
+                            and parse_qs(current.query).get("src") == [source] and holder[write] != url):
+                        holder[write] = url
+                        changed = True
+                if changed:
+                    temporary = path.with_name(path.name + ".tmp")
+                    temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                    os.replace(temporary, path)
+        except (OSError, ValueError, TypeError):
+            pass  # PrintGuard illisible : sa source se reconfigure depuis le site (Surveillance IA → caméra)
 
     def _probe_source(self, device):
         pair = self.video_sources.get(device.spec["id"])
         if not pair:
             raise ValueError("Relais vidéo arrêté.")
-        url = f"http://127.0.0.1:{pair[0]}/api/frame.jpeg?src={pair[1]}"
+        url = (self.video.url(*pair, frame=True) if self.video is not None and hasattr(self.video, "url") else "") \
+            or f"http://127.0.0.1:{pair[0]}/api/frame.jpeg?src={pair[1]}"
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
         with opener.open(url, timeout=3) as response:
             if response.headers.get_content_type() != "image/jpeg":
@@ -2235,7 +2285,8 @@ class EquipmentRelay:
             url = str(settings.get("stream_url") or "")
             if not url:
                 raise ValueError("Cette caméra n’a pas d’URL MJPEG configurée.")
-            return url
+            # Lien du relais loopback de ce Worker sans jeton (webcam par lien, lien collé avant 1.50.20) : jeton ajouté.
+            return relay_with_token(url, relay_token_directory(self.agent.root))
         if settings.get("camera_mode") == "relay":
             return self.start_relay({"equipment_id": spec["id"], "revision": spec.get("revision")}, command_id)["relay_url"]
         with self.lock:
@@ -3164,6 +3215,7 @@ class EquipmentRelay:
             try:
                 response = self.agent.request("/api/worker-protocol/equipment")
                 self.sync(response.get("equipment", []))
+                self.config_fetched_at = time.time()
                 # Vue fluide du site : caméras regardées en ce moment (clé absente d'un site plus ancien = rien).
                 self.site_live.update(response.get("camera_live"), self.devices)
                 with self.lock:

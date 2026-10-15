@@ -3,20 +3,90 @@
 The P1S reader remains equipment_runtime.Device: this component does not assume
 that a generic RTSP server understands the proprietary P1S TLS protocol.
 """
+import hmac
 import json
+import os
 import re
+import secrets
 import socket
 import threading
 import time
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 # 1.1.0 (agent 1.50.10) : cadence (fps), largeur/hauteur par source, redimensionnement Pillow mis en cache par trame.
 # 1.2.0 : cadence tenue (échéances sur une grille ; « maintenant + période » servait 22 i/s pour 30 demandées),
 #         jusqu'à 120 i/s.
-COMPONENT_VERSION = "1.2.0"
+# 1.3.0 (agent 1.50.20) : jeton de lecture par source, exigé en paramètre « token » de l'adresse (403 sans lui).
+#         Aléatoire (secrets), stocké dans <racine du Worker>/runtime/camera-relay/<port>-<source>.token (ACL de
+#         l'installation), stable d'un redémarrage à l'autre : le lien copié depuis le site reste valable pour OBS,
+#         LightBurn ou PrintGuard. Supprimer le fichier puis reconnecter la caméra donne un nouveau jeton.
+COMPONENT_VERSION = "1.3.0"
 MAX_FPS = 120.0
 RESIZE_UNAVAILABLE = "Redimensionnement indisponible (Pillow absent des dépendances du relais) : flux transmis tel quel."
+
+
+TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_-]{16,128}")
+SOURCE_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,80}")
+TOKEN_REQUIRED_MESSAGE = "Jeton de lecture absent ou invalide : copie le Lien local de la camera depuis le site."
+
+
+def token_directory(root):
+    """Dossier des jetons du relais : <racine du Worker>/runtime/camera-relay (protégé par l'ACL de l'installation)."""
+    return Path(root) / "runtime" / "camera-relay"
+
+
+def _token_path(directory, port, source_id):
+    port = int(port)
+    if not 1024 <= port <= 65535 or not SOURCE_PATTERN.fullmatch(str(source_id or "")):
+        raise ValueError("Port ou identifiant du relais invalide.")
+    return Path(directory) / f"{port}-{source_id}.token"
+
+
+def source_token(directory, port, source_id, create=False):
+    """Jeton de lecture de la source ``source_id`` sur ``port`` ; créé (aléatoire, 32 caractères) si ``create``.
+
+    Rend "" quand il n'existe pas encore et que ``create`` est faux. Écriture atomique (fichier temporaire puis
+    remplacement) : un lecteur ne voit jamais un jeton à moitié écrit.
+    """
+    path = _token_path(directory, port, source_id)
+    try:
+        text = path.read_text(encoding="ascii").strip()
+        if TOKEN_PATTERN.fullmatch(text):
+            return text
+    except (OSError, ValueError):
+        pass
+    if not create:
+        return ""
+    token = secrets.token_urlsafe(24)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + "." + secrets.token_hex(4) + ".tmp")
+    temporary.write_text(token, encoding="ascii")
+    os.replace(temporary, path)
+    return token
+
+
+def relay_url(port, source_id, token="", frame=False):
+    """Adresse loopback d'une source : flux MJPEG (ou image fixe si ``frame``), jeton compris s'il y en a un."""
+    url = f"http://127.0.0.1:{int(port)}/api/{'frame.jpeg' if frame else 'stream.mjpeg'}?src={source_id}"
+    return url + ("&token=" + token if token else "")
+
+
+def with_token(url, directory):
+    """Ajoute le jeton local à une adresse du relais loopback qui n'en porte pas (lien d'avant le jeton, collé dans une
+    fiche caméra ou dans PrintGuard). Toute autre adresse est rendue telle quelle."""
+    from urllib.parse import parse_qs, urlsplit
+    try:
+        parsed = urlsplit(str(url or ""))
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost"} or parsed.port is None
+                or parsed.path not in {"/api/stream.mjpeg", "/api/frame.jpeg"} or set(query) != {"src"} or len(query["src"]) != 1):
+            return url
+        token = source_token(directory, parsed.port, query["src"][0])
+    except (TypeError, ValueError):
+        return url
+    return url + "&token=" + token if token else url
 
 
 def component_version():
@@ -94,7 +164,10 @@ class _Server(ThreadingHTTPServer):
 
 class VideoRelay:
     """One listener per port; one native producer shared by every consumer."""
-    def __init__(self):
+    def __init__(self, token_dir=None):
+        # Jetons de lecture (1.3.0) : persistés dans token_dir (runtime/camera-relay) ; sans dossier, en mémoire.
+        self.token_dir = Path(token_dir) if token_dir else None
+        self.tokens = {}           # (port, source_id) -> jeton exigé en paramètre « token »
         self.lock = threading.RLock()
         self.servers = {}
         self.sources = {}
@@ -164,7 +237,10 @@ class VideoRelay:
         port = int(port)
         if not 1024 <= port <= 65535 or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", source_id):
             raise ValueError("Port ou identifiant du relais invalide.")
+        token = source_token(self.token_dir, port, source_id, create=True) if self.token_dir else ""
         with self.lock:
+            if not token:
+                token = self.tokens.get((port, source_id)) or secrets.token_urlsafe(24)
             if port not in self.servers:
                 hub = self
 
@@ -180,14 +256,22 @@ class VideoRelay:
                             return
                         parsed = urlsplit(self.path)
                         query = parse_qs(parsed.query, keep_blank_values=True)
-                        if parsed.scheme or parsed.netloc or parsed.fragment or set(query) != {"src"} or len(query["src"]) != 1 or parsed.path not in {"/api/stream.mjpeg", "/api/frame.jpeg"}:
+                        if (parsed.scheme or parsed.netloc or parsed.fragment or not {"src"} <= set(query) <= {"src", "token"}
+                                or any(len(values) != 1 for values in query.values()) or parsed.path not in {"/api/stream.mjpeg", "/api/frame.jpeg"}):
                             self.send_error(404)
                             return
                         key = (port, query["src"][0])
                         with hub.lock:
                             callback = hub.sources.get(key)
+                            expected = hub.tokens.get(key, "")
                         if not callback:
                             self.send_error(404)
+                            return
+                        supplied = (query.get("token") or [""])[0]
+                        # Jeton de lecture exigé (comparaison à temps constant) : un processus local quelconque ne lit
+                        # plus la caméra sans le lien copié depuis le site.
+                        if not expected or not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8")):
+                            self.send_error(403, TOKEN_REQUIRED_MESSAGE)
                             return
                         if not hub.slots.acquire(blocking=False):
                             self.send_error(503)
@@ -243,17 +327,28 @@ class VideoRelay:
                 thread.start()
             key = (port, source_id)
             self.sources[key] = get_frame
+            self.tokens[key] = token
             self.options[key] = source_options(fps, width, height)
             self.rendered.pop(key, None)
             self.resize_errors.pop(key, None)
-        return f"http://127.0.0.1:{port}/api/stream.mjpeg?src={source_id}"
+        return relay_url(port, source_id, token)
+
+    def token(self, port, source_id):
+        """Jeton exigé pour lire cette source ("" si elle n'est pas servie)."""
+        with self.lock:
+            return self.tokens.get((int(port), source_id), "")
+
+    def url(self, port, source_id, frame=False):
+        """Adresse complète (jeton compris) d'une source servie, "" sinon : seule forme à donner à un lecteur local."""
+        token = self.token(port, source_id)
+        return relay_url(port, source_id, token, frame) if token else ""
 
     def remove(self, port, source_id):
         port = int(port)
         with self.lock:
             key = (port, source_id)
             self.sources.pop(key, None)
-            for table in (self.options, self.rendered, self.render_locks, self.resize_errors):
+            for table in (self.options, self.rendered, self.render_locks, self.resize_errors, self.tokens):
                 table.pop(key, None)
             pair = self.servers.pop(port, None) if not any(key[0] == port for key in self.sources) else None
         if pair:

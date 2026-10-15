@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.17"
+AGENT_VERSION = "1.50.22"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Paramètres GRBL du contrôleur (agent 1.50.17) : écriture groupée $n=v contrôlée (settings/write_batch), relue et vérifiée.
@@ -169,6 +169,11 @@ AGENT_CAPABILITIES += ("equipment_camera_live_v1",)  # littéral : le site lit c
 # « cnc-engine » (cnc_engine/ + cam_gcode_check.py, Python isolé), un processus par job (runners/cnc-engine.py), jamais
 # de commande envoyée à une machine : le pilotage reste celui de l'équipement GRBL.
 AGENT_CAPABILITIES += ("cnc_engine_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.50.22 : socle d'Alpine Makers Desktop (action locale « desktop », desktop_actions.py) et Bibliothèque du
+# compte depuis worker.exe (desktop_library.py → routes signées self/library*, session worker.exe exigée).
+AGENT_CAPABILITIES += ("desktop_library_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.50.22 : Convertisseur 2D/3D de worker.exe (desktop_converter.py → route signée self/converter).
+AGENT_CAPABILITIES += ("desktop_converter_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)

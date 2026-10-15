@@ -1,10 +1,10 @@
-param(
+﻿param(
   [string]$Workspace,
   [string]$OrcaDir,
   [int]$Port = 15064
 )
 $ErrorActionPreference="Stop"
-$BridgeVersion = "19.27"
+$BridgeVersion = "19.28"
 $LogPath = Join-Path $Workspace "orca_bridge.log"
 function BridgeLog([string]$Message){
   try{
@@ -14,39 +14,211 @@ function BridgeLog([string]$Message){
 BridgeLog ("Bridge starting. Workspace={0} OrcaDir={1} Port={2}" -f $Workspace,$OrcaDir,$Port)
 
 # --- PROFILS P1S (début) ---
-# Profil filament : la P1S partage les profils « @BBL X1C » de Bambu. On ne retient qu'un profil qui se déclare
-# compatible avec « Bambu Lab P1S <buse> nozzle » (compatible_printers), en préférant le profil Bambu du matériau
-# puis le générique. L'ancien choix « premier nom qui contient le matériau » prenait « Bambu PLA Aero @BBL A1 »
-# (débit 0,6) pour du PLA.
-$FilamentPreferences=@{
+# Sélection des profils OrcaSlicer pour n'importe quelle imprimante (pont 19.28). Une imprimante est un profil machine
+# d'un dossier vendeur (resources/profiles/<Vendeur>/machine/<nom>.json, ex. « Bambu Lab P1S 0.4 nozzle »,
+# « Creality Ender-3 V3 0.4 nozzle ») ; process et filament doivent se déclarer compatibles avec elle, comme dans Orca :
+# liste compatible_printers non vide → le nom de la machine doit y figurer ; sinon compatible_printers_condition
+# (ex. nozzle_diameter[0]==0.4 and printer_model=~/.*Ender-3 V3.*/) évaluée sur le profil machine aplati ; sinon
+# compatible avec toutes. Ces deux clés suivent la chaîne « inherits » (dossier du vendeur puis OrcaFilamentLibrary).
+# Les profils de base (@base, fdm_*, instantiation=false) ne sont jamais retenus.
+# Filament : le type reçu (type AMS « TPU-AMS », « PLA-S », nom du studio « TPU for AMS »…) passe par une table d'alias
+# qui donne les noms de profils préférés (Bambu puis Generic) ; à défaut, repli documenté sur un profil du même
+# FAMILLE (PLA, PETG, TPU…) déclaré compatible, Generic en premier ; à défaut, refus qui liste les types disponibles.
+$FilamentPreferences=[ordered]@{
   "PLA"=@("Bambu PLA Basic","Generic PLA");
+  "PLA BASIC"=@("Bambu PLA Basic","Generic PLA");
+  "PLA MATTE"=@("Bambu PLA Matte","Generic PLA");
+  "PLA SILK"=@("Bambu PLA Silk+","Bambu PLA Silk","Generic PLA Silk","Generic PLA");
+  "PLA-CF"=@("Bambu PLA-CF","Generic PLA-CF","Generic PLA");
+  "PLA-S"=@("Bambu Support For PLA","Bambu Support for PLA/PETG","Generic PLA");
+  "SUPPORT PLA"=@("Bambu Support For PLA","Bambu Support for PLA/PETG","Generic PLA");
+  "SUPPORT FOR PLA"=@("Bambu Support For PLA","Bambu Support for PLA/PETG","Generic PLA");
+  "SUPPORT PLA/PETG"=@("Bambu Support for PLA/PETG","Bambu Support For PLA","Generic PLA");
   "PETG"=@("Generic PETG","Bambu PETG Basic");
-  "PETG HF"=@("Bambu PETG HF","Generic PETG HF");
+  "PETG BASIC"=@("Bambu PETG Basic","Generic PETG");
+  "PETG HF"=@("Bambu PETG HF","Generic PETG HF","Generic PETG");
+  "PETG-CF"=@("Bambu PETG-CF","Generic PETG-CF","Generic PETG");
   "ABS"=@("Bambu ABS","Generic ABS");
+  "ABS-GF"=@("Bambu ABS-GF","Generic ABS");
   "ASA"=@("Bambu ASA","Generic ASA");
-  "TPU"=@("Bambu TPU 95A","Bambu TPU 95A HF","Generic TPU");
-  "PC"=@("Bambu PC","Generic PC")
+  "PC"=@("Bambu PC","Generic PC");
+  "PA"=@("Generic PA","Bambu PA6-CF","Generic PA-CF");
+  "PA-CF"=@("Bambu PA-CF","Generic PA-CF","Bambu PAHT-CF");
+  "PAHT-CF"=@("Bambu PAHT-CF","Generic PA-CF");
+  "PA6-CF"=@("Bambu PA6-CF","Generic PA-CF");
+  "PVA"=@("Bambu PVA","Generic PVA");
+  "HIPS"=@("Generic HIPS");
+  "TPU"=@("Bambu TPU 95A","Bambu TPU 95A HF","Generic TPU","Generic TPU for AMS");
+  "TPU 95A"=@("Bambu TPU 95A","Bambu TPU 95A HF","Generic TPU");
+  "TPU-AMS"=@("Bambu TPU for AMS","Generic TPU for AMS","Bambu TPU 95A HF","Bambu TPU 95A","Generic TPU");
+  "TPU FOR AMS"=@("Bambu TPU for AMS","Generic TPU for AMS","Bambu TPU 95A HF","Bambu TPU 95A","Generic TPU");
+  "TPU AMS"=@("Bambu TPU for AMS","Generic TPU for AMS","Bambu TPU 95A HF","Bambu TPU 95A","Generic TPU")
 }
-function Test-ProfileCompatible([string]$Path,[string]$Printer){
-  try{$json=Get-Content -LiteralPath $Path -Raw -Encoding UTF8|ConvertFrom-Json}catch{return $false}
-  return (@($json.compatible_printers) -contains $Printer)
+$FilamentFamilies=@("PETG","PCTG","PET","PLA","ABS","ASA","PC","PPA","PPS","PA","PVA","BVOH","HIPS","TPU","TPE","PP","PE","EVA","PHA","POM")
+$script:OrcaJsonCache=@{}
+function Read-OrcaJson([string]$Path){
+  if($script:OrcaJsonCache.ContainsKey($Path)){return $script:OrcaJsonCache[$Path]}
+  try{$json=Get-Content -LiteralPath $Path -Raw -Encoding UTF8|ConvertFrom-Json}catch{$json=$null}
+  $script:OrcaJsonCache[$Path]=$json
+  return $json
 }
-function Find-P1SFilamentProfile([string]$FilamentDir,[string]$Material,[string]$Nozzle){
-  $printer="Bambu Lab P1S $Nozzle nozzle"
-  $files=@(Get-ChildItem -LiteralPath $FilamentDir -File -Filter *.json -ErrorAction SilentlyContinue|Sort-Object Name)
-  $material=([string]$Material).Trim()
-  $names=$FilamentPreferences[$material.ToUpperInvariant()]
+# Chaîne d'héritage d'un profil (lui-même d'abord) : parent dans le même dossier, puis dans
+# OrcaFilamentLibrary/<même sous-dossier> (Orca 2.x y range les profils génériques communs).
+function Get-OrcaProfileChain([string]$Path){
+  $chain=@();$current=$Path;$guard=0
+  $dir=Split-Path $Path -Parent
+  $library=Join-Path (Split-Path (Split-Path $dir -Parent) -Parent) ("OrcaFilamentLibrary\"+(Split-Path $dir -Leaf))
+  while($current -and $guard -lt 20){
+    $node=Read-OrcaJson $current
+    if($null -eq $node){break}
+    $chain+=,$node
+    $parent=[string]$node.inherits
+    if([string]::IsNullOrWhiteSpace($parent)){break}
+    $next=Join-Path $dir ($parent+".json")
+    if(!(Test-Path -LiteralPath $next)){$next=Join-Path $library ($parent+".json")}
+    $current=if(Test-Path -LiteralPath $next){$next}else{$null}
+    $guard++
+  }
+  return ,$chain
+}
+function Get-OrcaInheritedValue($Chain,[string]$Key){
+  foreach($node in $Chain){$prop=$node.PSObject.Properties[$Key];if($null -ne $prop){return $prop.Value}}
+  return $null
+}
+function Test-OrcaInstantiable([string]$Path,$Chain){
+  $base=[IO.Path]::GetFileNameWithoutExtension($Path)
+  if($base -like "*@base" -or $base -like "fdm_*"){return $false}
+  if($Chain.Count -and [string]$Chain[0].instantiation -eq "false"){return $false}
+  return $true
+}
+# Évalue une compatible_printers_condition d'Orca sur les variables de la machine. Atomes reconnus :
+# clé[indice] (==|!=|=~|!~|<|<=|>|>=) "texte" | /regex/ | nombre, reliés par and/or/not/!/parenthèses.
+# Une clé inconnue ou une syntaxe non reconnue rend le profil incompatible (jamais un profil douteux).
+function Test-OrcaCondition([string]$Condition,$Vars){
+  $state=@{bad=$false}
+  $atom='(?<key>[A-Za-z_][A-Za-z0-9_]*)\s*(\[(?<idx>\d+)\])?\s*(?<op>==|!=|=~|!~|<=|>=|<|>)\s*(?<val>"(?:[^"\\]|\\.)*"|/(?:[^/\\]|\\.)*/|-?\d+(?:\.\d+)?)'
+  $expr=[regex]::Replace($Condition,$atom,{
+    param($m)
+    $key=$m.Groups['key'].Value
+    $prop=if($Vars -is [hashtable]){if($Vars.ContainsKey($key)){@{Value=$Vars[$key]}}else{$null}}else{$Vars.PSObject.Properties[$key]}
+    if($null -eq $prop){$state.bad=$true;return ' $false '}
+    $value=$prop.Value
+    $idx=if($m.Groups['idx'].Success){[int]$m.Groups['idx'].Value}else{0}
+    if($value -is [array]){$value=if($idx -lt $value.Count){$value[$idx]}else{$null}}
+    $left=[string]$value
+    $raw=$m.Groups['val'].Value;$op=$m.Groups['op'].Value
+    $inv=[Globalization.CultureInfo]::InvariantCulture
+    if($op -eq '=~' -or $op -eq '!~'){
+      if(!$raw.StartsWith('/')){$state.bad=$true;return ' $false '}
+      try{$hit=[regex]::IsMatch($left,$raw.Substring(1,$raw.Length-2))}catch{$state.bad=$true;return ' $false '}
+      return $(if(($op -eq '=~') -eq $hit){' $true '}else{' $false '})
+    }
+    if($raw.StartsWith('/')){$state.bad=$true;return ' $false '}
+    $right=if($raw.StartsWith('"')){$raw.Substring(1,$raw.Length-2).Replace('\"','"')}else{$raw}
+    $l=0.0;$r=0.0
+    $numeric=[double]::TryParse($left,[Globalization.NumberStyles]::Float,$inv,[ref]$l) -and [double]::TryParse($right,[Globalization.NumberStyles]::Float,$inv,[ref]$r)
+    if(!$numeric){$l=$left;$r=$right}
+    $ok=switch($op){'=='{$l -eq $r}'!='{$l -ne $r}'<'{$l -lt $r}'<='{$l -le $r}'>'{$l -gt $r}'>='{$l -ge $r}}
+    return $(if($ok){' $true '}else{' $false '})
+  })
+  if($state.bad){return $false}
+  $expr=[regex]::Replace($expr,'\band\b','-and')
+  $expr=[regex]::Replace($expr,'\bor\b','-or')
+  $expr=[regex]::Replace($expr,'\bnot\b','-not')
+  $expr=$expr.Replace('!',' -not ')
+  if($expr -notmatch '^(\s|\(|\)|\$true|\$false|-and|-or|-not)*$'){return $false}
+  if([string]::IsNullOrWhiteSpace($expr)){return $true}
+  try{return [bool](Invoke-Expression $expr)}catch{return $false}
+}
+# Contexte machine : nom du préréglage + variables du profil machine aplati (printer_model, nozzle_diameter…).
+function New-OrcaMachine([string]$Name,$Vars){
+  $table=@{}
+  if($Vars){foreach($p in $Vars.PSObject.Properties){$table[$p.Name]=$p.Value}}
+  $table["printer_settings_id"]=$Name;$table["printer_preset"]=$Name
+  return @{name=$Name;vars=$table}
+}
+function Get-OrcaMachineFromFile([string]$Path){
+  $chain=Get-OrcaProfileChain $Path
+  $merged=[ordered]@{}
+  for($i=$chain.Count-1;$i -ge 0;$i--){foreach($prop in $chain[$i].PSObject.Properties){if($prop.Name -ne "inherits"){$merged[$prop.Name]=$prop.Value}}}
+  $name=[string]$merged["name"];if(!$name){$name=[IO.Path]::GetFileNameWithoutExtension($Path)}
+  return New-OrcaMachine $name ([pscustomobject]$merged)
+}
+function Get-OrcaNozzle($Machine){
+  $n=$Machine.vars["nozzle_diameter"];if($n -is [array]){$n=$n[0]}
+  return [string]$n
+}
+function Test-ProfileCompatible([string]$Path,$Printer){
+  $machine=if($Printer -is [hashtable]){$Printer}else{
+    $n=if([string]$Printer -match '(\d+(?:\.\d+)?) nozzle$'){$Matches[1]}else{"0.4"}
+    New-OrcaMachine ([string]$Printer) ([pscustomobject]@{nozzle_diameter=@($n);printer_model=(([string]$Printer) -replace ' \d+(\.\d+)? nozzle$','')})
+  }
+  $chain=Get-OrcaProfileChain $Path
+  if(!$chain.Count -or !(Test-OrcaInstantiable $Path $chain)){return $false}
+  $list=@(Get-OrcaInheritedValue $chain "compatible_printers"|Where-Object {$_})
+  if($list.Count){return ($list -contains $machine.name)}
+  $condition=[string](Get-OrcaInheritedValue $chain "compatible_printers_condition")
+  if([string]::IsNullOrWhiteSpace($condition)){return $true}
+  return (Test-OrcaCondition $condition $machine.vars)
+}
+function Get-FilamentFamily([string]$Material){
+  $m=([string]$Material).Trim().ToUpperInvariant() -replace '^(BAMBU|GENERIC|SUPPORT( FOR)?)\s+',''
+  foreach($family in $FilamentFamilies){if($m -match ('^'+[regex]::Escape($family)+'(\b|[-_ ]|$)')){return $family}}
+  return $null
+}
+function Get-OrcaFilamentDirs($FilamentDir){
+  $dirs=@($FilamentDir|Where-Object {$_ -and (Test-Path -LiteralPath $_)})
+  if($dirs.Count -eq 1){
+    $library=Join-Path (Split-Path (Split-Path $dirs[0] -Parent) -Parent) "OrcaFilamentLibrary\filament"
+    if((Test-Path -LiteralPath $library) -and ($library -ne $dirs[0])){$dirs+=$library}
+  }
+  return ,$dirs
+}
+# Renvoie le chemin du profil filament retenu, ou $null. $FilamentDir : dossier filament du vendeur de la machine.
+function Find-OrcaFilamentProfile($FilamentDir,[string]$Material,$Machine){
+  $files=@();foreach($d in (Get-OrcaFilamentDirs $FilamentDir)){$files+=@(Get-ChildItem -LiteralPath $d -File -Filter *.json -ErrorAction SilentlyContinue|Sort-Object Name)}
+  $material=(([string]$Material).Trim() -replace '[_\s]+',' ')
+  $key=$material.ToUpperInvariant()
+  $names=$FilamentPreferences[$key]
   if(!$names){$names=@("Bambu $material","Generic $material")}
   foreach($name in $names){
     foreach($file in $files){
-      if($file.BaseName -like ($name+" @*") -and (Test-ProfileCompatible $file.FullName $printer)){return $file.FullName}
+      if(($file.BaseName -eq $name -or $file.BaseName -like ($name+" @*")) -and (Test-ProfileCompatible $file.FullName $Machine)){return $file.FullName}
     }
   }
-  # Tout autre profil de ce matériau déclaré compatible avec cette P1S et cette buse.
+  # Tout autre profil dont le nom contient ce matériau, déclaré compatible.
   foreach($file in $files){
-    if($file.BaseName -like ("*"+$material+"*") -and (Test-ProfileCompatible $file.FullName $printer)){return $file.FullName}
+    if($file.BaseName -like ("*"+$material+"*") -and (Test-ProfileCompatible $file.FullName $Machine)){return $file.FullName}
+  }
+  # Repli explicite sur la famille (TPU-AMS → TPU, PLA-S → PLA…) : Generic d'abord, puis Bambu, puis les autres,
+  # uniquement des profils dont le filament_type hérité est bien cette famille.
+  $family=Get-FilamentFamily $material
+  if(!$family){return $null}
+  $pool=@($files|Where-Object {$_.BaseName -match ('(^|[\s@-])'+[regex]::Escape($family)+'($|[\s@-])')})
+  foreach($prefix in @("Generic ","Bambu ","")){
+    foreach($file in $pool){
+      if($prefix -and !$file.BaseName.StartsWith($prefix)){continue}
+      $type=[string](@(Get-OrcaInheritedValue (Get-OrcaProfileChain $file.FullName) "filament_type")|Select-Object -First 1)
+      if($type -and $type.ToUpperInvariant() -ne $family){continue}
+      if(Test-ProfileCompatible $file.FullName $Machine){return $file.FullName}
+    }
   }
   return $null
+}
+# Types de filament (filament_type hérité) disponibles pour cette machine : sert au message de refus.
+function Get-OrcaFilamentTypes($FilamentDir,$Machine){
+  $types=New-Object System.Collections.Generic.SortedSet[string]
+  foreach($d in (Get-OrcaFilamentDirs $FilamentDir)){
+    foreach($file in @(Get-ChildItem -LiteralPath $d -File -Filter *.json -ErrorAction SilentlyContinue)){
+      if(!(Test-ProfileCompatible $file.FullName $Machine)){continue}
+      $type=[string](@(Get-OrcaInheritedValue (Get-OrcaProfileChain $file.FullName) "filament_type")|Select-Object -First 1)
+      if($type){[void]$types.Add($type)}
+    }
+  }
+  return @($types)
+}
+function Find-P1SFilamentProfile([string]$FilamentDir,[string]$Material,[string]$Nozzle){
+  return Find-OrcaFilamentProfile $FilamentDir $Material ("Bambu Lab P1S $Nozzle nozzle")
 }
 # Plaque : Orca lit curr_bed_type ; la température du plateau vient de la clé de la plaque dans le profil filament.
 $BedTypes=[ordered]@{
@@ -70,25 +242,58 @@ function Set-FilamentBedTemperatures($Filament,[string]$BedType){
     }
   }
 }
-# Profil d'impression (process) : uniquement un profil qui se déclare compatible avec « Bambu Lab P1S <buse> nozzle »,
-# le plus proche de la hauteur de couche demandée (à égalité : « Standard », puis l'ordre alphabétique). L'ancien choix
-# prenait toujours un profil « @BBL X1C » de buse 0,4 : avec une buse 0,2, 0,6 ou 0,8, OrcaSlicer refusait le mélange
-# (« Slic3r::CLI::run found error »), même avec les réglages d'origine.
-function Find-P1SProcessProfile([string]$ProcessDir,[string]$Nozzle,[double]$LayerHeight){
-  $printer="Bambu Lab P1S $Nozzle nozzle"
+# Profil d'impression (process) : uniquement un profil déclaré compatible avec la machine (liste ou condition, par
+# héritage), le plus proche de la hauteur de couche demandée (à égalité : « Standard », puis l'ordre alphabétique).
+# Un profil d'une autre buse fait refuser le mélange par OrcaSlicer (« Slic3r::CLI::run found error »).
+function Find-OrcaProcessProfile([string]$ProcessDir,$Machine,[double]$LayerHeight){
   $best=$null;$bestScore=$null
   foreach($file in @(Get-ChildItem -LiteralPath $ProcessDir -File -Filter *.json -ErrorAction SilentlyContinue|Sort-Object Name)){
-    try{$json=Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8|ConvertFrom-Json}catch{continue}
-    if(!(@($json.compatible_printers) -contains $printer)){continue}
+    if(!(Test-ProfileCompatible $file.FullName $Machine)){continue}
     $height=$null
     if($file.BaseName -match '^(\d+(?:\.\d+)?)mm'){$height=[double]::Parse($Matches[1],[Globalization.CultureInfo]::InvariantCulture)}
-    elseif($json.layer_height){try{$height=[double]::Parse([string]$json.layer_height,[Globalization.CultureInfo]::InvariantCulture)}catch{}}
+    else{
+      $value=Get-OrcaInheritedValue (Get-OrcaProfileChain $file.FullName) "layer_height"
+      if($value){try{$height=[double]::Parse([string]$value,[Globalization.CultureInfo]::InvariantCulture)}catch{}}
+    }
     if($null -eq $height){continue}
     $score=[Math]::Abs($height-$LayerHeight)*1000
     if($file.BaseName -notmatch 'Standard'){$score+=0.5}
     if($null -eq $bestScore -or $score -lt $bestScore){$best=$file.FullName;$bestScore=$score}
   }
   return $best
+}
+function Find-P1SProcessProfile([string]$ProcessDir,[string]$Nozzle,[double]$LayerHeight){
+  return Find-OrcaProcessProfile $ProcessDir ("Bambu Lab P1S $Nozzle nozzle") $LayerHeight
+}
+# Profil machine par son nom exact, cherché dans tous les dossiers vendeurs. Le nom ne sert jamais de chemin.
+function Find-OrcaMachineProfile([string]$ProfilesRoot,[string]$Name){
+  if([string]::IsNullOrWhiteSpace($Name) -or $Name.Length -gt 120 -or $Name -notmatch '^[A-Za-z0-9][A-Za-z0-9 ._()+\-]*$'){return $null}
+  foreach($vendor in @(Get-ChildItem -LiteralPath $ProfilesRoot -Directory -ErrorAction SilentlyContinue|Sort-Object Name)){
+    $machineDir=Join-Path $vendor.FullName "machine"
+    if(!(Test-Path -LiteralPath $machineDir)){continue}
+    foreach($file in @(Get-ChildItem -LiteralPath $machineDir -File -Filter *.json -ErrorAction SilentlyContinue)){
+      if($file.BaseName -ceq $Name){return $file.FullName}
+    }
+  }
+  return $null
+}
+# Liste des imprimantes de cette installation d'Orca : vendeur (dossier), nom du préréglage, modèle, buse.
+function Get-OrcaMachineList([string]$ProfilesRoot){
+  $out=@()
+  foreach($vendor in @(Get-ChildItem -LiteralPath $ProfilesRoot -Directory -ErrorAction SilentlyContinue|Sort-Object Name)){
+    $machineDir=Join-Path $vendor.FullName "machine"
+    if(!(Test-Path -LiteralPath $machineDir)){continue}
+    foreach($file in @(Get-ChildItem -LiteralPath $machineDir -File -Filter *.json -ErrorAction SilentlyContinue|Sort-Object Name)){
+      $chain=Get-OrcaProfileChain $file.FullName
+      if(!$chain.Count -or !(Test-OrcaInstantiable $file.FullName $chain)){continue}
+      if([string]$chain[0].type -and [string]$chain[0].type -ne "machine"){continue}
+      $nozzle=Get-OrcaInheritedValue $chain "nozzle_diameter";if($nozzle -is [array]){$nozzle=$nozzle[0]}
+      if(!$nozzle){continue}
+      $model=[string](Get-OrcaInheritedValue $chain "printer_model")
+      $out+=,@($vendor.Name,$file.BaseName,$model,[string]$nozzle)
+    }
+  }
+  return ,$out
 }
 # --- PROFILS P1S (fin) ---
 Add-Type -AssemblyName System.Web
@@ -133,6 +338,8 @@ if(!$exe){throw "OrcaSlicer executable introuvable"}
 
 $profileRoot=(Get-ChildItem -Path $OrcaDir -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object {$_.FullName -match 'resources\\profiles\\BBL$'} | Select-Object -First 1).FullName
 if(!$profileRoot){throw "Profils BBL OrcaSlicer introuvables"}
+# Racine de tous les vendeurs (BBL, Creality, Prusa…) : une imprimante d'une autre marque prend ses profils dans son dossier.
+$profilesRoot=Split-Path $profileRoot -Parent
 
 function Find-FreeCADCmd {
   $candidates = New-Object System.Collections.Generic.List[string]
@@ -397,6 +604,12 @@ while($listener.IsListening){
       continue
     }
 
+    # Imprimantes que cette installation d'OrcaSlicer sait trancher : [vendeur, préréglage, modèle, buse].
+    if($path -eq "/profiles" -and $ctx.Request.HttpMethod -eq "GET"){
+      JsonResponse $ctx 200 @{ok=$true;bridge_version=$BridgeVersion;machines=(Get-OrcaMachineList $profilesRoot)}
+      continue
+    }
+
     if(($path -ne "/slice" -and $path -ne "/slice-multi") -or $ctx.Request.HttpMethod -ne "POST"){
       JsonResponse $ctx 404 @{ok=$false;error="Endpoint inconnu"};continue
     }
@@ -442,20 +655,31 @@ while($listener.IsListening){
 
     $nozzle=[string]$body.nozzle
     if([string]::IsNullOrWhiteSpace($nozzle)){$nozzle="0.4"}
-    $machine=Join-Path $profileRoot "machine\Bambu Lab P1S $nozzle nozzle.json"
-    if(!(Test-Path $machine)){throw "Profil P1S $nozzle introuvable"}
+    # Imprimante : préréglage machine OrcaSlicer choisi sur le site (fiche équipement), sinon la P1S de cette buse.
+    $printerProfile=([string]$body.printer_profile).Trim()
+    if([string]::IsNullOrWhiteSpace($printerProfile)){$printerProfile="Bambu Lab P1S $nozzle nozzle"}
+    $machine=Find-OrcaMachineProfile $profilesRoot $printerProfile
+    if(!$machine){throw ("Profil d'imprimante OrcaSlicer « "+$printerProfile+" » absent de ce Worker : choisis une imprimante de la liste des profils OrcaSlicer du Worker ou mets OrcaSlicer à jour.")}
+    $machineCtx=Get-OrcaMachineFromFile $machine
+    $machineNozzle=Get-OrcaNozzle $machineCtx
+    if($machineNozzle){$nozzle=$machineNozzle}
+    $vendorRoot=Split-Path (Split-Path $machine -Parent) -Parent
 
     # Process profile: the stock BBL profile declared compatible with this P1S nozzle and nearest to the requested
     # layer height, then the web values override it.
     $lh=[double]$body.layer_height
     if($lh -le 0){$lh=0.2}
-    $process=Find-P1SProcessProfile (Join-Path $profileRoot "process") $nozzle $lh
-    if(!$process){throw ("Aucun profil d'impression OrcaSlicer compatible avec la Bambu Lab P1S (buse "+$nozzle+" mm) : choisis la buse réellement montée ou mets OrcaSlicer à jour.")}
+    $process=Find-OrcaProcessProfile (Join-Path $vendorRoot "process") $machineCtx $lh
+    if(!$process){throw ("Aucun profil d'impression OrcaSlicer compatible avec « "+$printerProfile+" » (buse "+$nozzle+" mm) : choisis la buse réellement montée ou mets OrcaSlicer à jour.")}
 
-    $filaDir=Join-Path $profileRoot "filament"
+    $filaDir=Join-Path $vendorRoot "filament"
     function Find-FilamentProfile([string]$mat){
-      $found=Find-P1SFilamentProfile $filaDir $mat $nozzle
-      if(!$found){throw ("Aucun profil filament « "+$mat+" » compatible avec la Bambu Lab P1S (buse "+$nozzle+" mm) dans OrcaSlicer : choisis un autre matériau ou mets OrcaSlicer à jour.")}
+      $found=Find-OrcaFilamentProfile $filaDir $mat $machineCtx
+      if(!$found){
+        $types=@(Get-OrcaFilamentTypes $filaDir $machineCtx)
+        $available=if($types.Count){" Types disponibles pour cette imprimante : "+($types -join ", ")+"."}else{" Aucun profil filament n'est déclaré pour cette imprimante."}
+        throw ("Aucun profil filament « "+$mat+" » compatible avec « "+$printerProfile+" » (buse "+$nozzle+" mm) dans OrcaSlicer."+$available+" Choisis l'un de ces matériaux ou mets OrcaSlicer à jour.")
+      }
       return $found
     }
     $bedType=[string]$body.bed_type
@@ -503,15 +727,8 @@ while($listener.IsListening){
     # GUI preset bundle. Without the parent chain the P1S bed became Orca's
     # 200x200x100 default and any part taller than 100 mm was refused.
     function Resolve-OrcaProfile([string]$ProfilePath){
-      $dir=Split-Path $ProfilePath -Parent
-      $chain=@();$current=$ProfilePath;$guard=0
-      while($current -and (Test-Path -LiteralPath $current) -and $guard -lt 20){
-        $node=Get-Content -LiteralPath $current -Raw -Encoding UTF8|ConvertFrom-Json
-        $chain+=,$node
-        $parent=[string]$node.inherits
-        $current=if([string]::IsNullOrWhiteSpace($parent)){$null}else{Join-Path $dir ($parent+".json")}
-        $guard++
-      }
+      # Parents cherchés dans le dossier du profil puis dans OrcaFilamentLibrary (Get-OrcaProfileChain).
+      $chain=Get-OrcaProfileChain $ProfilePath
       $merged=[ordered]@{}
       for($i=$chain.Count-1;$i -ge 0;$i--){
         foreach($prop in $chain[$i].PSObject.Properties){if($prop.Name -ne "inherits"){$merged[$prop.Name]=$prop.Value}}
@@ -724,6 +941,7 @@ while($listener.IsListening){
       profile_mode=$attempt.mode
       fallback_used=$fallbackUsed
       bridge_version=$BridgeVersion
+      printer_profile=$printerProfile
       bed_type=$bedType
       filament_profiles=@($filamentProfiles|ForEach-Object {[IO.Path]::GetFileNameWithoutExtension([string]$_)})
     }

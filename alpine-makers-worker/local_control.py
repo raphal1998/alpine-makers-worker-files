@@ -60,6 +60,12 @@ LAZY_ACTIONS = {
     # Agent 1.50.12 : connexion du compte depuis worker.exe (route signée self/login). Les identifiants passent par
     # runtime/local-control/<32 hex>.args.json, lu puis efface par l'agent ; params ne porte que « args_file ».
     "login": "self_service", "login-state": "self_service",
+    # Agent 1.50.19 : Salle de contrôle native de worker.exe, lecture seule de l'état local des équipements.
+    "control-room": "control_room",
+    # Agent 1.50.22 : socle d'Alpine Makers Desktop. UNE action pour tous les outils natifs de worker.exe :
+    # {"tool", "name", "params" | "args_file"} aiguillé vers DESKTOP_ACTIONS de worker_agent/desktop_<outil>.py
+    # (liste fixe desktop_actions.TOOL_MODULES ; voir docs/desktop/SOCLE.md). Ne plus ajouter de ligne ici pour un outil.
+    "desktop": "desktop_actions",
 }
 PARAMS_MAX_BYTES = 2048
 # Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.
@@ -855,7 +861,9 @@ def main():
                              "fire-watch : etat de la surveillance IA des graveuses (lecture seule) ; "
                              "reconnect / network / cleanup : maintenance ; "
                              "duplicates-* / site-* / jobs-stop / sharing-set / relay-status / manage : gestion du Worker ; "
-                             "login / login-state : connexion du compte depuis worker.exe (identifiants dans le fichier args)")
+                             "login / login-state : connexion du compte depuis worker.exe (identifiants dans le fichier args) ; "
+                             "control-room : caméras, machines et Worker vus par l'agent, sans le site (lecture seule) ; "
+                             "desktop : outils natifs d'Alpine Makers Desktop (tool, name, params ou args_file)")
     parser.add_argument("--json", action="store_true", help="n'imprime qu'une ligne JSON : la reponse de l'agent")
     parser.add_argument("--timeout", type=int, default=120, help="attente maximale en secondes (1 a 600)")
     parser.add_argument("--params-b64", default=None,

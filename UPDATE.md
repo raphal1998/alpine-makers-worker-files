@@ -1,5 +1,77 @@
 # Historique des mises à jour
 
+## Version 1.50.22 — 2026-10-15
+
+**Alpine Makers Desktop : outils natifs de worker.exe (Model Studio, Laser Studio, CNC Studio, Labo image, Convertisseur) et Bibliothèque du compte**
+
+### Ajouté
+- worker.exe : fenêtre « Alpine Makers Desktop » (bouton du Gestionnaire, option --desktop [--outil <id>]) avec la navigation Salle de contrôle / Alpine Studio / Bibliothèque ; un outil pas encore intégré affiche une page « bientôt disponible ». Fermer la fenêtre n’arrête rien.
+- Agent : action locale « desktop » (desktop_actions.py) qui sert tous les outils natifs — paramètres validés, gros paramètres par fichier d’arguments lu une fois puis effacé, gros résultats par runtime/desktop/out, tâches longues suivies (progression, annulation).
+- Bibliothèque du compte depuis worker.exe (desktop_library.py, capacité desktop_library_v1) : lister (privée, partagée, reçue ; 3D, laser, CNC, image ; pages, filtres, recherche), télécharger dans le cache de l’agent, importer un fichier déposé par worker.exe, modifier la fiche (collection, favori, étiquettes…), copier un fichier reçu, mettre en corbeille (confirmation obligatoire). Routes signées self/library du site, session de connexion du propriétaire exigée.
+- Alpine Model Studio natif (desktop_model_studio.py) : aperçu 3D, primitives, texte 3D, pièce paramétrique FreeCAD, transformations, réseaux, réparation et analyse de maillage, tranchage OrcaSlicer sur ce Worker (profils, réglages avancés, multi-filaments), export STL/3MF ; impression par la route signée self/model-studio/print (vue d’impression du site, confirmation explicite) et suivi du lancement.
+- Alpine Laser Studio natif (desktop_laser_studio.py) : projets .alsproj, import SVG, DXF et images, calques et réglages de coupe, matériaux, calculs par le moteur laser du Worker (aperçu, G-code, simulation, cadrage laser coupé), export ; graveuse par la route signée self/laser-studio → /api/equipment/<id>/grbl (check-list nommée, confirmation, ni test laser ni jog).
+- Alpine CNC Studio natif (desktop_cnc_studio.py) : analyse et simulation du G-code par le moteur CNC du Worker, aperçu dessus/face/côté/3D, projets, outils et matériaux, CAM FreeCAD sur ce Worker, supervision ; commandes GRBL par les routes signées self/cnc-studio (check-list, confirmations, pilotage manuel armé 5 min).
+- Alpine Labo image natif (desktop_image_lab.py) : les 15 outils du Labo exécutés par les moteurs installés sur ce PC (ComfyUI, cartes, visages), mêmes réglages, précontrôles et lanceurs que les jobs du site, comparaison avant/après, enregistrement dans la Bibliothèque image.
+- Convertisseur 2D/3D natif (desktop_converter.py, capacité desktop_converter_v1) : conversion de format FreeCAD, réparation et analyse de maillage, « Préparer pour une CNC » en 10 étapes avec G-code retenu tant qu’un avertissement n’est pas acquitté ; projets et préréglages CAM du site par la route signée self/converter.
+- Bibliothèque : quatre vues natives (Fichiers 3D, Fichiers laser, Fichiers CNC, Bibliothèque image) avec liste ou grille, filtres, tracé G-code et rendu STL/OBJ locaux, fiche, déplacer, partager, corbeille confirmée, vue hors ligne des fichiers déjà téléchargés, et « Ouvrir dans » le Studio correspondant ; nouvelle action agent « thumbnails » (aperçus par lot).
+
+### Modifié
+- scripts/build_worker_exe.py compile automatiquement chaque worker_manager/Desktop*.cs et accepte --out pour une construction d’essai non signée.
+
+### Corrigé
+- Socle Desktop : les actions core/task, core/tasks et core/cancel ne bloquent plus l’agent quand aucune tâche n’existe encore (verrou repris en le tenant).
+
+### Technique
+- Empreinte du paquet publié : `ba45ef8902dc388e…` (dossier du paquet).
+
+## Version 1.50.21 — 2026-10-15
+
+**Tranchage OrcaSlicer : profils de toutes les marques, filament TPU for AMS, accents des messages (pont 19.28)**
+
+### Ajouté
+- Pont OrcaSlicer 19.28 : le tranchage accepte le profil d'imprimante OrcaSlicer de n'importe quelle marque présente dans l'OrcaSlicer du Worker (BBL, Creality, Prusa, Anycubic, Elegoo, Voron, Qidi…) ; process et filament sont choisis dans le dossier de ce vendeur (puis OrcaFilamentLibrary) selon compatible_printers ou compatible_printers_condition, chaîne d'héritage comprise.
+- Liste des imprimantes que l'OrcaSlicer du Worker sait trancher (nouvelle demande en lecture seule « Profils du Worker » du panneau de tranchage).
+
+### Modifié
+- Le panneau de tranchage préremplit le profil d'imprimante OrcaSlicer depuis la fiche de Mes équipements (modèle, buse) et le résultat indique l'imprimante utilisée.
+
+### Corrigé
+- Le type de filament « TPU-AMS » (AMS, Alpine Model Studio) trouve le profil « Bambu TPU for AMS » sur la Bambu Lab P1S en buse 0.4 et 0.8 ; table d'alias (TPU-AMS, TPU for AMS, PLA-S, PLA Basic, PETG HF, PA-CF…) puis repli sur un profil Generic de la même famille ; sinon refus qui liste les types disponibles pour l'imprimante.
+- Messages du pont en français sans mojibake (« Ã© », « Â« ») : le script est livré en UTF-8 avec BOM, que Windows PowerShell 5.1 exige pour ne pas le lire en cp1252.
+
+## Version 1.50.20 — 2026-10-15
+
+**Sécurité : jeton de lecture du lien MJPEG local, Gestion complète liée à la connexion de worker.exe**
+
+### Ajouté
+- Lien MJPEG local des caméras (relais loopback, composant 1.3.0) : chaque source exige un jeton de lecture aléatoire passé en paramètre « token » de l'adresse, conservé dans runtime/camera-relay du Worker (droits du dossier d'installation) et stable d'un redémarrage à l'autre. Le « Lien local » copié depuis Mes équipements le contient : OBS, LightBurn et PrintGuard continuent de fonctionner avec ce lien ; une adresse sans jeton reçoit 403. Le Worker complète lui-même ses liens sans jeton (webcam par lien, caméra qui lit le lien d'une autre, PrintGuard déjà configuré).
+
+### Modifié
+- Le composant relais posé par une version plus ancienne est recopié automatiquement au démarrage de l'agent, sans relancer « Installer ».
+
+### Corrigé
+- Un processus local quelconque ne lit plus les caméras du Worker sur 127.0.0.1 sans le lien copié depuis le site.
+- Gestion complète depuis worker.exe : sans la session de connexion de worker.exe, le site refuse désormais la demande (WORKER_EXE_SESSION_REQUIRED) au lieu de la traiter comme venant du propriétaire ; la compatibilité reste pour les Workers d'avant 1.50.16.
+
+## Version 1.50.19 — 2026-10-15
+
+**worker.exe : Salle de contrôle native, caméras et machines du Worker sans passer par le site**
+
+### Ajouté
+- Bouton « Salle de contrôle » de worker.exe (ou worker.exe --salle-de-controle) : mur des caméras de ce Worker lues directement sur le relais MJPEG local de l'agent (127.0.0.1, adresse et jeton rendus par l'agent), état honnête par tuile (en direct, image figée, déconnectée, relais arrêté, désactivée), colonnes Auto/1 à 4, cadence d'affichage maximale réglable, agrandir une caméra, plein écran, caméras masquées, préférences gardées sur le PC.
+- Panneau des machines (imprimantes, graveuses, CNC) : liaison, dernière télémétrie lue par l'agent, caméra reliée quand l'agent la connaît (surveillance incendie, PrintGuard). Aucune commande machine, aucun relais démarré ; fermer la fenêtre n'arrête rien ; réservé au propriétaire.
+- Action locale « control-room » de l'agent (worker_agent/control_room.py) : lecture seule, sans paramètre, hors ligne, sans secret ; ce qui n'existe que sur le site (noms des équipements, liaison caméra ↔ machine de Mes équipements) est dit absent.
+
+## Version 1.50.18 — 2026-10-15
+
+**Tranchage OrcaSlicer : profil d'impression adapté à la buse choisie (pont 19.27)**
+
+### Modifié
+- Le code de sortie d'OrcaSlicer est lu correctement et, en cas d'échec, les lignes d'erreur du journal d'OrcaSlicer sont jointes au message.
+
+### Corrigé
+- Tranchage refusé par OrcaSlicer (« OrcaSlicer n'a produit aucun 3MF … Slic3r::CLI::run found error ») avec une buse de 0,2, 0,6 ou 0,8 mm : le pont choisissait toujours un profil d'impression prévu pour la buse 0,4. Il prend maintenant le profil Bambu déclaré compatible avec la P1S et la buse choisie, le plus proche de la hauteur de couche demandée, et refuse clairement s'il n'en existe aucun.
+
 ## Version 1.50.17 — 2026-10-15
 
 ### Technique
