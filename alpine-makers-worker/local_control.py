@@ -60,6 +60,7 @@ LAZY_ACTIONS = {
     # Agent 1.50.12 : connexion du compte depuis worker.exe (route signée self/login). Les identifiants passent par
     # runtime/local-control/<32 hex>.args.json, lu puis efface par l'agent ; params ne porte que « args_file ».
     "login": "self_service", "login-state": "self_service",
+    "device-login-start": "self_service", "device-login-poll": "self_service",
     # Agent 1.50.19 : Salle de contrôle native de worker.exe, lecture seule de l'état local des équipements.
     "control-room": "control_room",
     # Agent 1.50.22 : socle d'Alpine Makers Desktop. UNE action pour tous les outils natifs de worker.exe :

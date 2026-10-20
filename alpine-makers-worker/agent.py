@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.24"
+AGENT_VERSION = "1.50.30"
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Paramètres GRBL du contrôleur (agent 1.50.17) : écriture groupée $n=v contrôlée (settings/write_batch), relue et vérifiée.
@@ -160,6 +160,7 @@ AGENT_CAPABILITIES += ("equipment_camera_webcam_link_v1",)  # littéral : le sit
 # d'arguments écrit par worker.exe, l'efface, puis appelle la route signée self/login ; le mot de passe ne passe ni par
 # la ligne de commande, ni par un journal, ni par ETAT-WORKER.txt. « login-state » rend le verrou (exe_login du site).
 AGENT_CAPABILITIES += ("worker_exe_login_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+AGENT_CAPABILITIES += ("worker_device_login_v1",)
 # Agent 1.50.14 : vue fluide des caméras sur le site. Quand le site annonce une caméra regardée (clé « camera_live » de la
 # boucle d'équipements), equipment_runtime.SiteLive pousse la dernière image, réduite au profil de la fiche, par une
 # connexion gardée ouverte. Même capacité pour le format libre : capture et lien MJPEG local jusqu'à 120 i/s, image
@@ -172,6 +173,7 @@ AGENT_CAPABILITIES += ("cnc_engine_v1",)  # littéral : le site lit ces lignes s
 # Agent 1.50.22 : socle d'Alpine Makers Desktop (action locale « desktop », desktop_actions.py) et Bibliothèque du
 # compte depuis worker.exe (desktop_library.py → routes signées self/library*, session worker.exe exigée).
 AGENT_CAPABILITIES += ("desktop_library_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+AGENT_CAPABILITIES += ("desktop_equipment_v1",)  # vues natives, routes signées et session du propriétaire
 # Agent 1.50.22 : Convertisseur 2D/3D de worker.exe (desktop_converter.py → route signée self/converter).
 AGENT_CAPABILITIES += ("desktop_converter_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
@@ -2416,10 +2418,42 @@ class Agent:
                 continue
             self.log_cursors[key] = offset + len(chunk)
             count = 0
-            for line in chunk.decode("utf-8", errors="replace").replace("\r", "\n").split("\n"):
-                line = line.strip()
-                if not line or len(line) > 2000 or not self.LOG_ERROR_PATTERN.search(line) or self.LOG_NOISE_PATTERN.search(line):
+            raw_lines = chunk.decode("utf-8", errors="replace").replace("\r", "\n").split("\n")
+            index = 0
+            while index < len(raw_lines):
+                raw_line = raw_lines[index]
+                line = raw_line.strip()
+                if not line:
+                    index += 1
                     continue
+                if line == "Traceback (most recent call last):":
+                    # Un vrai traceback Python s'étale sur plusieurs lignes ("File …, line …",
+                    # le code, puis "SomeError: message") dont presque aucune ne contient un des
+                    # mots filtrés comme mot entier ("SomeError" ne correspond pas à \berror\b) :
+                    # sans ce regroupement, seule cette ligne d'en-tête partait, sans aucun détail
+                    # exploitable (incident : worker:DESKTOP-I9KCR3A · ai3d.log, 17/10).
+                    block = [line]
+                    index += 1
+                    while index < len(raw_lines):
+                        candidate = raw_lines[index]
+                        if not candidate.strip():
+                            # Une fin de ligne \r\n, doublée par le .replace ci-dessus, produit
+                            # une ligne vide entre deux lignes réelles : l'ignorer sans arrêter
+                            # la collecte, sous peine de perdre le reste du traceback.
+                            index += 1
+                            continue
+                        if candidate[:1] not in (" ", "\t"):
+                            break
+                        block.append(candidate.strip())
+                        index += 1
+                    if index < len(raw_lines) and raw_lines[index].strip():
+                        block.append(raw_lines[index].strip())
+                        index += 1
+                    line = " » ".join(block)
+                else:
+                    index += 1
+                    if len(line) > 2000 or not self.LOG_ERROR_PATTERN.search(line) or self.LOG_NOISE_PATTERN.search(line):
+                        continue
                 signature = re.sub(r"\d+", "#", line)[:200]
                 if now - self.log_recent.get(signature, 0) < 300:
                     continue

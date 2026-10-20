@@ -74,7 +74,7 @@ BED_TYPES = ("Textured PEI Plate", "Cool Plate", "Engineering Plate", "High Temp
 PRINTER_PROFILE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._()+\-]{0,119}")
 PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,29}")
 SETTING_KEY = re.compile(r"[A-Za-z0-9_]{1,80}")
-MATERIAL = re.compile(r"[A-Za-z0-9][A-Za-z0-9 +._\-]{0,39}")
+MATERIAL = re.compile(r"[A-Za-z0-9][A-Za-z0-9 +._/\-]{0,39}")
 RUN_LIMIT = 3700                       # un tranchage peut durer (même plafond que le runner Orca : 3600 s)
 PROFILE_LIMIT = 4000
 INLINE_MAX = 256 * 1024
@@ -103,6 +103,13 @@ def v_regex(pattern, label):
 def v_true(value):
     if value is not True:
         raise ValueError("Envoi à l'imprimante non confirmé : confirme-le dans l'interface.")
+    return value
+
+
+def v_ams_mapping(value):
+    if (type(value) is not list or len(value) > 32 or any(type(item) is not int or
+            item not in (*range(16), *range(128, 136), 254, -1) for item in value)):
+        raise ValueError("Correspondance filament / bac AMS invalide.")
     return value
 
 
@@ -405,6 +412,10 @@ def sliced_info(path):
                     except ValueError:
                         continue
                     info[index] = {"prediction_s": _float(values.get("prediction")), "weight_g": _float(values.get("weight"))}
+                    filaments = [{key: item.get(key, "") for key in ("id", "type", "color", "used_g", "used_m")}
+                                 for item in plate.findall("filament")][:32]
+                    if filaments:
+                        info[index]["filaments"] = filaments
             for index in gcode:
                 plates.append({"index": index, **info.get(index, {"prediction_s": None, "weight_g": None})})
     except (OSError, zipfile.BadZipFile, ElementTree.ParseError, KeyError):
@@ -731,7 +742,7 @@ def _outputs(agent, params):
 
 # --- Impression : par la route du site uniquement -------------------------------------------------------------------
 
-PRINT_OPTIONS = ("bed_levelling", "timelapse", "flow_cali", "vibration_cali", "layer_inspect")
+PRINT_OPTIONS = ("bed_levelling", "timelapse", "flow_cali", "vibration_cali", "layer_inspect", "use_ams")
 
 
 def _site_call(agent, path, body):
@@ -755,7 +766,11 @@ def _print(agent, params):
     options = {key: params[key] for key in PRINT_OPTIONS if key in params}
     if "plate" in params:
         options["plate"] = params["plate"]
+    if "ams_mapping" in params:
+        options["ams_mapping"] = params["ams_mapping"]
     body = {"name": params["name"], "options": options, "confirm": True, "session_token": session}
+    if "equipment" in params:
+        body["equipment"] = params["equipment"]
 
     def work(task):
         task.update(None, "Demande d'impression envoyée au site…")
@@ -789,6 +804,7 @@ DESKTOP_ACTIONS = {
     "outputs": {"handler": _outputs, "read": True, "params": {}},
     "print": {"handler": _print, "read": False, "params": {
         "session_token": v_session, "name": v_file_name, "plate": v_int(1, 64), "confirm": v_true,
+        "equipment": v_regex(re.compile(r"[A-Za-z0-9_-]{1,80}"), "imprimante"), "ams_mapping": v_ams_mapping,
         **{key: v_bool for key in PRINT_OPTIONS}}},
     "print-status": {"handler": _print_status, "read": True, "params": {"session_token": v_session, "launch_id": v_hex(32)}},
 }

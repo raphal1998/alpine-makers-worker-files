@@ -52,6 +52,7 @@ TOOL_MODULES = {
     "image-lab": "desktop_image_lab",
     "cnc-studio": "desktop_cnc_studio",       # Alpine CNC Studio natif (analyse locale, projets/CAM/commandes par self/cnc-studio*)
     "converter": "desktop_converter",
+    "equipment": "desktop_equipment",
 }
 ARGS_MAX_BYTES = 1024 * 1024            # fichier d'arguments d'un outil
 OUT_DIR = "runtime/desktop/out"         # résultats volumineux, lus puis effacés par worker.exe

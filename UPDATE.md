@@ -1,5 +1,87 @@
 # Historique des mises à jour
 
+## Version 1.50.30 — 2026-10-20
+
+**Connexion assistée par navigateur ou téléphone, avec 2FA obligatoire**
+
+### Ajouté
+- Option volontaire dans Gestion du compte, activable avec accord, mot de passe actuel et code 2FA.
+- Connexion de worker.exe depuis le navigateur du PC ou un téléphone : QR code temporaire, code de comparaison et confirmation explicite.
+
+### Modifié
+- Les identifiants restent gérés par le navigateur, enregistrés manuellement par leur titulaire. Le déverrouillage biométrique utilise les fonctions compatibles de l'appareil.
+- La connexion assistée exige toujours le mot de passe et la 2FA ; worker.exe reçoit uniquement sa session après validation des droits actuels.
+
+### Technique
+- Empreinte du paquet publié : `0bf33831bc3bcf8a…` (dossier du paquet).
+
+## Version 1.50.29 — 2026-10-20
+
+**Model Studio Desktop : réglages du site, filaments et imprimante choisie**
+
+### Ajouté
+- Les 160 paramètres du profil de processus du site, avec catégories, recherche et fenêtre de réglages dédiée.
+- Gestion des filaments du projet à partir des 48 types du site : couleurs, attribution aux pièces, synchronisation AMS et correspondance des bacs à l'impression.
+- Sélection explicite d'une imprimante de Mes équipements dans Model Studio, avec lecture de sa buse et de ses filaments.
+
+### Modifié
+- Le catalogue natif est construit depuis les sources du site ; les projets conservent les filaments, la machine, la buse et le plateau.
+
+### Corrigé
+- Deux filaments de même matière restent distincts au tranchage et dans le projet enregistré.
+- Le lancement conserve l'identifiant de la machine choisie et les bacs AMS, via les autorisations et validations d'impression du site.
+
+## Version 1.50.28 — 2026-10-19
+
+**Desktop : états ON/OFF des caméras et machines corrigés**
+
+### Modifié
+- La même lecture de l'état est utilisée dans Mes équipements et la configuration des caméras, sans modifier les contrôles de permission.
+
+### Corrigé
+- Les états activés 0/1 du site sont reconnus comme les booléens locaux : les boutons affichent ON en vert et le clic demande la bonne action.
+- Une image reçue après la désactivation ne réapparaît plus dans une caméra OFF.
+
+## Version 1.50.27 — 2026-10-19
+
+**Worker : salle de contrôle complète depuis le menu principal**
+
+### Modifié
+- Une fenêtre Desktop déjà ouverte est réutilisée et affichée sur Salle de contrôle. L'ancienne vue locale reste accessible sous le libellé lecture seule.
+
+### Corrigé
+- Le bouton Salle de contrôle du menu principal et le raccourci --salle-de-controle ouvrent la vue complète avec les commandes de chaque caméra.
+
+## Version 1.50.26 — 2026-10-19
+
+**Desktop : boutons des caméras alignés sur le site**
+
+### Ajouté
+- Vue d’ensemble dédiée à la caméra et sa machine, avec image et télémétrie actualisées.
+
+### Modifié
+- Cinq boutons ronds dans l’ordre du site : Caméra, Machine, Config. caméra, Config. machine, Vue d’ensemble. Agrandir et Plein écran se trouvent sur l’image.
+
+### Corrigé
+- Config. machine ouvre la gestion de la machine associée ; les commandes caméra et machine restent indépendantes.
+
+## Version 1.50.25 — 2026-10-19
+
+**Desktop : galeries des studios, équipements et gestion des machines**
+
+### Ajouté
+- Mes équipements dans Alpine Makers Desktop : connexions, configuration, association caméra / machine, ordre, export et import de profils.
+- Gestion imprimante, graveuse laser et CNC : cinq onglets natifs par famille, avec les validations et permissions des routes du site.
+- Salle de contrôle intégrée : sélection des caméras, colonnes, filtre connecté, commandes indépendantes caméra / machine, configuration et agrandissement.
+
+### Modifié
+- Bibliothèques en grille par défaut, aperçu 3D interactif STL / OBJ / 3MF, zoom, vues, grille, arêtes, couleur et fond.
+- Les commandes physiques conservent les confirmations, bornes et listes de sécurité du site ; les arrêts restent disponibles pendant une demande en cours.
+
+### Corrigé
+- Les sélecteurs des studios affichent des vignettes et un aperçu du fichier sélectionné ; les images WEBP sont prévisualisées en PNG sans modifier l'original.
+- Le cadrage 3D tient compte des fenêtres étroites et les pages de cent fichiers chargent tous leurs aperçus.
+
 ## Version 1.50.24 — 2026-10-16
 
 **worker.exe : partage par compte plus fin (fonctions, modèles, styles prêtés)**

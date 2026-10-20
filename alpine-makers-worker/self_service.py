@@ -543,6 +543,59 @@ def login(agent, params):
     return result
 
 
+def _device_login_request(agent, path, body):
+    """Réponse privée directe à worker.exe ; aucune insertion dans les opérations visibles."""
+    if not agent.self_relay_lock.acquire(blocking=False):
+        return _login_failure("Une demande au site est en cours ; réessaie dans un instant.", "DEVICE_LOGIN_BUSY")
+    holder, done = {}, threading.Event()
+    def run():
+        try:
+            holder["outcome"] = _call(agent, path, body)
+        except Exception as error:
+            holder["outcome"] = {"state": "failed", "http": None, "site_code": "", "site_missing": False,
+                                 "unreachable": False, "error": f"Connexion interrompue ({type(error).__name__})."}
+        finally:
+            agent.self_relay_lock.release()
+            done.set()
+    try:
+        threading.Thread(target=run, name="worker-device-login", daemon=True).start()
+    except Exception:
+        agent.self_relay_lock.release()
+        return _login_failure("Impossible de préparer la connexion. Réessaie.", "DEVICE_LOGIN_BUSY")
+    if not done.wait(LOGIN_TIMEOUT):
+        return _login_failure("Le site n'a pas répondu à temps.", "LOGIN_TIMEOUT", unreachable=True)
+    outcome = holder["outcome"]
+    if outcome["state"] != "done":
+        return _login_outcome(outcome)
+    answer = outcome["response"]
+    if path.endswith("/start"):
+        return {key: answer[key] for key in ("ok", "request_id", "poll_token", "url", "qr", "code", "expires_in") if key in answer}
+    if answer.get("state") in ("pending", "cancelled"):
+        return {"ok": answer.get("ok") is True, "state": answer["state"]}
+    return _login_outcome(outcome)
+
+
+def device_login_start(agent, params):
+    _clean("device-login-start", params)
+    return _device_login_request(agent, "/api/worker-protocol/self/device-login/start", {})
+
+
+def device_login_poll(agent, params):
+    params = _clean("device-login-poll", params)
+    def check(value):
+        if not isinstance(value, dict) or set(value) - {"request_id", "poll_token", "cancel"}:
+            raise ValueError("Demande de connexion invalide.")
+        identifier = v_hex(32)(value.get("request_id"))
+        secret = value.get("poll_token")
+        if not isinstance(secret, str) or len(secret) != 43 or any(c not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_" for c in secret):
+            raise ValueError("Jeton de connexion invalide.")
+        return {"request_id": identifier, "poll_token": secret, "cancel": v_bool(value.get("cancel", False))}
+    if "args_file" not in params:
+        raise ValueError("Fichier de demande manquant.")
+    body = args_from_file(agent, params["args_file"], check, 2048)
+    return _device_login_request(agent, "/api/worker-protocol/self/device-login/poll", body)
+
+
 def login_state(agent, params):
     """État du verrou de connexion de worker.exe, lu dans le dernier état connu du site (``exe_login``)."""
     view = site_state(agent, params)
@@ -568,4 +621,6 @@ LOCAL_ACTIONS = {
     # Agent 1.50.12 : connexion depuis worker.exe ; les identifiants passent par le fichier d'arguments, jamais ici.
     "login": {"handler": login, "params": {"args_file": v_hex(32)}, "read": False},
     "login-state": {"handler": login_state, "params": {"refresh": v_bool}, "read": True},
+    "device-login-start": {"handler": device_login_start, "params": {}, "read": False},
+    "device-login-poll": {"handler": device_login_poll, "params": {"args_file": v_hex(32)}, "read": False},
 }
