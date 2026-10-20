@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.32 — 2026-10-20
+
+**Impression depuis le site : nom lisible sur l'écran de la P1S**
+
+### Modifié
+- Le fichier envoyé sur la carte microSD porte le nom du travail (ex. « MERDE1_6.gcode.3mf ») au lieu d'un identifiant technique : c'est ce nom que la P1S affiche pendant l'impression.
+
+### Technique
+- Empreinte du paquet publié : `5aadcf19d9eba313…` (dossier du paquet).
+
 ## Version 1.50.31 — 2026-10-20
 
 **Impression depuis le site : la P1S démarre enfin le fichier envoyé**

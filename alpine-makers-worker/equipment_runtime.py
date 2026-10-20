@@ -161,6 +161,13 @@ def dependency_error(error):
     return f"Dépendance Worker manquante ou incompatible : {name}. Utilise Installer le relais, puis redémarre le Worker. Ce défaut n’indique pas une mauvaise IP."
 
 
+def printer_file_name(subtask, fallback):
+    """Nom du fichier sur la carte de l'imprimante : le nom du travail (lisible à l'écran), sans caractère interdit
+    par FAT32 ni contrôle, 80 caractères au plus, suffixe .gcode.3mf ; ``fallback`` si le nom est vide."""
+    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]+', "_", str(subtask or "")).strip(" ._")[:80]
+    return (name + ".gcode.3mf") if name else str(fallback)
+
+
 class PrinterFTP(ftplib.FTP_TLS):
     """FTPS implicite (port 990) des imprimantes Bambu.
 
@@ -2445,12 +2452,14 @@ class EquipmentRelay:
                             nonlocal sent
                             sent += len(chunk)
                             self.agent.command_progress(command_id, 50+40*sent/max(1,total), "Envoi vers la carte SD de l’imprimante…")
+                        # Nom lisible sur l'écran de la P1S (1.50.32) : nom du travail, caractères interdits retirés.
+                        remote_name = printer_file_name(wire["print"].get("subtask_name"), path.name)
                         with path.open("rb") as source:
-                            ftp.storbinary("STOR "+path.name, source, blocksize=256*1024, callback=progress)
+                            ftp.storbinary("STOR "+remote_name, source, blocksize=256*1024, callback=progress)
                     finally:
                         ftp.close()
-                    wire["print"]["url"] = "ftp://"+remote_folder+path.name
-                    wire["print"]["file"] = path.name
+                    wire["print"]["url"] = "ftp://"+remote_folder+remote_name
+                    wire["print"]["file"] = remote_name
             finally:
                 path.unlink(missing_ok=True)
         self.agent.command_progress(command_id, 95, "Envoi de la commande à l’imprimante via son API HTTP locale…" if device.driver else "Envoi de la commande à l’imprimante via MQTT TLS…")
