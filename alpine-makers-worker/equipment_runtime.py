@@ -2436,13 +2436,10 @@ class EquipmentRelay:
                         ftp.connect(local_host(cfg["host"]), port_number(cfg.get("transfer_port"), 990))
                         ftp.login("bblp", cfg["access_code"])
                         ftp.prot_p()
-                        # /cache comme Bambu Studio ; racine de la carte si ce dossier n'existe pas.
-                        try:
-                            ftp.cwd("/cache")
-                            remote_folder = "/cache/"
-                        except ftplib.error_perm:
-                            ftp.cwd("/")
-                            remote_folder = "/"
+                        # Racine de la carte (1.50.31) : avec « ftp:///cache/x », la P1S recopie le fichier dans /cache,
+                        # donc sur lui-même, et s'arrête en IDLE avec print_error 0x0500C010 (constaté le 2026-10-20).
+                        ftp.cwd("/")
+                        remote_folder = "/"
                         sent = 0
                         def progress(chunk):
                             nonlocal sent
@@ -2453,6 +2450,7 @@ class EquipmentRelay:
                     finally:
                         ftp.close()
                     wire["print"]["url"] = "ftp://"+remote_folder+path.name
+                    wire["print"]["file"] = path.name
             finally:
                 path.unlink(missing_ok=True)
         self.agent.command_progress(command_id, 95, "Envoi de la commande à l’imprimante via son API HTTP locale…" if device.driver else "Envoi de la commande à l’imprimante via MQTT TLS…")

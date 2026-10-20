@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.50.31 — 2026-10-20
+
+**Impression depuis le site : la P1S démarre enfin le fichier envoyé**
+
+### Modifié
+- Le nom du fichier est aussi transmis dans le champ « file » de la commande d'impression, comme le font les outils de référence.
+
+### Corrigé
+- Le fichier tranché est déposé à la racine de la carte microSD (et non plus dans /cache) : la P1S recopiait le fichier sur lui-même, restait en IDLE sans message et signalait l'erreur 0500C010.
+
+### Technique
+- Empreinte du paquet publié : `d4d984093bd3e946…` (dossier du paquet).
+
 ## Version 1.50.30 — 2026-10-20
 
 **Connexion assistée par navigateur ou téléphone, avec 2FA obligatoire**
