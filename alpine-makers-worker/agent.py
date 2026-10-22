@@ -72,7 +72,7 @@ if __package__:
     from .storage_paths import WorkerStorage
     from .safety import IMAGE_LAB_MAPS_TOOLS, comfyui_queue_busy, is_link, protect_credentials, release_comfyui_vram, release_comfyui_vram_when_idle, safe_relative_name, validate_archive, validate_server_url
     from .job_state import DurableJournal, TERMINAL, atomic_json, read_json, runner_active
-    from .process_control import process_identity
+    from .process_control import process_identity, terminate_process_tree
     from .installer_process import InstallerScope, installation_commit, scope_record
     from .hardware_profiles import detect_hardware, runtime_profile
     from .equipment_runtime import EquipmentRelay
@@ -88,7 +88,7 @@ else:
     from storage_paths import WorkerStorage
     from safety import IMAGE_LAB_MAPS_TOOLS, comfyui_queue_busy, is_link, protect_credentials, release_comfyui_vram, release_comfyui_vram_when_idle, safe_relative_name, validate_archive, validate_server_url
     from job_state import DurableJournal, TERMINAL, atomic_json, read_json, runner_active
-    from process_control import process_identity
+    from process_control import process_identity, terminate_process_tree
     from installer_process import InstallerScope, installation_commit, scope_record
     from hardware_profiles import detect_hardware, runtime_profile
     from equipment_runtime import EquipmentRelay
@@ -326,6 +326,9 @@ TOOL_HANDLERS = {
 # Outils « à la demande » : un interrupteur logique (fiche runtime enabled), un processus par calcul,
 # aucun service résident à démarrer, surveiller ou arrêter.
 ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio")
+# Lanceurs dont le moteur tourne DANS leur arbre de processus (FreeCADCmd, Python du moteur laser ou CNC, script
+# Pillow) : arrêter cet arbre prouve que plus rien ne calcule pour le job (agent 1.50.33, arrêt forcé).
+IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine")
 HUNYUAN_MODELS = {model_id: (folder, *HUNYUAN_REQUIREMENTS[model_id]) for model_id, (_, folder) in HUNYUAN_CATALOG.items()}
 
 
@@ -478,6 +481,7 @@ class Agent:
         configure_identity(self.root, self.config)
         WorkerStorage(self.root, self.config).initialize()
         self.cancelled = set()
+        self.forced_stops = set()   # jobs dont l'arbre du lanceur a été arrêté et confirmé (agent 1.50.33)
         self.command_threads = set()
         self.command_lock = threading.Lock()
         self.storage_audit_lock = threading.Lock()
@@ -4242,6 +4246,48 @@ class Agent:
             self.job_threads[job_id] = thread
             thread.start()
 
+    def write_process_record(self):
+        """``runtime/agent-process.json`` : PID et date de création de CET agent (agent 1.50.33). Les outils du menu
+        reconnaissent ainsi un agent resté seul (superviseur mort) ou figé, sans jamais le deviner d'après un nom."""
+        try:
+            atomic_json(self.root / "runtime" / "agent-process.json",
+                        {"pid": os.getpid(), "process_identity": process_identity(os.getpid()), "started_at": time.time(),
+                         "agent_version": AGENT_VERSION})
+        except Exception as error:
+            print(f"Fiche du processus de l'agent non écrite ({type(error).__name__}).", flush=True)
+
+    def force_stop_job(self, job_id):
+        """« Arrêter tous les jobs », arrêt forcé (agent 1.50.33) : coupe l'arbre du lanceur d'un job déjà annulé
+        qui ne s'arrête pas seul. Seul le processus noté au lancement (PID ET date de création) et ses descendants
+        nés après lui sont touchés. Rend {"job_id", "runner", "stopped", "killed", "survivors", "confirmed"}."""
+        entry = self.journal.get("jobs", job_id) or {}
+        pid, identity = entry.get("runner_pid"), entry.get("runner_identity")
+        runner = str(entry.get("runner_name") or TOOL_HANDLERS.get(str(entry.get("tool_id") or ""), "") or "")
+        report = {"job_id": str(job_id), "runner": runner, "stopped": False, "killed": 0, "survivors": [], "confirmed": False}
+        if not isinstance(pid, int) or isinstance(pid, bool) or not identity:
+            return report
+        outcome = terminate_process_tree(pid, identity)
+        report.update(stopped=bool(outcome["stopped"]), killed=int(outcome["killed"]), survivors=list(outcome["survivors"]))
+        # Le moteur de ces lanceurs tourne DANS leur arbre : l'arbre arrêté prouve que plus rien ne calcule. Pour
+        # ComfyUI, Hunyuan3D et Orca, le moteur est un serveur à part : son arrêt n'est pas prouvé par celui du lanceur.
+        report["confirmed"] = report["stopped"] and runner in IN_TREE_RUNNERS
+        if report["confirmed"]:
+            self.forced_stops.add(str(job_id))
+        return report
+
+    def _forced_stop_state(self, job_id, workdir, state):
+        """Après l'arrêt forcé confirmé d'un lanceur, son état incomplet devient « annulé, moteur arrêté »."""
+        if str(job_id) not in self.forced_stops or (state.get("state") in TERMINAL and state.get("engine_stop_confirmed") is True):
+            return state
+        self.forced_stops.discard(str(job_id))
+        state = {**state, "state": "cancelled", "engine_stop_confirmed": True,
+                 "error": "Arrêt forcé par « Arrêter tous les jobs » : le calcul et ses processus sont arrêtés."}
+        try:
+            atomic_json(Path(workdir) / ".runner-state.json", state)
+        except OSError:
+            pass
+        return state
+
     def cancel_job(self, job_id):
         entry = self.journal.get("jobs", job_id)
         if not entry:
@@ -4343,10 +4389,16 @@ class Agent:
                     except OSError:
                         self.journal.update("jobs", job_id, launch_failed=True)
                         raise
-                    self.journal.update("jobs", job_id, runner_pid=process.pid, attempts=entry.get("attempts", 0) + 1)
+                    try:
+                        runner_identity = process_identity(process.pid)
+                    except (PermissionError, OSError, ValueError):
+                        runner_identity = None
+                    self.journal.update("jobs", job_id, runner_pid=process.pid, runner_identity=runner_identity,
+                                        runner_name=runner_name, attempts=entry.get("attempts", 0) + 1)
                     # Do not kill a client on timeout: its engine may still compute.
                     process.wait()
                 state = read_json(workdir / ".runner-state.json", {})
+                state = self._forced_stop_state(job_id, workdir, state)
             if not state or state.get("state") not in TERMINAL or state.get("engine_stop_confirmed") is not True:
                 self._job_status(job_id, {"status": "cancel_requested" if entry.get("cancel_requested") else "uncertain",
                     "engine_stop_confirmed": False, "progress": 1, "message": state.get("error") or "Statut du moteur incertain ; aucune nouvelle soumission."})
@@ -4553,6 +4605,7 @@ def main():
             return 1
         print(json.dumps({"ok": True, "worker_id": response.get("worker_id")}, indent=2))
     else:
+        agent.write_process_record()
         if agent.disconnect_still_active():
             # Ancien superviseur ou unité systemd qui relance l'agent malgré la
             # déconnexion : rester hors ligne, sans moteur, jusqu'à reconnect

@@ -77,6 +77,7 @@ STATUS_FILE_STATES = {"ok": "ok", "update": "maj", "error": "erreur", "update_er
 INDICATOR_CODES_MAX = 12
 _SITE_CODE = re.compile(r"[a-z0-9_]{1,60}")
 _VERSION = re.compile(r"[0-9]{1,9}(\.[0-9]{1,9}){0,5}")
+_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _HEX = "0123456789abcdefABCDEF"
 
 
@@ -414,6 +415,31 @@ def _integrity_view(agent):
     return {"checked_at": _number(state.get("checked_at")), "missing": _count(state.get("missing")), "modified": _count(state.get("modified"))}
 
 
+def _desktop_view(agent):
+    """Calculs lancés depuis worker.exe et encore en cours (agent 1.50.33) : outil et libellé, jamais un chemin."""
+    tasks = getattr(agent, "_desktop_tasks", None)
+    if not isinstance(tasks, dict):
+        return []
+    return [{"tool": str(task.tool)[:40], "label": _CONTROL.sub(" ", str(task.label))[:120], "state": str(task.state),
+             "cancel_requested": bool(task.cancel.is_set())}
+            for task in list(tasks.values()) if getattr(task, "state", "") == "running"][:20]
+
+
+def _stop_sweep_view(agent):
+    """Suivi du dernier « Arrêter tous les jobs » (agent 1.50.33) : calculs coupés de force, et ceux qui résistent."""
+    sweep = getattr(agent, "stop_sweep", None)
+    if not isinstance(sweep, dict):
+        return None
+
+    def items(name):
+        return [{"kind": str(item.get("kind") or "")[:8], "name": _CONTROL.sub(" ", str(item.get("name") or ""))[:120],
+                 "stopped": item.get("stopped") is True, "confirmed": item.get("confirmed") is True,
+                 "killed": _count(item.get("killed"))} for item in list(sweep.get(name) or [])[:20] if isinstance(item, dict)]
+    return {"state": "running" if sweep.get("state") == "running" else "done", "started_at": _number(sweep.get("started_at")),
+            "finished_at": _number(sweep.get("finished_at")), "grace_s": _count(sweep.get("grace_s")),
+            "forced": items("forced"), "resisting": items("resisting"), "error": str(sweep.get("error") or "")[:60]}
+
+
 def _guarded(view, agent):
     # status est lu par le bandeau et par tous les outils : un champ nouveau qui echoue vaut null,
     # il ne fait jamais echouer la reponse.
@@ -459,7 +485,9 @@ def status(agent):
             "indicator": _guarded(indicator, agent), "heartbeat": _guarded(_heartbeat_view, agent),
             "site": _guarded(_site_view, agent), "sharing": _guarded(_sharing_view, agent),
             "duplicates": _guarded(_duplicates_view, agent), "grbl_jobs": _guarded(_grbl_view, agent),
-            "integrity": _guarded(_integrity_view, agent)}
+            "integrity": _guarded(_integrity_view, agent),
+            # Agent 1.50.33 : calculs lancés depuis worker.exe, et suivi du dernier « Arrêter tous les jobs ».
+            "desktop_tasks": _guarded(_desktop_view, agent), "stop_sweep": _guarded(_stop_sweep_view, agent)}
 
 
 def status_file_text(info, version, now):

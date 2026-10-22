@@ -41,6 +41,7 @@ if __package__:
     from .desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_object, v_session, v_text
     from .job_state import atomic_json, read_json
     from .local_control import checked
+    from .process_control import process_identity, terminate_process_tree
     from .safety import is_link
 else:
     import desktop_actions as desk
@@ -48,6 +49,7 @@ else:
     from desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_object, v_session, v_text
     from job_state import atomic_json, read_json
     from local_control import checked
+    from process_control import process_identity, terminate_process_tree
     from safety import is_link
 
 TOOL = "converter"
@@ -56,6 +58,7 @@ RUNNERS = Path(__file__).resolve().with_name("runners")   # remplacé par les te
 ENGINE_DIR = Path(__file__).resolve().parent              # freecad_converter.py, freecad_cam.py (paquet du Worker)
 SOURCE_MAX = 512 * 1024 * 1024                            # même plafond que les lanceurs
 RUN_TIMEOUT = 3700                                        # le lanceur FreeCAD a son propre délai (3600 s)
+CANCEL_GRACE = 15                                         # annulation : délai laissé au lanceur avant l'arrêt de son arbre
 INLINE_MAX = 192 * 1024
 GCODE_TEXT_MAX = 8 * 1024 * 1024
 CACHE_MAX = 4 * 1024 * 1024
@@ -276,7 +279,9 @@ def run_runner(agent, task, runner, workdir, parameters, run):
         process = subprocess.Popen([sys.executable, str(handler), str(workdir / "job.json"), str(workdir)],
                                    stdout=log, stderr=subprocess.STDOUT, env=environment, cwd=str(workdir),
                                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
-        started, cancel_at = time.monotonic(), None
+        if hasattr(task, "attach"):
+            task.attach(process)
+        started, cancel_at, forced = time.monotonic(), None, False
         while process.poll() is None:
             now = time.monotonic()
             if task.cancelled() and cancel_at is None:
@@ -286,6 +291,12 @@ def run_runner(agent, task, runner, workdir, parameters, run):
                 process.kill()   # calcul Python pur dans ce seul processus : rien d'autre ne calcule
             if now - started > RUN_TIMEOUT and runner != "freecad":
                 process.kill()
+            # Agent 1.50.33 : un lanceur FreeCAD qui n'a pas coupé SON FreeCAD après l'annulation (ou au-delà de son
+            # propre délai) est arrêté avec tout son arbre : lanceur, FreeCADCmd et ses enfants, rien d'autre.
+            late = cancel_at is not None and now - cancel_at > CANCEL_GRACE
+            if runner == "freecad" and not forced and (late or now - started > RUN_TIMEOUT + 300):
+                forced = True
+                stop_tree(process)
             state = read_json(workdir / ".runner-state.json", {}) or {}
             if isinstance(state.get("progress"), (int, float)) or state.get("message"):
                 task.update(state.get("progress") if isinstance(state.get("progress"), (int, float)) else None,
@@ -301,6 +312,21 @@ def run_runner(agent, task, runner, workdir, parameters, run):
             message = "Le moteur s'est arrêté sans résultat (voir runner.log)."
         raise TaskError(message[:500], str(state.get("error_code") or "ENGINE_FAILED")[:60])
     return dict(state.get("result") or {})
+
+
+def stop_tree(process):
+    """Arrêt forcé du lanceur et de ses descendants vérifiés (date de création) ; repli : le lanceur seul."""
+    try:
+        identity = process_identity(process.pid)
+        if identity and terminate_process_tree(process.pid, identity)["stopped"]:
+            return True
+    except (PermissionError, OSError, ValueError):
+        pass
+    try:
+        process.kill()
+    except OSError:
+        pass
+    return False
 
 
 def _sha256(path):

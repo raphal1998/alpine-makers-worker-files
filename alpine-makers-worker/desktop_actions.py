@@ -37,9 +37,11 @@ import time
 if __package__:
     from .job_state import atomic_json
     from .local_control import checked, v_bool, v_choice, v_hex, v_list_of
+    from .process_control import process_identity
 else:
     from job_state import atomic_json
     from local_control import checked, v_bool, v_choice, v_hex, v_list_of
+    from process_control import process_identity
 
 ACTION = "desktop"
 # Liste fixe des modules d'outils : identifiant (celui de worker.exe, IDesktopTool.AgentTool) -> module.
@@ -186,6 +188,16 @@ class Task:
         self.cancel = threading.Event()
         self.started = time.monotonic()
         self.finished = None
+        self.processes = []             # [(pid, identité)] lancés pour cette tâche (arrêt forcé, agent 1.50.33)
+
+    def attach(self, process):
+        """Note un processus lancé par le travail : « Arrêter tous les jobs » peut ainsi couper son arbre."""
+        try:
+            identity = process_identity(process.pid)
+        except (PermissionError, OSError, ValueError):
+            identity = None
+        if identity:
+            self.processes.append((int(process.pid), identity))
 
     def update(self, progress=None, message=None):
         """Appelé par le travail : progression 0-100 (None = inconnue) et court message pour l'interface."""
@@ -303,6 +315,32 @@ def _cancel(agent, params):
         raise ValueError("Tâche inconnue ou expirée.")
     task.cancel.set()
     return task.view()
+
+
+# Outils dont les tâches sont des CALCULS de ce PC (« Arrêter tous les jobs » les coupe). Laser Studio et Équipements
+# relaient des ordres de machine par le site : leur tâche n'est qu'une attente, l'annuler n'arrêterait aucune machine.
+STOPPABLE_TOOLS = ("converter", "image-lab", "model-studio", "library")
+STOPPABLE_LABELS = {"cnc-studio": ("Simulation", "Analyse")}
+
+
+def stoppable(task):
+    if task.tool in STOPPABLE_TOOLS:
+        return True
+    return any(str(task.label).startswith(prefix) for prefix in STOPPABLE_LABELS.get(task.tool, ()))
+
+
+def running_tasks(agent):
+    """Tâches Desktop en cours, tous outils (lecture)."""
+    with _GUARD:
+        return [task for task in _tasks(agent).values() if task.state == "running"]
+
+
+def cancel_all(agent):
+    """« Arrêter tous les jobs » (agent 1.50.33) : demande l'arrêt de chaque calcul Desktop en cours. Rend les tâches visées."""
+    targets = [task for task in running_tasks(agent) if stoppable(task)]
+    for task in targets:
+        task.cancel.set()
+    return targets
 
 
 def _ping(agent, params):

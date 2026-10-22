@@ -8,7 +8,8 @@ attend la réponse du site, au plus quinze secondes, car worker.exe a besoin du 
 Rien n'est décidé ici à la place du site : compte propriétaire, admission, équipe et confirmation sont vérifiés par
 les routes signées ``/api/worker-protocol/self/…``. Ce module ne crée aucune commande serveur et ne pilote aucun
 équipement : « Arrêter tous les jobs » ne touche ni graveuse, ni imprimante, ni caméra, ni moteur ; les gravures en
-cours sont seulement nommées.
+cours sont seulement nommées. Depuis l'agent 1.50.33, il arrête en plus, sur CE PC, les calculs des jobs et ceux
+lancés depuis worker.exe (convertisseur, préparation CNC…), puis coupe l'arbre de processus de ceux qui résistent.
 """
 import importlib
 import json
@@ -18,8 +19,10 @@ import time
 
 if __package__:
     from .local_control import checked, v_bool, v_hex, v_list_of
+    from .process_control import process_identity, terminate_process_tree
 else:
     from local_control import checked, v_bool, v_hex, v_list_of
+    from process_control import process_identity, terminate_process_tree
 
 STATE_PATH = "/api/worker-protocol/self/state"
 # Agent 1.50.12 : connexion du compte depuis worker.exe (route signée self/login). Le mot de passe passe par un fichier
@@ -50,6 +53,7 @@ STATE_FRESH_SECONDS = 60     # au-delà, « site-state » relance une lecture m�
 OPERATION_LIFETIME = 900     # un relais reste consultable quinze minutes
 OPERATIONS_MAX = 16
 ANSWER_MAX_BYTES = 65536     # une réponse du site plus grosse est tenue pour illisible
+STOP_GRACE = 20              # « Arrêter tous les jobs » : délai laissé à chaque calcul avant l'arrêt de son arbre
 
 
 class _Runtime:
@@ -404,41 +408,132 @@ def _grbl_jobs(agent):
 
 
 def _cancel_local_jobs(agent):
-    """Repli quand le site ne peut pas répondre : arrêt demandé à chaque job actif de l'association courante.
+    """Arrêt demandé à chaque job actif de l'association courante, sur ce PC (agent 1.50.33 : toujours, en plus de
+    la demande au site, pour que le calcul s'arrête tout de suite). Rend les identifiants visés.
 
-    Les installations en cours ne sont pas annulées ici : le site refuserait ensuite leur résultat.
+    Les installations en cours ne sont pas annulées ici : le site refuserait ensuite leur résultat ; il les arrête
+    lui-même quand il répond.
     """
-    count = 0
+    targets = []
     try:
         for job_id, item in agent.journal.records("jobs").items():
             if not agent._job_active(item) or not agent._job_identity_matches(item):
                 continue
             try:
                 agent.cancel_job(str(job_id))
-                count += 1
+                targets.append(str(job_id))
             except Exception as error:
                 print(f"Arret local d'un job impossible ({type(error).__name__}).", flush=True)
     except Exception as error:
         print(f"Journal des jobs illisible pour l'arret local ({type(error).__name__}).", flush=True)
-    return count
+    return targets
+
+
+def _desktop_module():
+    return importlib.import_module((__package__ + "." if __package__ else "") + "desktop_actions")
+
+
+def _cancel_desktop_tasks(agent):
+    """Calculs lancés depuis worker.exe (convertisseur, préparation CNC, Labo image, tranchage…) : arrêt demandé."""
+    try:
+        return list(_desktop_module().cancel_all(agent))
+    except Exception as error:
+        print(f"Arret des taches Desktop impossible ({type(error).__name__}).", flush=True)
+        return []
+
+
+def _runner_alive(agent, job_id):
+    """Le lanceur noté pour ce job vit-il encore ? None : rien de sûr n'a été noté (job lancé par un agent ancien)."""
+    entry = agent.journal.get("jobs", job_id) or {}
+    pid, identity = entry.get("runner_pid"), entry.get("runner_identity")
+    if not isinstance(pid, int) or isinstance(pid, bool) or not identity:
+        return None
+    try:
+        return process_identity(pid) == identity
+    except PermissionError:
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _task_alive(task):
+    return task.state == "running"
+
+
+def _sweep(agent, job_ids, tasks, grace):
+    """Suivi de l'arrêt (fil démon) : après ``grace`` secondes, l'arbre de chaque calcul encore vivant est coupé.
+
+    Rien d'autre n'est touché : seuls les processus notés au lancement (PID ET date de création) et leurs
+    descendants nés après eux. Le résultat se lit dans « status » (champ ``stop_sweep``)."""
+    record = agent.stop_sweep
+    deadline = time.monotonic() + grace
+    try:
+        while not agent.stop_requested.is_set():
+            jobs = [job_id for job_id in job_ids if _runner_alive(agent, job_id)]
+            running = [task for task in tasks if _task_alive(task)]
+            if not jobs and not running:
+                break
+            if time.monotonic() >= deadline:
+                for job_id in jobs:
+                    report = agent.force_stop_job(job_id)
+                    item = {"kind": "job", "name": report["runner"] or "calcul", "id": job_id[:13], "stopped": report["stopped"],
+                            "confirmed": report["confirmed"], "killed": report["killed"]}
+                    record["forced" if report["stopped"] else "resisting"].append(item)
+                for task in running:
+                    stopped, killed = bool(task.processes), 0
+                    for pid, identity in list(task.processes):
+                        outcome = terminate_process_tree(pid, identity)
+                        stopped = stopped and outcome["stopped"]
+                        killed += int(outcome["killed"])
+                    item = {"kind": "task", "name": str(task.label)[:120], "id": task.id[:13], "stopped": stopped,
+                            "confirmed": stopped, "killed": killed}
+                    record["forced" if stopped else "resisting"].append(item)
+                break
+            agent.stop_requested.wait(0.5)
+    except Exception as error:  # le fil ne sort jamais en exception : l'état dit qu'il s'est interrompu
+        record["error"] = type(error).__name__
+    finally:
+        record["state"] = "done"
+        record["finished_at"] = time.time()
+
+
+def _start_sweep(agent, job_ids, tasks):
+    agent.stop_sweep = {"state": "running", "started_at": time.time(), "finished_at": None, "grace_s": STOP_GRACE,
+                        "jobs": len(job_ids), "tasks": len(tasks), "forced": [], "resisting": [], "error": ""}
+    if not job_ids and not tasks:
+        agent.stop_sweep.update(state="done", finished_at=time.time())
+        return
+    try:
+        threading.Thread(target=_sweep, args=(agent, list(job_ids), list(tasks), STOP_GRACE),
+                         name="worker-stop-sweep", daemon=True).start()
+    except Exception as error:
+        agent.stop_sweep.update(state="done", finished_at=time.time(), error=type(error).__name__)
 
 
 def _stop_jobs(agent):
+    tasks = _cancel_desktop_tasks(agent)
     local = {"fallback": False, "fallback_reason": "", "jobs_cancel_requested": 0,
-             "audit_cancelled": _cancel_local_audit(agent), "grbl_jobs": _grbl_jobs(agent)}
+             "audit_cancelled": _cancel_local_audit(agent), "grbl_jobs": _grbl_jobs(agent),
+             "desktop_tasks_cancelled": [{"tool": task.tool, "label": str(task.label)[:120]} for task in tasks][:20],
+             "sweep_grace_s": STOP_GRACE}
     outcome = _call(agent, RELAY_PATHS["jobs-stop"], {})
     if outcome["state"] == "done":
         agent.reconnect_requested.set()  # les arrêts reviennent par le heartbeat : ne pas attendre vingt secondes
     else:
-        # Seuls deux cas mènent au repli : le site ne répond pas, ou il n'a pas encore la fonction.
+        # Le site ne répond pas, ou il n'a pas encore la fonction : sa file d'attente n'est pas touchée.
         reason = "missing" if outcome["site_missing"] else "unreachable" if outcome["unreachable"] else ""
         if reason:
-            local.update(fallback=True, fallback_reason=reason, jobs_cancel_requested=_cancel_local_jobs(agent))
+            local.update(fallback=True, fallback_reason=reason)
+    # Agent 1.50.33 : quoi que réponde le site, les calculs de CE PC reçoivent l'arrêt tout de suite, puis ceux qui
+    # ne s'arrêtent pas seuls sont coupés (arbre de processus vérifié) après STOP_GRACE secondes.
+    job_ids = _cancel_local_jobs(agent)
+    local["jobs_cancel_requested"] = len(job_ids)
+    _start_sweep(agent, job_ids, tasks)
     return {**outcome, "local": local}
 
 
 def jobs_stop(agent, params):
-    """Arrête calculs et installations de ce Worker par le site ; aucun équipement n'est commandé."""
+    """Arrête calculs et installations de ce Worker par le site, et les calculs de CE PC ; aucun équipement n'est commandé."""
     _clean("jobs-stop", params)
     return _relay(agent, "jobs-stop", lambda: _stop_jobs(agent))
 

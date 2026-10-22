@@ -303,6 +303,194 @@ function Stop-PidsReconnus {
     return @($Liste | Where-Object { $_ -and (Test-MemeProcessus -Entree $_) }).Count
 }
 
+function Get-LibelleRole {
+    param([string]$Role)
+    switch ($Role) {
+        'superviseur'  { return 'superviseur' }
+        'agent'        { return 'agent' }
+        'calcul'       { return 'calcul en cours' }
+        'installation' { return 'installation' }
+    }
+    return 'moteur'
+}
+
+function Stop-ToutLeWorker {
+    <#
+        Arrêt COMPLET des processus de CE Worker (agent 1.50.33) : jusqu'à -Passes passes ; chacune relit la liste
+        (Get-PidsDuWorker) et arrête, par PID revérifié, superviseur, agent, puis tout le reste, les plus profonds
+        d'abord (Stop-PidsReconnus). Un enfant né pendant une passe est pris à la suivante.
+        -Deja : processus relevés AVANT l'arrêt (un processus devenu illisible depuis reste visé s'il vit encore).
+        Renvoie : Arretes (nombre), Survivants (processus encore vivants : Role, ProcessId, Nom), Illisibles.
+    #>
+    param([string]$Racine, [string]$Outil, [object[]]$Deja = @(), [int]$Passes = 3)
+    $cibles = @{}
+    foreach ($p in @($Deja)) { if ($p) { $cibles[[int]$p.ProcessId] = $p } }
+    $arretes = 0
+    $illisibles = 0
+    for ($passe = 1; $passe -le $Passes; $passe++) {
+        $vus = Get-PidsDuWorker -Racine $Racine
+        $illisibles = [int]$vus.Illisibles
+        foreach ($p in @($vus.Processus)) { $cibles[[int]$p.ProcessId] = $p }
+        $vivants = @($cibles.Values | Where-Object { $_ -and (Test-MemeProcessus -Entree $_) })
+        if ($vivants.Count -eq 0) { break }
+        if ($passe -gt 1) { Write-Info ('Passe ' + $passe + ' : ' + $vivants.Count + ' processus du Worker encore vivant(s), nouvel arrêt.') }
+        $restants = Stop-PidsReconnus -Liste $vivants -Racine $Racine -Outil $Outil
+        $arretes += [Math]::Max(0, $vivants.Count - $restants)
+        $cibles = @{}
+        foreach ($p in $vivants) { if (Test-MemeProcessus -Entree $p) { $cibles[[int]$p.ProcessId] = $p } }
+    }
+    $final = Get-PidsDuWorker -Racine $Racine
+    $illisibles = [int]$final.Illisibles
+    foreach ($p in @($final.Processus)) { $cibles[[int]$p.ProcessId] = $p }
+    $survivants = @($cibles.Values | Where-Object { $_ -and (Test-MemeProcessus -Entree $_) } | Sort-Object Role, ProcessId)
+    return [pscustomobject]@{ Arretes = $arretes; Survivants = $survivants; Illisibles = $illisibles }
+}
+
+function Show-Survivants {
+    <# Ce qui résiste à l'arrêt, nommément (rôle, PID, programme), puis la marche à suivre. N'émet rien dans le pipeline. #>
+    param([object[]]$Survivants = @(), [int]$Illisibles = 0, [switch]$Administrateur)
+    foreach ($p in @($Survivants)) { Write-Etat -Libelle ('PID ' + $p.ProcessId) -Valeur ((Get-LibelleRole $p.Role) + ' : ' + $p.Nom + '   ENCORE EN VIE') -Niveau erreur }
+    if (@($Survivants).Count -gt 0) {
+        if ($Administrateur) { Write-Conseil 'Windows refuse de les arrêter même en administrateur : redémarre le PC, c''est la seule issue sûre (rien n''est perdu : identité, modèles et travaux sont conservés).' }
+        else { Write-Conseil ('Relance ' + (Get-NomEntree 11) + ' et accepte la fenêtre administrateur : elle arrête ce qu''une fenêtre normale ne peut pas arrêter. Sinon, redémarre le PC.') }
+    }
+    elseif ($Illisibles -gt 0 -and -not $Administrateur) {
+        Write-Info ('      ' + $Illisibles + ' processus python ou powershell sont illisibles sans droits administrateur (normal si le Worker est un service).')
+    }
+}
+
+function Stop-CalculsDuWorker {
+    <#
+        « Arrêter tous les jobs », dernier recours (agent 1.50.33) : arrête les processus de CALCUL de ce Worker qui
+        vivent encore (rôle « calcul » de Get-ProcessusDuWorker : lanceurs de jobs ou de worker.exe, FreeCAD qui
+        exécute un script du Worker, tranchage OrcaSlicer d'un moteur du Worker, et leurs descendants), par PID
+        revérifié, les plus profonds d'abord. -AvecInstallations : aussi les installateurs du Worker (agent muet).
+        Jamais un moteur, l'agent, le superviseur, ni un programme étranger au Worker. Deux passes au plus.
+        Renvoie : Vus (processus visés), Arretes, Survivants, Illisibles.
+    #>
+    param([string]$Racine, [string]$Outil, [switch]$AvecInstallations, [switch]$Simulation)
+    $roles = @('calcul')
+    if ($AvecInstallations) { $roles += 'installation' }
+    $r = [pscustomobject]@{ Vus = @(); Arretes = 0; Survivants = @(); Illisibles = 0 }
+    $deja = @{}
+    for ($passe = 1; $passe -le 2; $passe++) {
+        $vus = Get-PidsDuWorker -Racine $Racine
+        $r.Illisibles = [int]$vus.Illisibles
+        $cibles = @($vus.Processus | Where-Object { $roles -contains [string]$_.Role })
+        foreach ($c in $cibles) { if (-not $deja.ContainsKey([int]$c.ProcessId)) { $deja[[int]$c.ProcessId] = $true; $r.Vus += $c } }
+        if ($cibles.Count -eq 0) { break }
+        if ($Simulation) {
+            foreach ($c in $cibles) { Write-Info ('[simulation] arrêt du ' + (Get-LibelleRole $c.Role) + ' PID ' + $c.ProcessId + ' (' + $c.Nom + ')') }
+            return $r
+        }
+        $restants = Stop-PidsReconnus -Liste $cibles -Racine $Racine -Outil $Outil
+        $r.Arretes += [Math]::Max(0, $cibles.Count - $restants)
+    }
+    if (-not $Simulation) {
+        $final = Get-PidsDuWorker -Racine $Racine
+        $r.Survivants = @($final.Processus | Where-Object { $roles -contains [string]$_.Role })
+        $r.Illisibles = [int]$final.Illisibles
+    }
+    return $r
+}
+
+function Get-PortsOccupes {
+    <#
+        Ports des moteurs (8188, 8189, 8000) et du relais caméra (1984) tenus par un programme qui N'EST PAS de ce
+        Worker : l'agent ne pourrait pas y démarrer son moteur. Un processus illisible (service) n'est jamais déclaré
+        étranger. Lecture seule. Renvoie des objets { Libelle, Port, Pid, Programme }.
+    #>
+    param([string]$Racine, $Processus = $null)
+    if (-not $Processus) { $Processus = Get-PidsDuWorker -Racine $Racine }
+    $nos = New-Object 'System.Collections.Generic.HashSet[int]'
+    foreach ($p in @($Processus.Processus)) { [void]$nos.Add([int]$p.ProcessId) }
+    $ports = @()
+    foreach ($m in @(Get-EtatMoteurs -Racine $Racine)) { if ($m.EnEcoute -and [int]$m.PidPort -gt 4) { $ports += [pscustomobject]@{ Libelle = [string]$m.Nom; Port = [int]$m.Port; Pid = [int]$m.PidPort } } }
+    $relais = Get-NetTCPConnection -LocalPort $script:PortRelaisCamera -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($relais -and [int]$relais.OwningProcess -gt 4) { $ports += [pscustomobject]@{ Libelle = 'Relais caméra de l''agent'; Port = $script:PortRelaisCamera; Pid = [int]$relais.OwningProcess } }
+    $occupes = @()
+    foreach ($o in $ports) {
+        if ($nos.Contains($o.Pid)) { continue }
+        $cim = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $o.Pid) -ErrorAction SilentlyContinue
+        if (-not $cim) { continue }
+        # Python ou PowerShell sans ligne de commande lisible : peut-être ce Worker en service, jamais déclaré étranger.
+        if ([string]$cim.Name -match '^(?i:python|pythonw|powershell|pwsh)\.exe$' -and -not $cim.CommandLine) { continue }
+        $occupes += [pscustomobject]@{ Libelle = $o.Libelle; Port = $o.Port; Pid = $o.Pid; Programme = [string]$cim.Name }
+    }
+    return $occupes
+}
+
+function Show-PortsOccupes {
+    param([object[]]$Occupes = @())
+    foreach ($o in @($Occupes)) {
+        Write-Etat -Libelle ('Port ' + $o.Port) -Valeur ('pris par un AUTRE programme : ' + $o.Programme + ' (PID ' + $o.Pid + ')   ' + $o.Libelle + ' ne pourra pas démarrer') -Niveau erreur
+    }
+    if (@($Occupes).Count -gt 0) {
+        Write-Conseil 'Ferme ce programme (ou change son port), puis relance cet outil. Les outils du Worker n''arrêtent jamais un programme qui n''est pas le leur.'
+    }
+}
+
+function Get-DoublonsWorker {
+    <#
+        Plusieurs superviseurs ou plusieurs agents de CE dossier en même temps (deux lanceurs, un agent resté seul…).
+        Un agent enfant d'un autre agent (lanceur d'un environnement Python vers le Python de base) n'est pas un doublon.
+        -Processus : réponse de Get-PidsDuWorker. Renvoie : Superviseurs, Agents, Doublon (bool).
+    #>
+    param($Processus)
+    $liste = @($Processus.Processus)
+    $superviseurs = @($liste | Where-Object { $_.Role -eq 'superviseur' })
+    $tousAgents = @($liste | Where-Object { $_.Role -eq 'agent' })
+    $numeros = @($tousAgents | ForEach-Object { [int]$_.ProcessId })
+    $agents = @($tousAgents | Where-Object { $numeros -notcontains [int]$_.ParentProcessId })
+    return [pscustomobject]@{ Superviseurs = $superviseurs; Agents = $agents; Doublon = ($superviseurs.Count -gt 1 -or $agents.Count -gt 1) }
+}
+
+function Test-VerrouSuperviseurLibre {
+    <# supervisor.lock est-il libre ? Un superviseur vivant de CE dossier le tient ouvert (run_worker.ps1, FileShare.None). #>
+    param([string]$Racine)
+    $chemin = Join-Path $Racine 'supervisor.lock'
+    if (-not (Test-Path -LiteralPath $chemin -PathType Leaf)) { return $true }
+    $f = $null
+    try { $f = [IO.File]::Open($chemin, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None); return $true }
+    catch { return $false }
+    finally { if ($f) { $f.Dispose() } }
+}
+
+function Wait-VerrouSuperviseur {
+    <#
+        Avant une relance : attend (délai borné) que l'ancien superviseur ait lâché supervisor.lock. Sinon le nouveau
+        superviseur verrait « déjà actif » et s'arrêterait aussitôt : le Worker ne repartirait pas. Renvoie $true si libre.
+    #>
+    param([string]$Racine, [int]$DelaiSecondes = 20)
+    $fin = (Get-Date).AddSeconds($DelaiSecondes)
+    while ($true) {
+        if (Test-VerrouSuperviseurLibre -Racine $Racine) { return $true }
+        if ((Get-Date) -ge $fin) { return $false }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
+function Get-DerniereErreurAgent {
+    <#
+        Dernière erreur notée par l'agent (logs\agent.log, 200 dernières lignes) : la ligne finale d'une trace
+        Python, ou la dernière ligne qui dit « erreur ». Sert à orienter quand l'agent ne démarre pas. '' si rien.
+    #>
+    param([string]$Racine)
+    $journal = Join-Path $Racine 'logs\agent.log'
+    if (-not (Test-Path -LiteralPath $journal -PathType Leaf)) { return '' }
+    $lignes = @()
+    try { $lignes = @(Get-Content -LiteralPath $journal -Encoding UTF8 -Tail 200 -ErrorAction Stop) } catch { return '' }
+    for ($i = $lignes.Count - 1; $i -ge 0; $i--) {
+        $l = ([string]$lignes[$i]).Trim()
+        if ($l -match '^[A-Za-z_][\w.]*(Error|Exception|Exit)\b.*' -or $l -match '(?i)\berreur\b|\btraceback\b') {
+            $l = ($l -replace '[\x00-\x1f]', ' ')
+            if ($l.Length -gt 220) { $l = $l.Substring(0, 220) + '...' }
+            return $l
+        }
+    }
+    return ''
+}
+
 function Start-SuperviseurCache {
     <# Lance run_worker.ps1 caché, SANS élévation, exactement comme worker_tools.ps1. #>
     param([string]$Racine)

@@ -744,23 +744,86 @@ function Invoke-ActionLocale {
 # Processus du Worker (exige l'élévation si le Worker tourne en service)
 # ---------------------------------------------------------------------------
 
+function Get-ElementsCommande {
+    <#
+        Programme et script d'une ligne de commande : programme = 1er élément ; script = 1er argument qui n'est pas une
+        option courte de Python (-I, -B, -u, -E, -s, -S, -O…). Rien d'autre n'est lu : une simple MENTION d'un chemin
+        plus loin sur la ligne (fichier ouvert par un éditeur) ne compte jamais.
+    #>
+    param([string]$Ligne)
+    $r = [pscustomobject]@{ Programme = ''; Script = '' }
+    if (-not $Ligne) { return $r }
+    $elements = @([regex]::Matches($Ligne, '"([^"]*)"|(\S+)') | ForEach-Object { $_.Groups[1].Value + $_.Groups[2].Value })
+    if ($elements.Count -eq 0) { return $r }
+    $r.Programme = [string]$elements[0]
+    for ($i = 1; $i -lt $elements.Count -and $i -le 6; $i++) {
+        $e = [string]$elements[$i]
+        if ($e -cmatch '^-[IBuEsSOqdRv]+$') { continue }
+        $r.Script = $e
+        break
+    }
+    return $r
+}
+
+function Test-IdentiteProcessus {
+    <#
+        Le processus CIM est-il celui noté par l'agent (« process_identity » = date de création Windows, FILETIME UTC) ?
+        CreationDate de CIM est à la microseconde : 2 ms de marge. Sans date lisible : non (jamais deviné).
+    #>
+    param([object]$Processus, [string]$Identite)
+    if (-not $Processus -or -not $Processus.CreationDate -or -not $Identite) { return $false }
+    $attendu = [long]0
+    if (-not [long]::TryParse($Identite, [ref]$attendu)) { return $false }
+    try { $vu = ([datetime]$Processus.CreationDate).ToFileTimeUtc() } catch { return $false }
+    return ([Math]::Abs($vu - $attendu) -le 20000)
+}
+
+function Get-FichesProcessusWorker {
+    <#
+        Processus notés par l'agent de CE dossier, avec leur date de création : runtime\agent-process.json (l'agent
+        lui-même, agent 1.50.33) et runtime\<moteur>.json (ComfyUI, Hunyuan3D, PrintGuard, bridge Orca). Lecture seule.
+        Renvoie des objets { Pid, Identite, Role, Source }.
+    #>
+    param([string]$Racine)
+    $fiches = @()
+    $sources = @(@{ Fichier = 'agent-process.json'; Role = 'agent' })
+    foreach ($m in $script:MoteursWorker) { $sources += @{ Fichier = ([string]$m.Outil + '.json'); Role = 'moteur' } }
+    foreach ($s in $sources) {
+        $chemin = Join-Path $Racine ('runtime\' + $s.Fichier)
+        if (-not (Test-Path -LiteralPath $chemin -PathType Leaf)) { continue }
+        try {
+            $fiche = Get-Content -LiteralPath $chemin -Raw -Encoding UTF8 | ConvertFrom-Json
+            $numero = 0
+            if ($fiche -and [int]::TryParse([string]$fiche.pid, [ref]$numero) -and $numero -gt 4 -and [string]$fiche.process_identity) {
+                $fiches += [pscustomobject]@{ Pid = $numero; Identite = [string]$fiche.process_identity; Role = $s.Role; Source = $s.Fichier }
+            }
+        } catch { }
+    }
+    return $fiches
+}
+
 function Get-ProcessusDuWorker {
     <#
-        Processus appartenant à CE Worker, JAMAIS reconnus par leur nom seul :
-          - superviseur : powershell -File « …\<Worker>\run_worker.ps1 » ;
-          - agent       : python agent.py, enfant d'un superviseur ;
-          - moteurs     : descendants de l'agent ; ou ORPHELINS (parent mort) reconnus par ce
-                          qu'ils EXÉCUTENT : exécutable sous <Worker>\components\, python dont le
-                          programme (ou le script lancé) est sous <Worker>\components\, ou
-                          powershell -File <Worker>\orca_core_bridge.ps1.
-        Une simple MENTION d'un chemin du Worker ne suffit jamais : un Bloc-notes, un éditeur, une
-        sauvegarde ou une commande ouverts sur un fichier du Worker ne sont pas des moteurs.
-        Une filiation n'est retenue que si l'enfant est né APRÈS son parent : Windows réutilise
-        les PID, et le ParentProcessId d'un processus dont le parent est mort peut désigner un
-        tout autre programme.
-        Exclut le processus courant et ses ancêtres (le menu, la console, Claude).
-        Illisibles = nombre de python/powershell dont la ligne de commande est vide :
-        non nul sans élévation quand le Worker est un service.
+        Processus appartenant à CE Worker, JAMAIS reconnus par leur nom seul. Rôles :
+          - superviseur  : powershell -File « …\<Worker>\run_worker.ps1 » ;
+          - agent        : python agent.py enfant d'un superviseur, python « <Worker>\agent.py », ou le processus
+                           noté dans runtime\agent-process.json (même PID ET même date de création) : un agent resté
+                           seul après la mort de son superviseur est donc reconnu (agent 1.50.33) ;
+          - calcul       : lanceur d'un job ou d'un calcul de worker.exe (python « <Worker>\runners\… »), FreeCAD
+                           qui exécute un script du Worker (conversion, préparation CNC), tranchage OrcaSlicer d'un
+                           moteur du Worker, et tous leurs descendants ;
+          - installation : installateur du Worker (python « <Worker>\installers\… ») et ses descendants ;
+          - moteur       : descendants de l'agent ; ou ORPHELINS reconnus par ce qu'ils EXÉCUTENT : exécutable sous
+                           <Worker>\components\, python dont le programme ou le script est sous <Worker>\components\
+                           ou est un script .py du Worker (caméras USB…), powershell -File <Worker>\orca_core_bridge.ps1,
+                           ou processus noté dans runtime\<moteur>.json (PID ET date de création : moteur installé
+                           ailleurs que dans components\).
+        Jamais : les outils du menu (outils\, local_control.py), worker.exe, le processus courant et ses ancêtres.
+        Une simple MENTION d'un chemin du Worker ne suffit jamais : un Bloc-notes, un éditeur, une sauvegarde ou une
+        commande ouverts sur un fichier du Worker ne sont pas des moteurs.
+        Une filiation n'est retenue que si l'enfant est né APRÈS son parent : Windows réutilise les PID.
+        Illisibles = nombre de python/powershell dont la ligne de commande est vide : non nul sans élévation quand
+        le Worker est un service.
     #>
     param([string]$Racine)
     # Chemin COMPLET, en forme longue ou courte : deux installations portant le même nom de
@@ -772,6 +835,17 @@ function Get-ProcessusDuWorker {
     $tous = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)
     $parPid = @{}
     foreach ($p in $tous) { $parPid[[int]$p.ProcessId] = $p }
+    $enfantsDe = @{}
+    foreach ($p in $tous) {
+        $parent = [int]$p.ParentProcessId
+        if (-not $enfantsDe.ContainsKey($parent)) { $enfantsDe[$parent] = New-Object System.Collections.ArrayList }
+        [void]$enfantsDe[$parent].Add($p)
+    }
+    $fichiersPaquet = New-Object 'System.Collections.Generic.HashSet[string]'
+    try {
+        $manifeste = Get-Content -LiteralPath (Join-Path $Racine 'agent_manifest.json') -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json
+        if ($manifeste -and $manifeste.files) { foreach ($n in @($manifeste.files.PSObject.Properties.Name)) { [void]$fichiersPaquet.Add(([string]$n).Replace('\', '/').ToLowerInvariant()) } }
+    } catch { }
     $exclus = New-Object 'System.Collections.Generic.HashSet[int]'
     $courant = [int]$PID
     while ($courant -and $parPid.ContainsKey($courant) -and $exclus.Add($courant)) { $courant = [int]$parPid[$courant].ParentProcessId }
@@ -785,48 +859,85 @@ function Get-ProcessusDuWorker {
         if (-not $enfant.CreationDate -or -not $parent.CreationDate) { return $false }
         return ($enfant.CreationDate -ge $parent.CreationDate)
     }
-    # Est-ce un chemin SOUS <Worker>\components\ (forme longue ou courte) ?
-    function Test-SousComposants([string]$chemin) {
+    # Chemin SOUS <Worker>\<Sous> (forme longue ou courte) ; <Sous> vide = n'importe où dans le dossier du Worker.
+    function Test-SousRacine([string]$chemin, [string]$sous) {
         if (-not $chemin) { return $false }
-        foreach ($forme in $formesBrutes) { if ($chemin.StartsWith($forme + '\components\', [System.StringComparison]::OrdinalIgnoreCase)) { return $true } }
+        foreach ($forme in $formesBrutes) { if ($chemin.StartsWith($forme + '\' + $sous, [System.StringComparison]::OrdinalIgnoreCase)) { return $true } }
         return $false
+    }
+    function Test-SousComposants([string]$chemin) { return (Test-SousRacine $chemin 'components\') }
+    # Rôle d'après le programme EXÉCUTÉ : '' si le processus n'exécute rien de ce Worker.
+    function Get-RoleExecute([object]$p) {
+        $nom = [string]$p.Name
+        if ($nom -match '^(?i:worker)\.exe$' -and (Test-SousRacine ([string]$p.ExecutablePath) '')) { return '' }   # le panneau worker.exe
+        $e = Get-ElementsCommande -Ligne ([string]$p.CommandLine)
+        $script = [string]$e.Script
+        if ($nom -match '^(?i:freecadcmd|freecad)\.exe$' -and (Test-SousRacine $script '') -and $script -match '(?i)\.py$') { return 'calcul' }
+        if ($nom -match '^pythonw?(\d[\d.]*)?\.exe$') {
+            if ((Test-SousRacine $script 'outils\') -or $script -match '(?i)(^|\\)local_control\.py$') { return '' }   # outils du menu : jamais
+            if (Test-SousRacine $script 'runners\') { return 'calcul' }
+            if (Test-SousRacine $script 'installers\') { return 'installation' }
+            foreach ($forme in $formesBrutes) { if ($script -ieq ($forme + '\agent.py')) { return 'agent' } }
+            if ((Test-SousComposants $e.Programme) -or (Test-SousComposants $script)) { return 'moteur' }
+            # Autre script du Worker (caméras USB, relais vidéo…) : seulement s'il fait partie du paquet de l'agent
+            # (agent_manifest.json). Un script à toi rangé dans ce dossier n'est jamais pris pour un moteur.
+            foreach ($forme in $formesBrutes) {
+                if ($script.StartsWith($forme + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+                    $relatif = $script.Substring($forme.Length + 1).Replace('\', '/').ToLowerInvariant()
+                    if ($relatif -eq 'installer_process.py') { return 'installation' }
+                    if ($fichiersPaquet.Contains($relatif)) { return 'moteur' }
+                }
+            }
+            return ''
+        }
+        if (Test-SousComposants ([string]$p.ExecutablePath)) { return 'moteur' }
+        if ($p.CommandLine -and $nom -match '^(?i:powershell|pwsh)\.exe$' -and [string]$p.CommandLine -match ('-File\s+"?' + $feuille + '\\orca_core_bridge\.ps1')) { return 'moteur' }
+        return ''
+    }
+    # Rôle d'un descendant : ce qu'il exécute s'il est reconnu, sinon le rôle de son parent (un moteur reste un moteur,
+    # sauf le tranchage OrcaSlicer, qui est un calcul).
+    function Get-RoleEnfant([object]$enfant, [string]$roleParent) {
+        $propre = Get-RoleExecute $enfant
+        if ($propre -and $propre -ne 'agent') { return $propre }
+        if ([string]$enfant.Name -match '^(?i:orca-slicer|orcaslicer)\.exe$') { return 'calcul' }
+        if ($roleParent -eq 'calcul' -or $roleParent -eq 'installation') { return $roleParent }
+        return 'moteur'
     }
 
     $superviseurs = @($tous | Where-Object { $_.CommandLine -and $_.Name -match '^(powershell|pwsh)\.exe$' -and $_.CommandLine -match ('-File\s+"?' + $feuille + '\\run_worker\.ps1') })
     foreach ($s in $superviseurs) { Add-Trouve $s 'superviseur' }
-    $agents = @()
+    $racinesArbre = New-Object System.Collections.Queue
     foreach ($candidat in @($tous | Where-Object { $_.CommandLine -and $_.CommandLine -match 'agent\.py' })) {
-        foreach ($s in $superviseurs) { if (Test-EnfantDe $candidat $s) { $agents += $candidat; break } }
+        $estAgent = ((Get-RoleExecute $candidat) -eq 'agent')
+        if (-not $estAgent) { foreach ($s in $superviseurs) { if (Test-EnfantDe $candidat $s) { $estAgent = $true; break } } }
+        if ($estAgent) { Add-Trouve $candidat 'agent'; $racinesArbre.Enqueue([int]$candidat.ProcessId) }
     }
-    foreach ($a in $agents) { Add-Trouve $a 'agent' }
-
-    # Descendants de l'agent = moteurs et leurs enfants.
-    $file = New-Object System.Collections.Queue
-    foreach ($a in $agents) { $file.Enqueue([int]$a.ProcessId) }
-    while ($file.Count -gt 0) {
-        $parent = $parPid[[int]$file.Dequeue()]
-        foreach ($enfant in @($tous | Where-Object { [int]$_.ParentProcessId -eq [int]$parent.ProcessId })) {
-            if (-not (Test-EnfantDe $enfant $parent)) { continue }
-            if (-not $trouves.ContainsKey([int]$enfant.ProcessId)) { Add-Trouve $enfant 'moteur'; $file.Enqueue([int]$enfant.ProcessId) }
+    # Processus notés par l'agent (PID ET date de création) : agent resté seul, moteurs installés hors components\.
+    foreach ($f in @(Get-FichesProcessusWorker -Racine $Racine)) {
+        $p = $parPid[[int]$f.Pid]
+        if ($p -and (Test-IdentiteProcessus -Processus $p -Identite $f.Identite)) {
+            if (-not $trouves.ContainsKey([int]$p.ProcessId)) { Add-Trouve $p ([string]$f.Role); $racinesArbre.Enqueue([int]$p.ProcessId) }
         }
     }
     # Orphelins : le parent est mort, mais le processus EXÉCUTE un programme de ce Worker.
-    $motifBridge = '-File\s+"?' + $feuille + '\\orca_core_bridge\.ps1'
     foreach ($p in $tous) {
-        $orphelin = $false
-        if (Test-SousComposants ([string]$p.ExecutablePath)) { $orphelin = $true }
-        elseif ($p.CommandLine -and $p.Name -match '^(powershell|pwsh)\.exe$' -and $p.CommandLine -match $motifBridge) { $orphelin = $true }
-        elseif ($p.CommandLine -and $p.Name -match '^pythonw?(\d[\d.]*)?\.exe$') {
-            # Le python d'un venv relance le Python de base avec la MÊME ligne de commande : on regarde le
-            # programme (1er élément) et le script lancé (2e élément), jamais une position quelconque.
-            $m = [regex]::Match([string]$p.CommandLine, '^\s*(?:"([^"]*)"|(\S+))(?:\s+(?:"([^"]*)"|(\S+)))?')
-            if ($m.Success) {
-                $programme = $m.Groups[1].Value + $m.Groups[2].Value
-                $premier = $m.Groups[3].Value + $m.Groups[4].Value
-                if ((Test-SousComposants $programme) -or (Test-SousComposants $premier)) { $orphelin = $true }
+        if ($trouves.ContainsKey([int]$p.ProcessId)) { continue }
+        $role = Get-RoleExecute $p
+        if ($role) { Add-Trouve $p $role; $racinesArbre.Enqueue([int]$p.ProcessId) }
+    }
+    # Descendants de tout ce qui est reconnu (l'agent, ses moteurs, ses calculs, les orphelins).
+    while ($racinesArbre.Count -gt 0) {
+        $numero = [int]$racinesArbre.Dequeue()
+        $parent = $parPid[$numero]
+        if (-not $parent -or -not $enfantsDe.ContainsKey($numero)) { continue }
+        $roleParent = [string]$trouves[$numero].Role
+        foreach ($enfant in @($enfantsDe[$numero])) {
+            if (-not (Test-EnfantDe $enfant $parent)) { continue }
+            if (-not $trouves.ContainsKey([int]$enfant.ProcessId)) {
+                Add-Trouve $enfant (Get-RoleEnfant $enfant $roleParent)
+                if ($trouves.ContainsKey([int]$enfant.ProcessId)) { $racinesArbre.Enqueue([int]$enfant.ProcessId) }
             }
         }
-        if ($orphelin) { Add-Trouve $p 'moteur' }
     }
 
     $illisibles = @($tous | Where-Object { $_.Name -match '^(python|pythonw|powershell)\.exe$' -and -not $_.CommandLine }).Count
