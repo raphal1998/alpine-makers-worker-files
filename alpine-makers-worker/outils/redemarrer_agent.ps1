@@ -55,8 +55,15 @@ function Invoke-PhaseRedemarrage {
     }
     $vus = Get-PidsDuWorker -Racine $Racine
     if ($vus.Processus.Count -eq 0) { Write-Info 'Aucun processus du Worker à arrêter.'; return 0 }
-    $restants = Stop-PidsReconnus -Liste $vus.Processus -Racine $Racine -Outil $NomOutil
-    if ($restants -gt 0) { Write-Erreur ($restants.ToString() + ' processus résistent encore.'); return 1 }
+    $doublons = Get-DoublonsWorker -Processus $vus
+    if ($doublons.Doublon) { Write-Alerte ('Doublon : ' + $doublons.Superviseurs.Count + ' superviseur(s) et ' + $doublons.Agents.Count + ' agent(s) de ce dossier tournaient en même temps. Tous sont arrêtés, un seul est relancé.') }
+    # Agent 1.50.33 : arrêt complet, trois passes au plus (un agent resté seul, un calcul ou un orphelin compris).
+    $bilan = Stop-ToutLeWorker -Racine $Racine -Outil $NomOutil -Deja @($vus.Processus)
+    if (@($bilan.Survivants).Count -gt 0) {
+        Write-Erreur ([string]@($bilan.Survivants).Count + ' processus résistent encore :')
+        Show-Survivants -Survivants $bilan.Survivants -Illisibles $bilan.Illisibles -Administrateur:(Test-Administrateur)
+        return 1
+    }
     Write-Ok 'Ancien superviseur, agent et moteurs arrêtés.'
     return 0
 }
@@ -139,7 +146,7 @@ try {
         Write-Host ''
         if (-not $Forcer) {
             Write-Erreur 'Redémarrage refusé : un travail est en cours, il serait perdu.'
-            Write-Conseil ('Attends sa fin ou annule-le dans le site. ' + (Get-NomEntree 2) + ' montre ce qui bloque.')
+            Write-Conseil ('Attends sa fin, ou arrête tout avec ' + (Get-NomEntree 21) + '. ' + (Get-NomEntree 2) + ' montre ce qui bloque.')
             if (-not (Confirm-Forcage -Consequence 'le travail en cours sera PERDU' -Lanceur 'redemarrer_agent.bat' -Interactif $interactif)) { Write-Info 'Rien n''a changé.'; Exit-Outil -Code 2 -SansPause:$SansPause }
             $Forcer = $true; $forcageConfirme = $true
         }
@@ -210,6 +217,13 @@ try {
     }
     if ($mode.Mode -eq 'service') { Write-Ok 'Service AlpineWorker redémarré.' }
     else {
+        # Le superviseur arrêté doit avoir lâché supervisor.lock : sinon le nouveau verrait « déjà actif » et s'arrêterait.
+        if (-not (Wait-VerrouSuperviseur -Racine $Racine -DelaiSecondes 20)) {
+            Write-Erreur 'supervisor.lock est encore tenu après 20 secondes : un superviseur de ce dossier tourne encore (peut-être sous un autre compte).'
+            Write-Conseil ('Relance cet outil : sa fenêtre administrateur arrête ce qu''une fenêtre normale ne voit pas. Sinon : ' + (Get-NomEntree 24) + '.')
+            Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'ÉCHEC : supervisor.lock toujours tenu après 20 s'
+            Exit-Outil -Code 1 -SansPause:$SansPause
+        }
         # Relance TOUJOURS depuis cette instance non élevée (ou par la tâche planifiée si la fenêtre est administrateur).
         if ($mode.Mode -eq 'tache' -and (Test-Administrateur)) { Start-ScheduledTask -TaskName $tacheCible.Nom -TaskPath $tacheCible.Chemin -ErrorAction Stop; Write-Ok 'Tâche planifiée relancée.' }
         else { Start-SuperviseurCache -Racine $Racine; Write-Ok 'Superviseur du Worker relancé en arrière-plan (sans droits administrateur).' }
@@ -225,8 +239,15 @@ try {
     switch ($agent) {
         'confirme' { Write-Ok 'L''agent répond.' }
         'probable' { Write-Ok 'L''agent semble reparti (il est trop ancien pour répondre directement aux outils).' }
-        default    { Write-Alerte ('Aucun signe de l''agent en 90 secondes. Vérifie dans le site qu''il repasse « en ligne », sinon lance ' + (Get-NomEntree 1) + ', puis ' + (Get-NomEntree 3) + '.'); $codeFinal = 1 }
+        default    {
+            Write-Alerte ('Aucun signe de l''agent en 90 secondes. Vérifie dans le site qu''il repasse « en ligne », sinon lance ' + (Get-NomEntree 24) + ' (diagnostic profond), ou ' + (Get-NomEntree 3) + '.')
+            $derniere = Get-DerniereErreurAgent -Racine $Racine
+            if ($derniere) { Write-Info ('      Dernière erreur notée par l''agent : ' + $derniere) }
+            $codeFinal = 1
+        }
     }
+    $occupes = @(Get-PortsOccupes -Racine $Racine)
+    if ($occupes.Count -gt 0) { Show-PortsOccupes -Occupes $occupes; $codeFinal = 1 }
 
     Write-Section 'État après redémarrage'
     $status = Invoke-ActionSure -Racine $Racine -Action 'status' -DelaiSecondes 10

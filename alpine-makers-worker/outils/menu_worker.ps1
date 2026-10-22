@@ -114,10 +114,10 @@ $script:Entrees = @(
     # et traitent seules le cas « agent arrêté » (elles ne démarrent jamais le Worker dans la session).
     (New-Entree 18 'gestion'    'Contrôle total et réparation'  'Vérifie tout, puis propose de réparer.'        'ps1' 'controle_total.ps1')
     (New-Entree 19 'gestion'    'Contrôler les doublons'        'Fichiers identiques ; ne supprime rien.'       'ps1' 'controler_doublons.ps1')
-    (New-Entree 21 'gestion'    'Arrêter tous les jobs'         'Calculs et installations de ce Worker.'        'ps1' 'arreter_jobs.ps1')
+    (New-Entree 21 'gestion'    'Arrêter tous les jobs'         'Coupe tout calcul de ce Worker, même bloqué.'  'ps1' 'arreter_jobs.ps1')
     (New-Entree 22 'gestion'    'Mode de partage'               'Privé, comptes choisis ou public.'             'ps1' 'mode_partage.ps1')
     (New-Entree 23 'gestion'    'Mettre à jour le Worker'       'Installe la version proposée par le site.'     'ps1' 'mettre_a_jour.ps1')
-    (New-Entree 24 'gestion'    'Réparer'                       'Réparations rapides et sûres seulement.'       'ps1' 'reparer.ps1')
+    (New-Entree 24 'gestion'    'Réparer'                       'Diagnostic profond, puis réparations sûres.'   'ps1' 'reparer.ps1')
 
     (New-Entree 17 'rouge'      'Supprimer les moteurs IA'      'Désinstalle les moteurs (Worker allumé).'      'ps1' 'supprimer_moteurs.ps1' -Arret -Rouge -RelanceWorker)
     (New-Entree 20 'rouge'      'Supprimer les doublons'        'Libère la place après un contrôle récent.'     'ps1' 'supprimer_doublons.ps1' -Rouge)
@@ -422,6 +422,10 @@ function Get-EtatBandeau {
         if ($statut.disconnecting) { $details += 'déconnexion en cours'; $etat.AgentNiveau = 'alerte' }
         $etat.AgentDetail = ($details -join ', ')
     }
+    elseif ($relais -and -not $script:StatusNonSupporte -and -not $questionInutile) {
+        # Agent 1.50.33 : le relais caméra répond, mais l'agent ne répond plus aux outils : peut-être figé.
+        $etat.AgentNiveau = 'alerte'; $etat.AgentTexte = 'en marche ?'; $etat.AgentDetail = 'son relais répond mais pas lui : 24 s''il reste muet'
+    }
     elseif ($relais)         { $etat.AgentNiveau = 'ok';     $etat.AgentTexte = 'en marche'; $etat.AgentDetail = 'son relais caméra répond' }
     elseif ($serviceDemarre) { $etat.AgentNiveau = 'ok';     $etat.AgentTexte = 'en marche'; $etat.AgentDetail = 'le service est démarré' }
     elseif ($tacheEnCours)   { $etat.AgentNiveau = 'ok';     $etat.AgentTexte = 'en marche'; $etat.AgentDetail = 'la tâche planifiée tourne' }
@@ -609,8 +613,9 @@ function Write-Menu {
     }
     Write-Host ''
     Write-Host ('  ' + ('-' * ($script:LargeurMenu - 2))) -ForegroundColor DarkGray
-    Write-Host '  [ A] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Aide (ouvre le mode d''emploi)      ' -ForegroundColor White -NoNewline
-    Write-Host '[ R] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Rafraîchir l''état      ' -ForegroundColor White -NoNewline
+    Write-Host '  [ A] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Aide   ' -ForegroundColor White -NoNewline
+    Write-Host '[ D] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Dépannage : quelle entrée pour quel problème   ' -ForegroundColor White -NoNewline
+    Write-Host '[ R] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Rafraîchir   ' -ForegroundColor White -NoNewline
     Write-Host '[ Q] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Quitter' -ForegroundColor White
     Write-Host '  ' -NoNewline
     Write-Host '[ADMIN]' -ForegroundColor Yellow -NoNewline; Write-Host ' ouvrira une fenêtre administrateur      ' -ForegroundColor DarkGray -NoNewline
@@ -790,6 +795,39 @@ function Invoke-Entree {
     return (ConvertTo-CodeSur -Code $code)
 }
 
+function Get-ConseilApresEchec {
+    <# Après une entrée terminée en échec (code 1) : l'entrée à utiliser ensuite (agent 1.50.33). '' si rien à ajouter. #>
+    param([int]$Numero)
+    switch ($Numero) {
+        9  { return 'Un moteur reste bloqué ou seul : choix 4 de « Moteurs » (forcer l''arrêt). Sinon 24 (Réparer) cherche la cause.' }
+        10 { return 'L''agent ne repart pas : 24 (Réparer, diagnostic profond), puis 3 (Journaux) pour lire son erreur.' }
+        11 { return 'Relance 11 et accepte la fenêtre administrateur : elle arrête ce qu''une fenêtre normale ne voit pas. Si un processus résiste encore, redémarre le PC.' }
+        12 { return '24 (Réparer) cherche ce qui empêche le démarrage : agent figé, doublon, ports pris, fichiers d''état abîmés, bibliothèque manquante.' }
+        21 { return 'Ce qui résiste à 21 : 11 éteint tout le Worker (processus compris), puis 12 le rallume.' }
+        24 { return 'Pour aller plus loin : 18 (contrôle complet et réparations lourdes), puis 4 (Rapport de diagnostic) pour l''aide.' }
+        default { return '24 (Réparer) diagnostique le Worker en profondeur ; D (dans le menu) dit quelle entrée utiliser pour quel problème.' }
+    }
+}
+
+function Show-Depannage {
+    <# Guide court : quel problème, quelle entrée (touche D du menu). N'écrit rien dans le pipeline. #>
+    Write-Section 'Dépannage : quelle entrée pour quel problème'
+    $lignes = @(
+        @('Un calcul, une conversion ou une préparation CNC ne s''arrête pas', '21 Arrêter tous les jobs'),
+        @('Le Worker est figé, se comporte bizarrement, ou une erreur revient', '24 Réparer (diagnostic profond)'),
+        @('L''agent ne répond plus aux outils', '10 Redémarrer l''agent, puis 24'),
+        @('Un moteur ne démarre pas, reste bloqué, ou son port est pris', '9 Moteurs (choix 4 : forcer l''arrêt)'),
+        @('Il faut TOUT couper, processus restés seuls compris', '11 Éteindre, puis 12 Rallumer'),
+        @('Le Worker n''apparaît plus en ligne dans le site', '5 Reconnecter, sinon 24'),
+        @('Un job reste « en cours » sur le site', '21, puis 2 Jobs bloquants'),
+        @('Rien de tout cela ne suffit', '18 Contrôle total, puis 4 Rapport')
+    )
+    foreach ($l in $lignes) {
+        Write-Host ('   ' + ([string]$l[0]).PadRight(66) + ' ') -ForegroundColor Gray -NoNewline
+        Write-Host ([string]$l[1]) -ForegroundColor Cyan
+    }
+}
+
 function Show-Aide {
     $lisezMoi = Join-Path $Racine 'README.md'
     if (-not (Test-Path -LiteralPath $lisezMoi -PathType Leaf)) {
@@ -855,7 +893,10 @@ if ($Choix) {
     if (-not [int]::TryParse($texte, [ref]$numero)) { Write-Erreur ('-Choix attend un numéro du menu (1 à ' + $script:NumeroMax + '), pas « ' + $texte + ' ».'); exit 1 }
     $entree = $script:Entrees | Where-Object { $_.Numero -eq $numero } | Select-Object -First 1
     if (-not $entree) { Write-Erreur ('Aucune entrée ' + $numero + ' dans le menu (1 à ' + $script:NumeroMax + ').'); exit 1 }
-    exit (Invoke-Entree -Entree $entree -Direct)
+    $codeChoix = Invoke-Entree -Entree $entree -Direct
+    # worker.exe lance chaque action par -Choix : la suite à donner à un échec s'affiche donc aussi dans son journal.
+    if ($codeChoix -eq 1) { Write-Host ''; Write-Conseil ('Et maintenant ? ' + (Get-ConseilApresEchec -Numero $numero)) }
+    exit $codeChoix
 }
 
 # Le menu fait une soixantaine de lignes : on agrandit la fenêtre quand la console le permet
@@ -895,12 +936,13 @@ while ($true) {
         try { $saisie = Read-Host '  Ton choix' } catch { exit 0 }   # pas de clavier (console fermée, entrée redirigée)
         if ($null -eq $saisie) { exit 0 }
         $saisie = $saisie.Trim().ToUpper()
-        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, R, Q, puis Entrée.'); continue }
+        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, R, Q, puis Entrée.'); continue }
         if ($saisie -eq 'Q') { Write-Host ''; Write-Info 'À bientôt.'; exit 0 }
         if ($saisie -eq 'R') { $redessiner = $true; continue }
         if ($saisie -eq 'A') { Show-Aide; continue }
+        if ($saisie -eq 'D') { Show-Depannage; continue }
         $numero = 0
-        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, R, Q.'); continue }
+        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, R, Q.'); continue }
         $entree = $script:Entrees | Where-Object { $_.Numero -eq $numero } | Select-Object -First 1
         if (-not $entree) { Write-Alerte ('Il n''y a pas d''entrée ' + $numero + '. Les numéros vont de 1 à ' + $script:NumeroMax + '.'); continue }
         if (-not (Test-Path -LiteralPath $entree.Chemin -PathType Leaf)) { [void](Invoke-Entree -Entree $entree); continue }
@@ -909,7 +951,7 @@ while ($true) {
         $code = Invoke-Entree -Entree $entree
         if ($script:MessageRetour) { $message = $script:MessageRetour; $script:MessageRetour = $null }
         elseif ($code -eq 3) { $message = 'La fenêtre administrateur a été refusée : rien n''a été fait.' }
-        elseif ($entree.Type -eq 'ps1' -and $code -ne 0 -and $code -ne 2) { $message = ('« ' + $entree.Nom + ' » s''est terminé avec le code ' + $code + ' (0 = succès, 1 = échec, 2 = annulé, 3 = élévation refusée).') }
+        elseif ($entree.Type -eq 'ps1' -and $code -ne 0 -and $code -ne 2) { $message = ('« ' + $entree.Nom + ' » s''est terminé avec le code ' + $code + ' (0 = succès, 1 = échec, 2 = annulé, 3 = élévation refusée). ' + (Get-ConseilApresEchec -Numero ([int]$entree.Numero))) }
         $redessiner = $true
     }
 }

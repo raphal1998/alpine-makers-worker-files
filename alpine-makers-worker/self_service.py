@@ -511,11 +511,16 @@ def _start_sweep(agent, job_ids, tasks):
 
 
 def _stop_jobs(agent):
+    # Agent 1.50.33 : quoi que réponde le site, les calculs de CE PC reçoivent l'arrêt AVANT l'appel au site (qui peut
+    # attendre son délai réseau), puis ceux qui ne s'arrêtent pas seuls sont coupés (arbre de processus vérifié)
+    # après STOP_GRACE secondes.
     tasks = _cancel_desktop_tasks(agent)
-    local = {"fallback": False, "fallback_reason": "", "jobs_cancel_requested": 0,
+    job_ids = _cancel_local_jobs(agent)
+    local = {"fallback": False, "fallback_reason": "", "jobs_cancel_requested": len(job_ids),
              "audit_cancelled": _cancel_local_audit(agent), "grbl_jobs": _grbl_jobs(agent),
              "desktop_tasks_cancelled": [{"tool": task.tool, "label": str(task.label)[:120]} for task in tasks][:20],
              "sweep_grace_s": STOP_GRACE}
+    _start_sweep(agent, job_ids, tasks)
     outcome = _call(agent, RELAY_PATHS["jobs-stop"], {})
     if outcome["state"] == "done":
         agent.reconnect_requested.set()  # les arrêts reviennent par le heartbeat : ne pas attendre vingt secondes
@@ -524,11 +529,6 @@ def _stop_jobs(agent):
         reason = "missing" if outcome["site_missing"] else "unreachable" if outcome["unreachable"] else ""
         if reason:
             local.update(fallback=True, fallback_reason=reason)
-    # Agent 1.50.33 : quoi que réponde le site, les calculs de CE PC reçoivent l'arrêt tout de suite, puis ceux qui
-    # ne s'arrêtent pas seuls sont coupés (arbre de processus vérifié) après STOP_GRACE secondes.
-    job_ids = _cancel_local_jobs(agent)
-    local["jobs_cancel_requested"] = len(job_ids)
-    _start_sweep(agent, job_ids, tasks)
     return {**outcome, "local": local}
 
 

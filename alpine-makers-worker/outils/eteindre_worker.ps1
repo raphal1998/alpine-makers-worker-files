@@ -97,20 +97,22 @@ function Invoke-PhasePrivilegiee {
         $taches = Disable-TachesDuWorker -Racine $Racine
         if ($taches.Echecs.Count -gt 0) { $tacheRestante = $true }
     }
-    # Balayage : ce qui était reconnu avant + ce qui se reconnaît encore maintenant (orphelins).
-    $apres = Get-PidsDuWorker -Racine $Racine
-    $cibles = @{}
-    foreach ($p in @($avant.Processus) + @($apres.Processus)) { if ($p -and (Test-MemeProcessus -Entree $p)) { $cibles[$p.ProcessId] = $p } }
-    if ($cibles.Count -gt 0) {
-        Write-Info ('Processus du Worker encore vivants : ' + $cibles.Count + '. Arrêt par PID.')
-        $restants = Stop-PidsReconnus -Liste @($cibles.Values) -Racine $Racine -Outil $NomOutil
-        if ($restants -gt 0) { Write-Erreur ($restants.ToString() + ' processus résistent encore.'); $echec = $true }
-        else { Write-Ok 'Plus aucun processus du Worker.' }
-    } else {
-        Write-Ok 'Aucun processus orphelin.'
+    # Balayage complet (agent 1.50.33) : ce qui était reconnu avant + tout ce qui se reconnaît encore (agent resté
+    # seul, moteurs, calculs FreeCAD ou OrcaSlicer, installateurs, orphelins), en trois passes au plus.
+    $vivantsAvant = @(@($avant.Processus) | Where-Object { $_ -and (Test-MemeProcessus -Entree $_) })
+    if ($vivantsAvant.Count -gt 0) { Write-Info ('Processus du Worker encore vivants : ' + $vivantsAvant.Count + '. Arrêt par PID, jusqu''à trois passes.') }
+    $bilan = Stop-ToutLeWorker -Racine $Racine -Outil $NomOutil -Deja @($avant.Processus)
+    $restants = @($bilan.Survivants).Count
+    if ($restants -gt 0) {
+        Write-Erreur ($restants.ToString() + ' processus du Worker résistent encore :')
+        Show-Survivants -Survivants $bilan.Survivants -Illisibles $bilan.Illisibles -Administrateur:(Test-Administrateur)
+        $echec = $true
     }
+    elseif ($bilan.Arretes -gt 0) { Write-Ok ('Plus aucun processus du Worker (' + $bilan.Arretes + ' arrêté(s)).') }
+    else { Write-Ok 'Aucun processus orphelin.' }
+    Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message ('balayage : ' + $bilan.Arretes + ' processus arrêté(s), ' + $restants + ' résistent, ' + $bilan.Illisibles + ' illisibles')
     if ($Mode.Mode -eq 'service' -and $echec) {
-        if (Wait-Service -Nom 'AlpineWorker' -Etat 'Stopped' -DelaiSecondes 15) { $echec = ($cibles.Count -gt 0 -and $restants -gt 0) }
+        if (Wait-Service -Nom 'AlpineWorker' -Etat 'Stopped' -DelaiSecondes 15) { $echec = ($restants -gt 0) }
     }
     if ($tacheRestante) { Write-Erreur 'La tâche planifiée est restée active : le Worker repartira à la prochaine ouverture de session.'; $echec = $true }
     if ($echec) { return 1 }
@@ -135,7 +137,8 @@ try {
         'Demande à l''agent d''arrêter proprement ses moteurs : ComfyUI, Hunyuan3D, PrintGuard, bridge Orca.',
         'Arrête ensuite le Worker lui-même et coupe son démarrage automatique :',
         '   service Windows passé en démarrage Manuel, ou tâche planifiée désactivée puis arrêtée.',
-        'Vérifie que ses ports sont fermés, et que le service est arrêté ou la tâche bien désactivée.',
+        'Arrête TOUS ses processus (agent, moteurs, calculs FreeCAD ou OrcaSlicer, installateurs, orphelins), en trois passes au plus.',
+        'Vérifie qu''il ne reste AUCUN processus du Worker, que ses ports sont fermés, et que le service est arrêté ou la tâche bien désactivée.',
 ((Get-NomEntree 12) + ' remet ce démarrage automatique. Si la coupure échoue, l''outil le dit en rouge.')
     ) -NeFaitPas @(
         'Il ne touche ni au dashboard, ni à la boutique, ni au courrier, ni à MongoDB, ni à Git Sync, ni à Docker.',
@@ -190,7 +193,7 @@ try {
         Write-Host ''
         if (-not $Forcer) {
             Write-Erreur 'Extinction refusée : un travail est en cours. L''éteindre maintenant le ferait échouer.'
-            Write-Conseil ('Attends sa fin ou annule-le dans le site, puis relance cet outil. ' + (Get-NomEntree 2) + ' montre ce qui bloque.')
+            Write-Conseil ('Attends sa fin, ou arrête tout avec ' + (Get-NomEntree 21) + ', puis relance cet outil. ' + (Get-NomEntree 2) + ' montre ce qui bloque.')
             if (-not (Confirm-Forcage -Consequence 'le travail en cours sera PERDU' -Lanceur 'eteindre_worker.bat' -Interactif $interactif)) { Write-Info 'Rien n''a changé.'; Exit-Outil -Code 2 -SansPause:$SansPause }
             $Forcer = $true; $forcageConfirme = $true
         }
@@ -234,7 +237,7 @@ try {
         $vus = Get-PidsDuWorker -Racine $Racine
         if ($vus.Processus.Count -gt 0) { [void](Stop-PidsReconnus -Liste $vus.Processus -Racine $Racine -Outil $NomOutil -Simulation) }
         else { Write-Info '[simulation]    Aucun processus du Worker lisible sans droits administrateur (normal en mode service).' }
-        Write-Info '[simulation] 5. balayage des processus orphelins du Worker, par PID reconnu.'
+        Write-Info '[simulation] 5. balayage de TOUS les processus du Worker (agent resté seul, moteurs, calculs, installateurs, orphelins), par PID reconnu, trois passes au plus.'
         Write-Info '[simulation] 6. vérification : ports 8188, 8189, 8000, 1984 fermés, 15064 absent de HTTP.sys, service arrêté ou tâche désactivée.'
         Write-Info '[simulation] 7. écriture de runtime\local-control\extinction.json et d''une ligne dans logs\outils-worker.log.'
         Write-Host ''
@@ -327,6 +330,19 @@ try {
     foreach ($l in @(Get-VerificationArret -Racine $Racine)) {
         if ($l.Ferme) { Write-Etat -Libelle $l.Libelle -Valeur 'fermé' -Niveau ok }
         else { Write-Etat -Libelle $l.Libelle -Valeur 'ENCORE OUVERT' -Niveau erreur; $toutFerme = $false }
+    }
+    # Agent 1.50.33 : vérification finale qu'il ne reste RIEN du Worker (processus lisibles d'ici), nommément.
+    $resteFinal = Get-PidsDuWorker -Racine $Racine
+    $survivantsFinal = @($resteFinal.Processus | Where-Object { Test-MemeProcessus -Entree $_ })
+    if ($survivantsFinal.Count -eq 0) {
+        $texteReste = 'aucun'
+        if ($resteFinal.Illisibles -gt 0 -and -not (Test-Administrateur)) { $texteReste = 'aucun visible d''ici (' + $resteFinal.Illisibles + ' processus python ou powershell illisibles sans droits administrateur)' }
+        Write-Etat -Libelle 'Processus du Worker' -Valeur $texteReste -Niveau ok
+    }
+    else {
+        Write-Etat -Libelle 'Processus du Worker' -Valeur ([string]$survivantsFinal.Count + ' ENCORE EN VIE') -Niveau erreur
+        Show-Survivants -Survivants $survivantsFinal -Illisibles $resteFinal.Illisibles -Administrateur:(Test-Administrateur)
+        $toutFerme = $false
     }
     $modeApres = Get-ModeLancement -Racine $Racine
     if ($mode.Mode -eq 'service') {

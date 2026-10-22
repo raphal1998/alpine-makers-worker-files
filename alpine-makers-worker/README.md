@@ -381,6 +381,13 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
   (`runtime\local-control\`). Si ton agent est trop ancien pour une action, l'outil te le
   dit (« mets le Worker à jour »), se rabat sur ce qu'il peut lire localement, et **ne
   plante pas**.
+- **Touche D** du menu (agent 1.50.33) : guide « quel problème, quelle entrée ». Après un
+  échec, le menu — et `worker.exe`, qui lance les mêmes entrées — dit quelle entrée utiliser
+  ensuite. En bref : un calcul qui ne s'arrête pas → **21** ; Worker figé ou erreur qui revient
+  → **24** ; moteur bloqué ou port pris → **9**, choix 4 ; tout couper → **11** puis **12**.
+- Processus du Worker : les outils les reconnaissent à ce qu'ils **exécutent** (scripts et
+  moteurs de ce dossier, fiches `runtime\agent-process.json` et `runtime\<moteur>.json` avec
+  PID **et** date de création), jamais à leur nom ; un programme étranger n'est jamais arrêté.
 
 ### DIAGNOSTIC (1 à 4) — regarder sans rien changer
 
@@ -561,14 +568,19 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
   ComfyUI. C'est un arrêt **PROPRE** : l'agent enregistre l'intention « arrêté », arrête le
   moteur et **vérifie**. « Démarrer » relance ceux qui tournaient avant (sinon ceux qui sont
   installés et prêts) ; l'avancement se lit ensuite dans « état ». **Sans administrateur.**
-- **Ne fait PAS** : ne tue aucun processus à la main ; **refuse** s'il y a un job actif ou
-  une maintenance en cours ; ne lance **aucune génération**.
+- **Choix 4 « Forcer l'arrêt »** (agent 1.50.33) : agent figé, moteur bloqué ou resté seul.
+  Demande d'abord l'arrêt propre si l'agent répond, puis arrête de force, par PID reconnu, les
+  processus des moteurs de **ce** Worker qui vivent encore (mot `FORCER` ; fenêtre
+  administrateur si le Worker est un service). Un port de moteur pris par un **autre**
+  programme est signalé (nom et PID) : ce programme n'est jamais arrêté.
+- **Ne fait PAS** : ne tue aucun processus à la main, sauf le choix 4 ; **refuse** s'il y a un
+  job actif ou une maintenance en cours ; ne lance **aucune génération**.
 - **Résultat attendu** : la liste des moteurs arrêtés, puis les ports fermés.
 - **Si ça échoue** : « agent trop ancien » → **Mettre à jour** le Worker depuis le site,
   puis réessaie ; en attendant, utilise les boutons Démarrer/Arrêter du site. Refus pour job
-  actif → entrée 2.
-- **Lancement direct** : `outils\moteurs.bat -Action etat|arreter|demarrer` (sans `-Action`,
-  l'outil propose le choix) ; `-Simulation` et `-Oui` pour `arreter` et `demarrer`.
+  actif → entrée 21 (arrêter tous les jobs), puis 2. Agent muet → entrée 10 ou 24.
+- **Lancement direct** : `outils\moteurs.bat -Action etat|arreter|demarrer|forcer` (sans
+  `-Action`, l'outil propose le choix) ; `-Simulation` et `-Oui` pour les trois actions.
 
 > Pourquoi c'est important : un arrêt **brutal** d'un moteur (fin de tâche dans le
 > Gestionnaire des tâches) laisse l'intention « allumé » dans le journal, et l'agent le
@@ -583,7 +595,11 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
   l'ancienne instance qui auraient survécu, puis attend l'agent **90 secondes au plus** et
   affiche son état. En mode tâche ou manuel : il arrête l'arbre du superviseur et le relance
   **sans** droits administrateur (la fenêtre administrateur n'est demandée que si les
-  processus sont illisibles).
+  processus sont illisibles). Depuis l'agent 1.50.33 : tout ce qui appartient au Worker est
+  arrêté en trois passes au plus (doublons d'agent, agent resté seul, moteurs et calculs
+  orphelins), la relance attend que `supervisor.lock` soit libre (20 s au plus), puis l'outil
+  signale un port pris par un autre programme et, si l'agent ne revient pas, sa dernière
+  erreur notée dans `logs\agent.log`.
 - **Ne fait PAS** : ne touche ni à l'identité, ni à l'association, ni au mode de démarrage,
   ni à un autre service du PC. N'éteint pas durablement les moteurs : ceux qui étaient en
   marche **repartent seuls** environ 30 secondes après l'agent. **Refuse** si le service est
@@ -605,6 +621,10 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
 - **Fait** : arrête les moteurs **proprement**, arrête l'agent et son superviseur, passe le
   service `AlpineWorker` en démarrage **Manuel** pour que la supervision ne le relance pas
   sous 30 secondes, puis **vérifie que les ports** 8188, 8189, 8000, 15064 et 1984 sont libres.
+  Depuis l'agent 1.50.33, il arrête **tous** les processus du Worker (agent resté seul,
+  moteurs, calculs FreeCAD ou OrcaSlicer, installateurs, orphelins) en trois passes au plus,
+  puis vérifie qu'il n'en reste **aucun** : un survivant est nommé (rôle, PID, programme),
+  avec la marche à suivre. L'état « éteint volontairement » est gardé pour l'entrée 12.
 - **Ne fait PAS** : ne touche à **aucun autre** service Alpine Makers ; ne crée **pas** le
   fichier de pause de la supervision ; n'arrête rien par nom de processus ; ne désinstalle rien.
 - **Résultat attendu** : « Worker éteint », tous les ports fermés, service en Manuel.
@@ -627,6 +647,9 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
   entrée de session, vérifie d'abord que ton compte peut lire la clé du Worker
   (`config\identity`) sans droits administrateur ; sinon (installation faite en administrateur),
   te demande l'accord Windows et lui rend ce dossier (agent 1.49.2). La clé n'est ni lue ni modifiée.
+  Depuis l'agent 1.50.33, hors service : un agent resté seul et muet, des moteurs ou des
+  calculs orphelins sont d'abord arrêtés (ils tiendraient les ports), le démarrage attend que
+  `supervisor.lock` soit libre, et un port pris par un autre programme est signalé.
 - **Ne fait PAS** : n'installe rien, ne change pas l'identité.
 - **Résultat attendu** : service « Running / Auto », Worker en ligne, moteurs qui reviennent
   en quelques minutes (le chargement d'un moteur est long, c'est normal).
@@ -635,6 +658,40 @@ ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont d
   ou 17 utilisée entre-temps) : entrée 11, puis de nouveau entrée 12.
 - **Lancement direct** : `outils\rallumer_worker.bat` ; `-Simulation`, `-Oui` ;
   `-SansMoteurs` rallume l'agent **sans** redemander le démarrage des moteurs.
+
+### GESTION DU WORKER (18 à 24) — deux entrées pour les pannes
+
+#### 21 · Arrêter tous les jobs
+
+- **Fait** (agent 1.50.33) : coupe **tout** ce qui calcule pour ce Worker. L'agent arrête
+  aussitôt les calculs des jobs **et** ceux lancés depuis `worker.exe` (convertisseur,
+  préparation pour une CNC FreeCAD, Labo image, tranchage), demande au site l'annulation de sa
+  file, de ses installations et des demandes pas encore transmises, puis, après 20 secondes,
+  coupe l'arbre de processus d'un calcul qui résiste (lanceur, FreeCADCmd et leurs enfants :
+  seulement ce qu'il a lancé, PID et date de création vérifiés). L'outil arrête enfin les
+  processus de calcul du Worker qui vivraient encore (agent muet, calcul orphelin) et dit ce qui
+  résiste, avec la marche à suivre.
+- **Ne fait PAS** : n'arrête **jamais** une graveuse ni une imprimante (couper le flux
+  laisserait le laser dans son dernier état : arrêt sur la machine ou dans le Laser Studio) ;
+  laisse les moteurs allumés (entrée 9 ou 11) ; ne touche pas aux autres Workers.
+
+#### 24 · Réparer
+
+- **Fait** (agent 1.50.33) : un **diagnostic profond**, même agent arrêté ou figé — agent figé,
+  doublons, processus restés seuls, verrou du superviseur, ports pris par un autre programme,
+  service désactivé, Python, `config.json`, bibliothèque de sécurité, fichiers d'état abîmés,
+  journal des jobs (intégrité SQLite), boîte locale périmée, verrous orphelins, moteurs ou
+  lecteurs de stockage absents, disque, jobs anciens — puis une passe « inconnu » : les erreurs
+  et traces qui reviennent dans les journaux récents, regroupées, avec une piste quand elle est
+  connue. UNE question, puis les réparations sûres : agent figé ou en doublon redémarré (entrée
+  10), processus restés seuls arrêtés, fichiers d'état, boîte et verrous **déplacés** (jamais
+  effacés) dans `runtime\sauvegardes-reparation\<date>\`, bibliothèque de sécurité réinstallée.
+  Ensuite, le contrôle rapide habituel (une question) et les réparations sûres du site.
+- **Ne fait PAS** : ne supprime ni donnée, ni modèle, ni la configuration, ni le journal des
+  jobs ; aucune réparation lourde (entrée 18). Ce qui ne se répare pas seul est listé
+  « À faire à la main », avec l'entrée à utiliser.
+- **Lancement direct** : `outils\reparer.bat` ; `-Simulation`, `-Oui`. Le diagnostic seul :
+  `python outils\diagnostic_profond.py --json`.
 
 ### ENTRETIEN (13 à 16) — sauvegarde, ménage, démarrage du PC
 

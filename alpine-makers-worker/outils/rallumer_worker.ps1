@@ -181,11 +181,16 @@ try {
     if (Test-ServiceAutreDossier -Mode $mode) { Exit-Outil -Code 2 -SansPause:$SansPause }
     $status = Invoke-ActionSure -Racine $Racine -Action 'status' -DelaiSecondes 8
     $incertain = $false
+    $agentSeul = $false
     if ($mode.Mode -ne 'service') {
         # Preuves propres à CE dossier (processus reconnus, réponse à status), pas les ports globaux.
         $presence = Get-PresenceWorker -Racine $Racine -Status $status
         $dejaEnMarche = ($presence.Etat -eq 'oui')
         $incertain = ($presence.Etat -eq 'illisible')
+        # Agent 1.50.33 : un agent resté seul (superviseur mort) et muet n'est pas « en marche » : il est arrêté puis
+        # relancé proprement, sous un superviseur qui le relancera s'il tombe.
+        $agentSeul = ($presence.Lisible -and -not $status.Ok -and @($presence.Coeur | Where-Object { $_.Role -eq 'superviseur' }).Count -eq 0)
+        if ($agentSeul) { $dejaEnMarche = $false }
     }
     $taches = Get-TachesAReactiver -Racine $Racine
     foreach ($n in $taches.AReactiver) { Write-Etat -Libelle 'Tâche planifiée' -Valeur ('désactivée par « Éteindre » : elle sera réactivée (' + $n.Nom + ')') -Niveau alerte }
@@ -207,6 +212,7 @@ try {
     }
     Show-Moteurs -Racine $Racine -Status $status
     if ($dejaEnMarche) { Write-Etat -Libelle 'Worker' -Valeur 'déjà en marche' -Niveau ok }
+    elseif ($agentSeul) { Write-Etat -Libelle 'Worker' -Valeur 'agent resté seul et muet (son superviseur est arrêté) : il sera arrêté puis relancé' -Niveau alerte }
     elseif ($incertain) {
         Write-Etat -Libelle 'Worker' -Valeur 'incertain : des ports sont ouverts, mais ses processus sont illisibles d''ici' -Niveau alerte
         Write-Info '      Le lancement sera demandé quand même : si un superviseur de ce dossier tourne déjà,'
@@ -234,6 +240,10 @@ try {
             Write-Info '[simulation] 0. AVANT tout : réactivation de la tâche planifiée coupée par « Éteindre le Worker »'
             Write-Info '[simulation]    (fenêtre administrateur seulement si Windows refuse sans elle) :'
             [void](Enable-TachesDuWorker -Racine $Racine -Taches $taches.AReactiver -Simulation)
+        }
+        if (-not $dejaEnMarche -and $mode.Mode -ne 'service') {
+            $restesSimules = @((Get-PidsDuWorker -Racine $Racine).Processus)
+            Write-Info ('[simulation] 0 ter. processus du Worker restés seuls à arrêter avant le démarrage : ' + $restesSimules.Count + ' ; puis attente de supervisor.lock libre (20 s au plus).')
         }
         if ($dejaEnMarche) { Write-Info '[simulation] 1. le Worker tourne déjà : aucun démarrage.' }
         elseif ($mode.Mode -eq 'service') {
@@ -325,6 +335,33 @@ try {
         }
     }
 
+    # ------------------------------------------------------------ restes d'une ancienne instance (agent 1.50.33)
+    # Agent resté seul, moteurs orphelins, calculs : ils tiennent les ports et la mémoire vidéo, et le nouvel agent ne
+    # pourrait pas relancer ses moteurs. Ils sont arrêtés (par PID reconnu) AVANT le démarrage, puis le verrou du
+    # superviseur doit être libre, sinon le nouveau superviseur se retirerait aussitôt (« déjà actif »).
+    if (-not $dejaEnMarche -and $mode.Mode -ne 'service') {
+        $restes = Get-PidsDuWorker -Racine $Racine
+        if (@($restes.Processus).Count -gt 0) {
+            Write-Section 'Étape 0 ter : processus du Worker restés seuls'
+            foreach ($p in @($restes.Processus)) { Write-Info ('      PID ' + $p.ProcessId + '  ' + $p.Nom + '  (' + (Get-LibelleRole $p.Role) + ')') }
+            Write-Info 'Ils tiennent les ports et la mémoire des moteurs : ils sont arrêtés avant le démarrage, par PID reconnu.'
+            $bilanRestes = Stop-ToutLeWorker -Racine $Racine -Outil $NomOutil -Deja @($restes.Processus)
+            if (@($bilanRestes.Survivants).Count -gt 0) {
+                Show-Survivants -Survivants $bilanRestes.Survivants -Illisibles $bilanRestes.Illisibles -Administrateur:(Test-Administrateur)
+                $codeFinal = 1
+            }
+            else { Write-Ok ('Anciens processus arrêtés : ' + $bilanRestes.Arretes + '.') }
+        }
+        if (-not (Wait-VerrouSuperviseur -Racine $Racine -DelaiSecondes 20)) {
+            Write-Erreur 'supervisor.lock est encore tenu après 20 secondes : un superviseur de ce dossier tourne encore, invisible d''ici (autre compte Windows, ou fenêtre administrateur).'
+            Write-Conseil ('Lance ' + (Get-NomEntree 10) + ' (il arrête l''ancienne instance avec une fenêtre administrateur), ou ' + (Get-NomEntree 24) + '.')
+            Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'ÉCHEC : supervisor.lock toujours tenu après 20 s'
+            Exit-Outil -Code 1 -SansPause:$SansPause
+        }
+    }
+    $occupes = @(Get-PortsOccupes -Racine $Racine)
+    if ($occupes.Count -gt 0) { Show-PortsOccupes -Occupes $occupes }
+
     # ------------------------------------------------------------ démarrage
     if (-not $dejaEnMarche) {
         Write-Section 'Étape 1 : démarrage du Worker'
@@ -403,14 +440,16 @@ try {
                 $codeFinal = 1
             } elseif ($superviseurVu) {
                 Write-Erreur 'Le superviseur tourne, mais l''agent ne tient pas : il plante au démarrage et se relance en boucle.'
-                Write-Conseil ('Regarde ' + (Get-NomEntree 3) + ', journal « agent », pour lire son erreur.')
+                Write-Conseil ('Regarde ' + (Get-NomEntree 3) + ', journal « agent », pour lire son erreur ; ' + (Get-NomEntree 24) + ' cherche et répare la cause (paquets, fichiers d''état, droits).')
                 $codeFinal = 1
             } else {
                 Write-Erreur 'Le Worker n''a PAS démarré : run_worker.ps1 s''est arrêté aussitôt.'
                 Write-Info 'Causes habituelles : Python introuvable (python_path.txt), dossier déjà verrouillé par un autre superviseur, droits insuffisants.'
-                Write-Conseil ('Lance ' + (Get-NomEntree 1) + ', puis ' + (Get-NomEntree 3) + '.')
+                Write-Conseil ('Lance ' + (Get-NomEntree 24) + ' (diagnostic profond et réparation), puis ' + (Get-NomEntree 3) + ' si le problème reste.')
                 $codeFinal = 1
             }
+            $derniere = Get-DerniereErreurAgent -Racine $Racine
+            if ($derniere) { Write-Info ('      Dernière erreur notée par l''agent : ' + $derniere) }
         }
     }
     $agentProuve = ($agent -ne 'absent')

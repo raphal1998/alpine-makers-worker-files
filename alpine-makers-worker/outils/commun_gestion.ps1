@@ -551,3 +551,60 @@ function Test-DroitsDossier {
     }
     return $r
 }
+
+# ---------------------------------------------------------------------------
+# Diagnostic profond (agent 1.50.33) : outils\diagnostic_profond.py, sans l'agent
+# ---------------------------------------------------------------------------
+
+function Invoke-DiagnosticProfond {
+    <#
+        Lance outils\diagnostic_profond.py avec le Python du Worker (System.Diagnostics.Process : ni « & » ni
+        redirection PowerShell, sorties lues à part) et rend sa réponse JSON. -Reparer : codes à réparer (les seuls
+        que le script accepte : déplacements sauvegardés, bibliothèque de sécurité). -JournauxService : analyse aussi
+        les journaux du service AlpineWorker (seulement quand il vise ce dossier).
+        Rend : Ok, Points (liste), Reparations (liste), Erreur.
+    #>
+    param([string]$Racine, [string[]]$Reparer = @(), [switch]$JournauxService, [int]$DelaiSecondes = 120)
+    $r = [pscustomobject]@{ Ok = $false; Points = @(); Reparations = @(); Erreur = '' }
+    $script = Join-Path $script:DossierOutils 'diagnostic_profond.py'
+    if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { $r.Erreur = 'diagnostic_profond.py est absent des outils de ce Worker : mets le Worker à jour (23).'; return $r }
+    $python = Get-PythonWorker -Racine $Racine
+    if (-not $python) { $r.Erreur = 'Interpréteur Python du Worker introuvable (python_path.txt).'; return $r }
+    $codes = @($Reparer | Where-Object { [string]$_ -cmatch '^D-[A-Z-]{2,40}$' })
+    $arguments = '"' + $script + '" --root "' + $Racine.TrimEnd('\') + '" --json'
+    if ($JournauxService) { $arguments += ' --service-logs' }
+    if ($codes.Count -gt 0) { $arguments += ' --repair ' + ($codes -join ',') }
+    $p = $null
+    try {
+        $info = New-Object System.Diagnostics.ProcessStartInfo
+        $info.FileName = $python
+        $info.Arguments = $arguments
+        $info.WorkingDirectory = $Racine
+        $info.UseShellExecute = $false
+        $info.RedirectStandardOutput = $true
+        $info.RedirectStandardError = $true
+        $info.CreateNoWindow = $true
+        $info.EnvironmentVariables['PYTHONIOENCODING'] = 'utf-8'
+        $p = [System.Diagnostics.Process]::Start($info)
+        $lecture = $p.StandardOutput.ReadToEndAsync()
+        $erreurs = $p.StandardError.ReadToEndAsync()
+        if (-not $p.WaitForExit($DelaiSecondes * 1000)) { try { $p.Kill() } catch { }; $r.Erreur = 'Le diagnostic profond n''a pas fini dans le délai.'; return $r }
+        $p.WaitForExit()
+        [void]$erreurs.Wait(5000)
+        $texte = ''
+        if ($lecture.Wait(5000)) { $texte = [string]$lecture.Result }
+    } catch {
+        $r.Erreur = 'Impossible de lancer le diagnostic profond : ' + [string]$_.Exception.Message
+        return $r
+    } finally {
+        if ($p) { try { $p.Dispose() } catch { } }
+    }
+    $json = (@($texte -split "`r?`n") | Where-Object { $_.TrimStart().StartsWith('{') } | Select-Object -Last 1)
+    if (-not $json) { $r.Erreur = 'Le diagnostic profond n''a rien rendu.'; return $r }
+    try { $reponse = $json | ConvertFrom-Json } catch { $r.Erreur = 'Réponse illisible du diagnostic profond.'; return $r }
+    $r.Ok = [bool](Get-ChampGestion $reponse 'ok' $false)
+    $r.Points = @(Get-ChampGestion $reponse 'points' @() | Where-Object { $_ })
+    $r.Reparations = @(Get-ChampGestion $reponse 'repairs' @() | Where-Object { $_ })
+    if (-not $r.Ok) { $r.Erreur = 'Le diagnostic profond s''est interrompu (' + [string](Get-ChampGestion $reponse 'error' '?') + ').' }
+    return $r
+}

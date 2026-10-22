@@ -5,14 +5,19 @@
         moteurs.ps1 -Action etat -SansPause
         moteurs.ps1 -Action arreter  -Oui -SansPause [-Simulation]
         moteurs.ps1 -Action demarrer -Oui -SansPause [-Simulation]
-    Codes de sortie : 0 succès, 1 échec, 2 refusé ou annulé.
+        moteurs.ps1 -Action forcer   -Oui -SansPause [-Simulation]   (agent 1.50.33 : agent figé ou moteur bloqué)
+    Codes de sortie : 0 succès, 1 échec, 2 refusé ou annulé, 3 élévation refusée.
+
+    -DejaEleve est posé par Invoke-OutilEleve : l'instance administrateur n'exécute QUE l'arrêt forcé des
+    processus des moteurs (Worker en service : ses processus sont illisibles sans droits administrateur).
 #>
 param(
     [string]$Racine = '',
-    [ValidateSet('', 'etat', 'arreter', 'demarrer')][string]$Action = '',
+    [ValidateSet('', 'etat', 'arreter', 'demarrer', 'forcer')][string]$Action = '',
     [switch]$Simulation,
     [switch]$Oui,
-    [switch]$SansPause
+    [switch]$SansPause,
+    [switch]$DejaEleve
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'commun.ps1')
@@ -20,21 +25,57 @@ $ErrorActionPreference = 'Stop'
 Initialize-ConsoleWorker -Titre 'Moteurs du Worker'
 $NomOutil = 'moteurs'
 
+function Get-ProcessusMoteurs {
+    <# Processus des moteurs de CE Worker et leurs calculs (rôles « moteur » et « calcul ») : jamais l'agent ni le superviseur. #>
+    param([string]$Racine)
+    $vus = Get-PidsDuWorker -Racine $Racine
+    return [pscustomobject]@{ Liste = @($vus.Processus | Where-Object { $_.Role -eq 'moteur' -or $_.Role -eq 'calcul' }); Illisibles = [int]$vus.Illisibles }
+}
+
+function Invoke-ArretForceMoteurs {
+    <# Arrêt forcé, par PID revérifié, des processus des moteurs ; deux passes. Renvoie 0 (plus rien) ou 1. #>
+    param([string]$Racine)
+    $total = 0
+    for ($passe = 1; $passe -le 2; $passe++) {
+        $cibles = @((Get-ProcessusMoteurs -Racine $Racine).Liste)
+        if ($cibles.Count -eq 0) { break }
+        $restants = Stop-PidsReconnus -Liste $cibles -Racine $Racine -Outil $NomOutil
+        $total += [Math]::Max(0, $cibles.Count - $restants)
+    }
+    $fin = Get-ProcessusMoteurs -Racine $Racine
+    Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message ('arrêt forcé des moteurs : ' + $total + ' processus arrêté(s), ' + @($fin.Liste).Count + ' résistent')
+    if (@($fin.Liste).Count -gt 0) {
+        Write-Erreur ([string]@($fin.Liste).Count + ' processus de moteur résistent :')
+        Show-Survivants -Survivants $fin.Liste -Illisibles $fin.Illisibles -Administrateur:(Test-Administrateur)
+        return 1
+    }
+    if ($total -gt 0) { Write-Ok ('Processus des moteurs arrêtés de force : ' + $total + '.') } else { Write-Ok 'Aucun processus de moteur ne tournait.' }
+    return 0
+}
+
 try {
     $Racine = Get-RacineWorker -Racine $Racine
+
+    if ($DejaEleve) {
+        Write-Cadre -Titre 'MOTEURS : arrêt forcé, phase administrateur' -Lignes @('Cette fenêtre se ferme seule ; le résultat s''affiche dans la première.')
+        if (-not (Test-Administrateur)) { Write-Erreur 'Cette fenêtre n''a pas les droits administrateur.'; exit 3 }
+        Exit-Outil -Code (Invoke-ArretForceMoteurs -Racine $Racine) -SansPause
+    }
 
     Write-Explication -Titre 'MOTEURS DU WORKER : ÉTAT, ARRÊT PROPRE, RELANCE' -Fait @(
         'Montre quels moteurs tournent : ComfyUI (images), Hunyuan3D (3D), PrintGuard, bridge Orca.',
         'Arrêter : demande à l''agent d''éteindre ses moteurs proprement. La mémoire de la carte graphique est rendue.',
         'Démarrer : demande à l''agent de relancer les moteurs arrêtés par « Arrêter », puis suit leur réveil pendant 3 minutes au plus.',
-        '   Sans arrêt préalable, l''agent relancerait TOUS les moteurs installés : l''outil prévient et redemande avant.'
+        '   Sans arrêt préalable, l''agent relancerait TOUS les moteurs installés : l''outil prévient et redemande avant.',
+        'Forcer l''arrêt (agent figé ou moteur bloqué) : demande d''abord l''arrêt propre si l''agent répond, puis arrête de force les processus des moteurs de CE Worker qui vivent encore.',
+        'Signale un port de moteur pris par un AUTRE programme (le moteur ne pourrait pas démarrer).'
     ) -NeFaitPas @(
         'Il n''arrête pas le Worker lui-même : le PC reste visible « en ligne » dans le site.',
-('Il ne tue jamais un processus de force. Pour tout éteindre, utilise ' + (Get-NomEntree 11) + '.'),
+('Il ne tue jamais un processus de force sans le choix 4, ni un programme qui n''est pas de ce Worker. Pour tout éteindre : ' + (Get-NomEntree 11) + '.'),
         'Il ne lance aucune génération et n''envoie rien aux machines.'
     ) -Exige @(
         'Un Worker en marche et à jour (les commandes locales datent de la dernière version de l''agent).',
-        'Aucun droit administrateur.'
+        'Aucun droit administrateur (sauf le choix 4 quand le Worker est un service Windows).'
     )
 
     if (-not $Action) {
@@ -43,8 +84,9 @@ try {
             Write-Info '1. Voir l''état des moteurs'
             Write-Info '2. Arrêter les moteurs proprement'
             Write-Info '3. Relancer les moteurs'
-            $choix = Read-Host '   Ton choix [1-3, Entrée = 1]'
-            switch ($choix) { '2' { $Action = 'arreter' } '3' { $Action = 'demarrer' } default { $Action = 'etat' } }
+            Write-Info '4. Forcer l''arrêt des moteurs (agent figé, moteur bloqué ou resté seul)'
+            $choix = Read-Host '   Ton choix [1-4, Entrée = 1]'
+            switch ($choix) { '2' { $Action = 'arreter' } '3' { $Action = 'demarrer' } '4' { $Action = 'forcer' } default { $Action = 'etat' } }
         }
     }
 
@@ -68,9 +110,11 @@ try {
         if (@(Get-MoteursOuverts -Racine $Racine).Count -gt 0) { Write-Alerte ('Des moteurs écoutent encore alors que le Worker est éteint (orphelins) : relance ' + (Get-NomEntree 11) + ', sa fenêtre administrateur les arrête.') }
         Write-Host ''
         Write-Conseil ('Rallume-le avec ' + (Get-NomEntree 12) + '. Les moteurs se pilotent ensuite d''ici.')
-        $codeEteint = 0
-        if ($Action -ne 'etat') { Write-Alerte 'Rien n''a été demandé : il n''y a pas d''agent pour arrêter ou relancer les moteurs.'; $codeEteint = 1 }
-        Exit-Outil -Code $codeEteint -SansPause:$SansPause
+        if ($Action -ne 'forcer') {
+            $codeEteint = 0
+            if ($Action -ne 'etat') { Write-Alerte 'Rien n''a été demandé : il n''y a pas d''agent pour arrêter ou relancer les moteurs. Des moteurs restés seuls s''arrêtent avec le choix 4.'; $codeEteint = 1 }
+            Exit-Outil -Code $codeEteint -SansPause:$SansPause
+        }
     }
     if ($status.Ok) {
         Write-Etat -Libelle 'Agent' -Valeur ('en marche, version ' + [string]$status.Resultat.agent_version) -Niveau ok
@@ -82,8 +126,53 @@ try {
         Write-Etat -Libelle 'Agent' -Valeur 'ne répond pas (arrêté, ou encore en démarrage)' -Niveau alerte
     }
 
+    # Agent 1.50.33 : un port de moteur pris par un AUTRE programme empêche ce moteur de démarrer.
+    $occupes = @()
+    $autreService = ($modeLancement.Service -and -not $modeLancement.Service.ViseCeDossier -and ([string]$modeLancement.Service.Etat -eq 'Running'))
+    if (-not $autreService) { $occupes = @(Get-PortsOccupes -Racine $Racine) }
+    if ($occupes.Count -gt 0) { Show-PortsOccupes -Occupes $occupes }
+
+    if ($Action -eq 'forcer') {
+        Write-Section 'Arrêt forcé des moteurs'
+        $vusMoteurs = Get-ProcessusMoteurs -Racine $Racine
+        if (@($vusMoteurs.Liste).Count -eq 0) { Write-Info 'Aucun processus de moteur de ce Worker n''est visible d''ici.' }
+        foreach ($p in @($vusMoteurs.Liste)) { Write-Info ('      PID ' + $p.ProcessId + '  ' + $p.Nom + '  (' + (Get-LibelleRole $p.Role) + ')') }
+        Write-Alerte 'Le travail en cours d''un moteur (génération, tranchage) sera perdu.'
+        if (-not (Confirm-Action -Question 'Forcer l''arrêt des moteurs de ce Worker ?' -MotExact 'FORCER' -Oui:$Oui)) { Write-Info 'Annulé : rien n''a changé.'; Exit-Outil -Code 2 -SansPause:$SansPause }
+        $serviceIci = ($modeLancement.Mode -eq 'service' -and -not (Test-Administrateur))
+        if ($Simulation) {
+            Write-Section 'Simulation'
+            if ($status.Ok) { Write-Info '[simulation] 1. demande « engines-stop » à l''agent (arrêt propre, 90 s au plus).' }
+            if ($serviceIci) { Write-Info '[simulation] 2. fenêtre administrateur (accord Windows demandé) : arrêt forcé des processus des moteurs, par PID reconnu.' }
+            else { Write-Info '[simulation] 2. arrêt forcé des processus des moteurs, par PID reconnu (deux passes).' }
+            Exit-Outil -Code 0 -SansPause:$SansPause
+        }
+        if ($status.Ok) {
+            Write-Info 'L''agent répond : arrêt propre demandé d''abord (90 secondes au plus), pour qu''il ne relance pas ses moteurs.'
+            $propre = Invoke-ActionSure -Racine $Racine -Action 'engines-stop' -DelaiSecondes 90
+            if ($propre.Ok) { Write-Ok 'Arrêt propre fait par l''agent.' }
+            else { Write-Alerte ('Arrêt propre non abouti (' + $propre.Erreur + ') : arrêt forcé.') }
+        }
+        else { Write-Alerte ('L''agent ne répond pas : un moteur en relance automatique repartira à son prochain démarrage. Pour que tout reste arrêté : ' + (Get-NomEntree 11) + '.') }
+        Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message 'arrêt forcé des moteurs demandé'
+        $codeForce = 0
+        if ($serviceIci) {
+            Write-Info 'Le Worker est un service Windows : ses processus ne s''arrêtent qu''avec une fenêtre administrateur (Windows va te demander ton accord).'
+            $codeForce = Invoke-OutilEleve -Script $PSCommandPath -Arguments ((Get-ArgumentsCommuns -Racine $Racine) + @('-Action', 'forcer', '-DejaEleve'))
+            if ($null -eq $codeForce) { Write-Erreur 'Tu as refusé la fenêtre administrateur : les moteurs n''ont pas été arrêtés de force.'; Exit-Outil -Code 3 -SansPause:$SansPause }
+            if ($codeForce -ne 0) { Show-TraceOutil -Racine $Racine -Outil $NomOutil }
+        }
+        else { $codeForce = Invoke-ArretForceMoteurs -Racine $Racine }
+        Write-Section 'Vérification des ports'
+        Show-Moteurs -Racine $Racine
+        if ($codeForce -eq 0) { Write-Conseil 'Pour les rallumer : choix 3 de cet outil (l''agent doit répondre), ou le site.' }
+        else { Write-Conseil ('Ce qui résiste : ' + (Get-NomEntree 11) + ' éteint tout le Worker ; sinon redémarre le PC.') }
+        Exit-Outil -Code ([int]($codeForce -ne 0)) -SansPause:$SansPause
+    }
+
     if ($Action -eq 'etat') {
         if ($status.NonSupporte) { Write-Host ''; Write-ConseilMiseAJour }
+        elseif (-not $status.Ok) { Write-Host ''; Write-Conseil ('Agent muet : ' + (Get-NomEntree 10) + ' le redémarre, ' + (Get-NomEntree 24) + ' cherche la cause. Des moteurs bloqués ou restés seuls : choix 4 de cet outil.') }
         Exit-Outil -Code 0 -SansPause:$SansPause
     }
 
@@ -98,8 +187,8 @@ try {
     }
     if (-not $status.Ok) {
         Write-Host ''
-        Write-Alerte 'L''agent ne répond pas : il est arrêté, ou il démarre encore.'
-        Write-Conseil ('S''il est arrêté, lance ' + (Get-NomEntree 12) + '. S''il vient de démarrer, réessaie dans une minute.')
+        Write-Alerte 'L''agent ne répond pas : il est arrêté, figé, ou il démarre encore.'
+        Write-Conseil ('S''il est arrêté, lance ' + (Get-NomEntree 12) + '. S''il vient de démarrer, réessaie dans une minute. S''il est figé : ' + (Get-NomEntree 10) + ', ou le choix 4 de cet outil pour forcer l''arrêt des moteurs.')
         if ($status.Erreur) { Write-Info ('Détail : ' + $status.Erreur) }
         Exit-Outil -Code 1 -SansPause:$SansPause
     }
@@ -130,7 +219,7 @@ try {
             if ($r.DelaiDepasse) { Write-Erreur ('Aucune réponse de l''agent : la demande a été retirée, rien ne sera arrêté plus tard. ' + $r.Erreur) }
             else {
                 Write-Erreur ('L''agent a refusé : ' + $r.Erreur)
-                Write-Conseil ('Un refus vient d''un travail en cours ou d''une installation : attends sa fin, ou annule-le dans le site. ' + (Get-NomEntree 2) + ' montre ce qui bloque.')
+                Write-Conseil ('Un refus vient d''un travail en cours ou d''une installation : attends sa fin, ou arrête tout avec ' + (Get-NomEntree 21) + '. ' + (Get-NomEntree 2) + ' montre ce qui bloque ; le choix 4 force l''arrêt.')
             }
             Write-JournalOutil -Racine $Racine -Outil $NomOutil -Message ('engines-stop en échec : ' + $r.Erreur)
             Exit-Outil -Code 1 -SansPause:$SansPause
