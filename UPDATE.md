@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.50.36 — 2026-10-23
+
+**Menu du Worker connecté comme worker.exe, tableau de bord complet**
+
+### Ajouté
+- Menu du Worker (MENU-WORKER.bat) : connexion du propriétaire comme worker.exe (2FA, navigateur/téléphone, co-propriétaires et leurs droits, verrou après 3 échecs, notifications), mode hors ligne sûr. Tableau de bord complet dans le menu (touche T) et dans worker.exe : jobs, file, partage, RAM, disque, GPU/VRAM, CUDA et pilote, place occupée, composants, IA locales, comptes IA.
+
+### Corrigé
+- Sécurité : la mise à jour, la réparation, l'arrêt des jobs et le partage demandés depuis le PC exigent la session du propriétaire. Mot de passe, code et jeton passent par un fichier à accès fermé, lu une fois puis effacé, jamais par la ligne de commande (le jeton de worker.exe n'apparaît plus dans la ligne de commande de Python).
+
+### Technique
+- Empreinte du paquet publié : `6c1705592f6045c7…` (dossier du paquet).
+
 ## Version 1.50.35 — 2026-10-23
 
 **Installations : la dernière version validée est installée directement (PrintGuard 2.6.x)**

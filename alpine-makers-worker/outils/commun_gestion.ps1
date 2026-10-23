@@ -319,6 +319,25 @@ function Get-EtatSite {
 
 function Invoke-RelaisSite {
     <#
+        Invoke-RelaisSiteUneFois, puis, si le site répond que la session du propriétaire manque ou a expiré
+        (WORKER_EXE_SESSION_REQUIRED / _INVALID) et qu'une console avec clavier le permet, une nouvelle connexion
+        (commun_connexion.ps1) et UN second essai. Mêmes paramètres et même résultat.
+    #>
+    param([string]$Racine, [string]$Action, [hashtable]$Arguments = $null, [int]$DelaiSecondes = 60)
+    $r = Invoke-RelaisSiteUneFois -Racine $Racine -Action $Action -Arguments $Arguments -DelaiSecondes $DelaiSecondes
+    $sessionAbsente = (@('WORKER_EXE_SESSION_REQUIRED', 'WORKER_EXE_SESSION_INVALID') -contains [string]$r.CodeSite)
+    if (-not $sessionAbsente -or -not (Get-Command -Name 'Invoke-ConnexionProprietaire' -CommandType Function -ErrorAction SilentlyContinue)) { return $r }
+    if (-not (Test-ReconnexionPossible)) { return $r }
+    Write-Host ''
+    if ([string]$r.CodeSite -eq 'WORKER_EXE_SESSION_INVALID') { Write-Alerte 'Ta session a expiré ou a été retirée sur le site : reconnecte-toi pour continuer.' }
+    else { Write-Alerte 'Cette action demande la connexion du propriétaire (comme dans worker.exe).' }
+    Clear-SessionWorker
+    if ((Invoke-ConnexionProprietaire -Racine $Racine -Reconnexion) -ne 'connecte') { return $r }
+    return (Invoke-RelaisSiteUneFois -Racine $Racine -Action $Action -Arguments $Arguments -DelaiSecondes $DelaiSecondes)
+}
+
+function Invoke-RelaisSiteUneFois {
+    <#
         Fait faire par l'AGENT une demande signée au site, et attend sa fin :
           site-update (mise à jour), site-repair (réparations), jobs-stop (arrêt des jobs), sharing-set (partage).
         L'action locale rend tout de suite un identifiant d'opération ; « relay-status » est ensuite interrogé
@@ -337,7 +356,20 @@ function Invoke-RelaisSite {
     if ($DelaiSecondes -lt 5) { $DelaiSecondes = 5 }
     $limite = (Get-Date).AddSeconds($DelaiSecondes)
     $depot = $null
-    try { $depot = Invoke-ActionLocale -Racine $Racine -Action $Action -DelaiSecondes 10 -Arguments $Arguments } catch { }
+    # Session du propriétaire (commun_connexion.ps1) : jointe par un fichier d'arguments lu puis effacé par l'agent,
+    # jamais par la ligne de commande. Le site l'exige pour ces quatre demandes (agent worker_menu_session_v1).
+    $fichierSession = ''
+    $avecSession = $Arguments
+    try {
+        if (Get-Command -Name 'New-FichierSessionWorker' -CommandType Function -ErrorAction SilentlyContinue) { $fichierSession = New-FichierSessionWorker -Racine $Racine }
+    } catch { $fichierSession = '' }
+    if ($fichierSession) {
+        $avecSession = @{}
+        if ($null -ne $Arguments) { foreach ($cle in @($Arguments.get_Keys())) { $avecSession[[string]$cle] = $Arguments[$cle] } }
+        $avecSession['args_file'] = $fichierSession
+    }
+    try { $depot = Invoke-ActionLocale -Racine $Racine -Action $Action -DelaiSecondes 10 -Arguments $avecSession } catch { }
+    finally { if ($fichierSession) { Remove-FichierArgumentsWorker -Racine $Racine -Jeton $fichierSession } }
     if (-not $depot -or -not $depot.Ok -or -not $depot.Resultat) { Set-EchecLocal -Retour $r -Reponse $depot; return $r }
     $operation = [string](Get-ChampGestion $depot.Resultat 'operation' '')
     if ($operation -cnotmatch '^[0-9a-f]{32}$') { $r.Erreur = 'Réponse inattendue de l''agent : la demande n''a pas de numéro de suivi.'; return $r }
@@ -408,6 +440,13 @@ function Write-RefusRelais {
         else { Write-Alerte 'Le site est injoignable depuis ce PC : rien ne lui a été demandé.' }
     }
     elseif ($http -eq 429) { Write-Alerte 'Trop de demandes depuis ce Worker : réessaie dans quelques minutes.' }
+    elseif (@('WORKER_EXE_SESSION_REQUIRED', 'WORKER_EXE_SESSION_INVALID') -contains $codeSite) {
+        Write-Alerte 'Le site exige la connexion du propriétaire pour cette action : rien n''a été fait.'
+        Write-Conseil 'Ouvre MENU-WORKER.bat (ou worker.exe) et connecte-toi avec le compte du propriétaire, puis relance cette entrée.'
+    }
+    elseif ($codeSite -eq 'CO_OWNER_RIGHT_MISSING') {
+        Write-Alerte 'Action refusée : elle est réservée au propriétaire ou demande un droit que ton compte de co-propriétaire n''a pas.'
+    }
     elseif ($http -gt 0 -or $codeSite) {
         if (-not $erreur) { $erreur = 'aucune raison donnée (erreur ' + $http + ').' }
         Write-Alerte ('Le site a refusé : ' + $erreur)
@@ -607,4 +646,11 @@ function Invoke-DiagnosticProfond {
     $r.Reparations = @(Get-ChampGestion $reponse 'repairs' @() | Where-Object { $_ })
     if (-not $r.Ok) { $r.Erreur = 'Le diagnostic profond s''est interrompu (' + [string](Get-ChampGestion $reponse 'error' '?') + ').' }
     return $r
+}
+
+# Connexion du propriétaire (menu du Worker, comme worker.exe) et tableau de bord : chargés quand ils sont livrés.
+# Absents (paquet ancien), les relais partent sans session, comme avant, et le site décide.
+foreach ($socleSupplementaire in @('commun_connexion.ps1', 'commun_tableau.ps1')) {
+    $cheminSocle = Join-Path $PSScriptRoot $socleSupplementaire
+    if (Test-Path -LiteralPath $cheminSocle -PathType Leaf) { . $cheminSocle }
 }

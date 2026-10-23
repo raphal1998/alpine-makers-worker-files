@@ -25,6 +25,13 @@
     marche sert un AUTRE dossier (ses ports sont déjà pris). Sans service du tout, worker_tools.ps1
     démarre le Worker dans ta session : le menu le dit et demande ton accord.
 
+    Connexion (commun_connexion.ps1) : sur un Worker associé, le menu INTERACTIF demande d'abord le compte du
+    propriétaire, exactement comme worker.exe (même route du site par l'agent, 2FA, co-propriétaires et leurs
+    droits, verrou après trois échecs, notifications). Mot de passe et code 2FA : saisie masquée, jamais en ligne
+    de commande ni dans un journal. Site ou agent injoignable : mode hors ligne, entrées locales sûres seulement.
+    Tableau de bord (commun_tableau.ps1) : six lignes sous l'en-tête, T pour le détail ; même source que
+    l'onglet « Tableau de bord » de worker.exe (action locale « dashboard » de l'agent).
+
     Le menu ne demande JAMAIS l'élévation et ne modifie rien lui-même : il lit
     l'état sans droits particuliers, puis passe la main à l'outil choisi, dans
     la même console. C'est l'outil qui explique, confirme et, s'il le faut,
@@ -57,6 +64,14 @@ catch {
     exit 1
 }
 
+# Connexion du propriétaire (commun_connexion.ps1, chargé par commun_gestion.ps1) : exigée par le menu INTERACTIF
+# d'un Worker associé, comme worker.exe. -Apercu, -EtatJson et -Choix (ce que lance worker.exe, déjà connecté) ne
+# demandent rien ; le site, lui, exige la session pour tout ce qui le touche, quel que soit le chemin.
+$script:ConnexionExigee = $false
+$script:SocleConnexion = [bool](Get-Command -Name 'Invoke-ConnexionProprietaire' -CommandType Function -ErrorAction SilentlyContinue)
+# Repli si commun_connexion.ps1 manque (paquet incohérent) sur un Worker associé : MÊME liste que
+# $script:EntreesHorsLigne de commun_connexion.ps1 (contrôlé par les tests), rien d'autre ne s'ouvre.
+$script:EntreesSansSocle = @(1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 14, 16, 19, 24)
 $script:LargeurMenu = 98           # le rendu tient dans une console de 100 colonnes
 $script:StatusNonSupporte = $false # agent trop ancien : on ne repose pas la question à chaque rafraîchissement
 $script:DossierOutilsMenu = $PSScriptRoot
@@ -375,11 +390,29 @@ function Get-EntreesParGroupe {
     return @($script:Entrees | Sort-Object @{ Expression = { if ($rangs.ContainsKey([string]$_.Groupe)) { [int]$rangs[[string]$_.Groupe] } else { 999 } } }, @{ Expression = { [int]$_.Numero } })
 }
 
+function Test-EntreeVisible {
+    <# L'entrée est-elle proposée dans cet état de connexion ? (propriétaire, co-propriétaire, hors ligne) #>
+    param([object]$Entree)
+    if (-not $script:ConnexionExigee) { return $true }
+    if (-not $script:SocleConnexion) { return ($script:EntreesSansSocle -contains [int]$Entree.Numero) }
+    return (Test-EntreeAutoriseeSession -Numero ([int]$Entree.Numero) -Groupe ([string]$Entree.Groupe) -ConnexionExigee $true)
+}
+
+function Get-TexteConnexionMenu {
+    <# Texte et niveau de la ligne « Connexion » du tableau de bord. #>
+    if ($env:ALPINE_WORKER_GUI -eq '1') { return @('ouvert depuis worker.exe (connexion faite par worker.exe)', 'ok') }
+    if ($script:SocleConnexion -and $global:AlpineSessionWorker) { return @(('connecté : ' + (Get-ResumeSessionWorker) + '   L : se déconnecter'), 'ok') }
+    if ($script:ConnexionExigee -and -not $script:SocleConnexion) { return @('commun_connexion.ps1 absent : actions locales sûres seulement (mets le Worker à jour)', 'erreur') }
+    if ($script:ConnexionExigee) { return @('mode hors ligne : actions locales sûres seulement   C : se connecter', 'alerte') }
+    return @('aperçu : la connexion du propriétaire est demandée à l''ouverture du menu', 'info')
+}
+
 function Get-EtatBandeau {
-    <# Tout ce que le bandeau affiche, lu SANS élévation. Chaque lecture tolère l'échec. #>
+    <# Tout ce que le bandeau affiche, lu SANS élévation. Chaque lecture tolère l'échec. -AvecTableau : tableau de bord en plus. #>
+    param([switch]$AvecTableau)
     $etat = [pscustomobject]@{
         Config = $null; Version = ''; Lancement = $null; Moteurs = @(); Vram = $null
-        AgentNiveau = 'info'; AgentTexte = ''; AgentDetail = ''; Alertes = @(); Indicateur = $null
+        AgentNiveau = 'info'; AgentTexte = ''; AgentDetail = ''; Alertes = @(); Indicateur = $null; Tableau = $null
     }
     try { $etat.Config = Get-ConfigSure -Racine $Racine } catch { }
     try { $etat.Version = Get-VersionInstallee -Racine $Racine } catch { }
@@ -411,6 +444,11 @@ function Get-EtatBandeau {
             if ($r.NonSupporte) { $script:StatusNonSupporte = $true }
             elseif ($r.Ok -and $r.Resultat) { $statut = $r.Resultat }
         } catch { }
+    }
+
+    # Tableau de bord : seulement quand l'agent vient de répondre (sinon la réponse est connue : indisponible).
+    if ($AvecTableau -and $statut -and (Get-Command -Name 'Get-TableauWorker' -CommandType Function -ErrorAction SilentlyContinue)) {
+        try { $etat.Tableau = Get-TableauWorker -Racine $Racine -DelaiSecondes 5 } catch { $etat.Tableau = $null }
     }
 
     if ($statut) {
@@ -564,6 +602,14 @@ function Write-Bandeau {
     }
     else { Write-LigneEtat -Niveau 'info' -Libelle 'Mémoire vidéo' -Segments @((New-Segment 'non mesurée (nvidia-smi absent ou muet)' 'DarkGray')) }
 
+    # Tableau de bord (agent : action « dashboard ») : toujours six lignes, T pour le détail.
+    if (Get-Command -Name 'Get-LignesTableauBandeau' -CommandType Function -ErrorAction SilentlyContinue) {
+        $connexion = Get-TexteConnexionMenu
+        foreach ($ligne in @(Get-LignesTableauBandeau -Tableau $Etat.Tableau -Connexion ([string]$connexion[0]) -NiveauConnexion ([string]$connexion[1]))) {
+            Write-LigneEtat -Niveau $ligne.Niveau -Libelle $ligne.Libelle -Segments @((New-Segment ([string]$ligne.Texte) ([ConsoleColor][string]$ligne.Couleur)))
+        }
+    }
+
     foreach ($a in @($Etat.Alertes)) { Write-LigneAlerte -Texte $a }
 }
 
@@ -599,8 +645,10 @@ function Write-Entree {
 function Write-Menu {
     param([object]$Etat)
     Write-Bandeau -Etat $Etat
+    $masquees = @($script:Entrees | Where-Object { -not (Test-EntreeVisible $_) }).Count
     foreach ($g in $script:Groupes) {
-        $entreesGroupe = @($script:Entrees | Where-Object { $_.Groupe -eq $g.Cle })
+        # Co-propriétaire ou mode hors ligne : comme worker.exe, les entrées hors droits ne sont pas proposées.
+        $entreesGroupe = @($script:Entrees | Where-Object { $_.Groupe -eq $g.Cle -and (Test-EntreeVisible $_) })
         if ($entreesGroupe.Count -eq 0) { continue }   # pas de titre de section sans entrée
         $couleurTitre = 'White'
         if ($g.Cle -eq 'rouge') { $couleurTitre = 'Red' }
@@ -611,15 +659,26 @@ function Write-Menu {
         if (-not $script:Compact) { Write-Host ('  ' + ('-' * ($script:LargeurMenu - 2))) -ForegroundColor DarkGray }
         foreach ($e in $entreesGroupe) { Write-Entree -Entree $e }
     }
+    if ($masquees -gt 0) {
+        Write-Host ''
+        if ($global:AlpineSessionWorker) { Write-Host ('  ' + $masquees + ' entrée(s) masquée(s) : hors des droits de ce compte.') -ForegroundColor DarkGray }
+        else { Write-Host ('  ' + $masquees + ' entrée(s) masquée(s) : elles demandent la connexion du propriétaire (C).') -ForegroundColor DarkGray }
+    }
     Write-Host ''
     Write-Host ('  ' + ('-' * ($script:LargeurMenu - 2))) -ForegroundColor DarkGray
     Write-Host '  [ A] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Aide   ' -ForegroundColor White -NoNewline
-    Write-Host '[ D] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Dépannage : quelle entrée pour quel problème   ' -ForegroundColor White -NoNewline
+    Write-Host '[ D] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Dépannage   ' -ForegroundColor White -NoNewline
+    Write-Host '[ T] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Tableau de bord complet   ' -ForegroundColor White -NoNewline
     Write-Host '[ R] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Rafraîchir   ' -ForegroundColor White -NoNewline
     Write-Host '[ Q] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Quitter' -ForegroundColor White
     Write-Host '  ' -NoNewline
-    Write-Host '[ADMIN]' -ForegroundColor Yellow -NoNewline; Write-Host ' ouvrira une fenêtre administrateur      ' -ForegroundColor DarkGray -NoNewline
-    Write-Host '[ARRET]' -ForegroundColor Red -NoNewline;    Write-Host ' arrête quelque chose' -ForegroundColor DarkGray
+    Write-Host '[ADMIN]' -ForegroundColor Yellow -NoNewline; Write-Host ' ouvrira une fenêtre administrateur   ' -ForegroundColor DarkGray -NoNewline
+    if ($script:ConnexionExigee -and $script:SocleConnexion) {
+        Write-Host '[ARRET]' -ForegroundColor Red -NoNewline;    Write-Host ' arrête quelque chose   ' -ForegroundColor DarkGray -NoNewline
+        if ($global:AlpineSessionWorker) { Write-Host '[ L] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Se déconnecter' -ForegroundColor White }
+        else { Write-Host '[ C] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Se connecter' -ForegroundColor White }
+    }
+    else { Write-Host '[ARRET]' -ForegroundColor Red -NoNewline;    Write-Host ' arrête quelque chose' -ForegroundColor DarkGray }
     if ($script:Compact) {
         # Le bandeau a pu sortir par le haut de la fenêtre : l'essentiel est redit juste au-dessus de l'invite.
         $synthese = 'Agent : ' + [string]$Etat.AgentTexte
@@ -882,7 +941,7 @@ if ($EtatJson) {
 }
 
 if ($Apercu) {
-    Write-Menu -Etat (Get-EtatBandeau)
+    Write-Menu -Etat (Get-EtatBandeau -AvecTableau)
     Write-Host ''
     exit 0
 }
@@ -901,14 +960,15 @@ if ($Choix) {
 
 # Le menu fait une soixantaine de lignes : on agrandit la fenêtre quand la console le permet
 # (console Windows classique ; sous Windows Terminal l'appel est sans effet et on continue).
-# Les deux nombres ci-dessous suivent le menu réel : 63 = lignes de -Apercu dans le cas le plus long (25 entrées,
-# erreurs + mise à jour + état périmé, sans alerte) ; 71 = ce compte, l'invite, et la place de quelques alertes.
+# Les deux nombres ci-dessous suivent le menu réel : 69 = lignes de -Apercu dans le cas le plus long (25 entrées,
+# erreurs + mise à jour + état périmé, six lignes du tableau de bord, sans alerte) ; 77 = ce compte, l'invite, et la
+# place de quelques alertes.
 try {
     $ui = $Host.UI.RawUI
     $tampon = $ui.BufferSize
     if ($tampon.Width -lt 100) { $tampon.Width = 100; $ui.BufferSize = $tampon }
     $fenetre = $ui.WindowSize
-    $hauteur = [Math]::Min(71, $ui.MaxPhysicalWindowSize.Height)
+    $hauteur = [Math]::Min(77, $ui.MaxPhysicalWindowSize.Height)
     $largeur = [Math]::Min([Math]::Max($fenetre.Width, 100), $ui.MaxPhysicalWindowSize.Width)
     if ($fenetre.Height -lt $hauteur -or $fenetre.Width -lt $largeur) {
         $fenetre.Height = [Math]::Max($fenetre.Height, $hauteur); $fenetre.Width = $largeur
@@ -916,7 +976,26 @@ try {
     }
 } catch { }
 # Fenêtre restée basse (Windows Terminal, petite console) : le menu se resserre et redit l'état près de l'invite.
-try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 63) { $script:Compact = $true } } catch { }
+try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 69) { $script:Compact = $true } } catch { }
+
+# Connexion du propriétaire avant tout menu, comme worker.exe : Worker associé (config.json porte un worker_id),
+# menu interactif hors worker.exe. Fermeture ou abandon = sortie (code 3, comme worker.exe).
+if ($env:ALPINE_WORKER_GUI -ne '1') {
+    $configConnexion = $null
+    try { $configConnexion = Get-ConfigSure -Racine $Racine } catch { }
+    if ($configConnexion -and $configConnexion.Present -and $configConnexion.WorkerIdCourt) { $script:ConnexionExigee = $true }
+}
+if ($script:ConnexionExigee -and $script:SocleConnexion -and -not $global:AlpineSessionWorker) {
+    try { Clear-Host } catch { }
+    if ((Invoke-ConnexionProprietaire -Racine $Racine) -eq 'quitter') { Write-Host ''; Write-Info 'À bientôt.'; exit 3 }
+}
+
+function Exit-MenuConnecte {
+    <# Quitter : la session ouverte par CE menu est fermée sur le site (comme une fermeture de worker.exe l'oublie). #>
+    param([int]$Code = 0)
+    if ($script:SocleConnexion -and $global:AlpineSessionWorker) { [void](Close-SessionWorker -Racine $Racine) }
+    exit $Code
+}
 
 $message = $null
 while ($true) {
@@ -924,7 +1003,7 @@ while ($true) {
     # La lecture de l'état prend quelques secondes : l'écran ne reste pas vide pendant ce temps.
     Write-Host ''
     Write-Host '   Lecture de l''état du Worker...' -ForegroundColor DarkGray
-    $etatLu = Get-EtatBandeau
+    $etatLu = Get-EtatBandeau -AvecTableau
     try { Clear-Host } catch { }
     Write-Menu -Etat $etatLu
     if ($message) { Write-Host ''; Write-MessageRetour -Texte $message; $message = $null }
@@ -933,19 +1012,45 @@ while ($true) {
     while (-not $redessiner) {
         Write-Host ''
         $saisie = $null
-        try { $saisie = Read-Host '  Ton choix' } catch { exit 0 }   # pas de clavier (console fermée, entrée redirigée)
-        if ($null -eq $saisie) { exit 0 }
+        try { $saisie = Read-Host '  Ton choix' } catch { Exit-MenuConnecte 0 }   # pas de clavier (console fermée, entrée redirigée)
+        if ($null -eq $saisie) { Exit-MenuConnecte 0 }
         $saisie = $saisie.Trim().ToUpper()
-        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, R, Q, puis Entrée.'); continue }
-        if ($saisie -eq 'Q') { Write-Host ''; Write-Info 'À bientôt.'; exit 0 }
+        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, R, Q, puis Entrée.'); continue }
+        if ($saisie -eq 'Q') { Write-Host ''; Write-Info 'À bientôt.'; Exit-MenuConnecte 0 }
         if ($saisie -eq 'R') { $redessiner = $true; continue }
         if ($saisie -eq 'A') { Show-Aide; continue }
         if ($saisie -eq 'D') { Show-Depannage; continue }
+        if ($saisie -eq 'T') {
+            if (Get-Command -Name 'Show-TableauDeBord' -CommandType Function -ErrorAction SilentlyContinue) { Show-TableauDeBord -Racine $Racine }
+            else { Write-Alerte 'commun_tableau.ps1 est absent de ce Worker : mets le Worker à jour.' }
+            continue
+        }
+        if ($script:ConnexionExigee -and $script:SocleConnexion -and ($saisie -eq 'C' -or $saisie -eq 'L')) {
+            if ($saisie -eq 'L' -and $global:AlpineSessionWorker) {
+                [void](Close-SessionWorker -Racine $Racine)
+                Write-Ok 'Déconnecté : la session est fermée sur le site.'
+            }
+            elseif ($saisie -eq 'C' -and $global:AlpineSessionWorker) { Write-Info ('Déjà connecté : ' + (Get-ResumeSessionWorker) + '.'); continue }
+            elseif ($saisie -eq 'L') { Write-Info 'Aucune session ouverte : C pour te connecter.'; continue }
+            if ((Invoke-ConnexionProprietaire -Racine $Racine) -eq 'quitter') { Write-Host ''; Write-Info 'À bientôt.'; exit 3 }
+            $redessiner = $true; continue
+        }
         $numero = 0
-        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, R, Q.'); continue }
+        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, R, Q.'); continue }
         $entree = $script:Entrees | Where-Object { $_.Numero -eq $numero } | Select-Object -First 1
         if (-not $entree) { Write-Alerte ('Il n''y a pas d''entrée ' + $numero + '. Les numéros vont de 1 à ' + $script:NumeroMax + '.'); continue }
+        if (-not (Test-EntreeVisible $entree)) {
+            # Même garde que worker.exe pour un co-propriétaire ; hors ligne, rien de ce qui touche au site ou détruit.
+            if ($global:AlpineSessionWorker) { Write-Alerte ('Refusé : « ' + $entree.Nom + ' » n''est pas couvert par tes droits (' + (Get-ResumeSessionWorker) + ').') }
+            else { Write-Alerte ('« ' + $entree.Nom + ' » demande la connexion du propriétaire : C pour te connecter.') }
+            continue
+        }
         if (-not (Test-Path -LiteralPath $entree.Chemin -PathType Leaf)) { [void](Invoke-Entree -Entree $entree); continue }
+        # Session ouverte par ce menu : contrôlée par le site si le dernier contrôle date (expirée -> reconnexion).
+        if ($script:ConnexionExigee -and $script:SocleConnexion -and $global:AlpineSessionWorker -and -not (Confirm-SessionAvantAction -Racine $Racine)) {
+            $message = 'Connexion non rétablie : rien n''a été lancé.'
+            $redessiner = $true; continue
+        }
 
         $script:MessageRetour = $null
         $code = Invoke-Entree -Entree $entree

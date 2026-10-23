@@ -357,6 +357,24 @@ Lance **`MENU-WORKER.bat`** (racine du dossier). Chaque entrée affiche, **avant
 ce qu'elle fait, ce qu'elle ne fait pas et ce qu'il lui faut. Les scripts sont dans
 `outils\` ; chacun a aussi son propre `.bat` pour un lancement direct.
 
+**Connexion (comme worker.exe).** Sur un Worker associé, le menu demande d'abord le compte du
+propriétaire : pseudo, mot de passe (saisie masquée) puis, si le compte l'a activée, le code 2FA
+(masqué), ou **N** pour valider depuis un navigateur ou un téléphone. Même chemin que worker.exe :
+l'agent signe la demande (route du site `self/login`), co-propriétaires acceptés avec leurs droits
+(entrées hors droits masquées), verrou après trois échecs (déblocage par le lien reçu par e-mail ou
+Mes Workers), notifications au propriétaire. Mot de passe, code et jeton de session ne passent jamais
+par une ligne de commande ni par un journal : fichier `runtime\local-control\<32 hex>.args.json` à ACL
+fermée, lu une fois puis effacé par l'agent. Le site exige cette session pour mettre à jour, réparer,
+arrêter les jobs et régler le partage. **L** : se déconnecter, **Q** : quitter (session fermée).
+Site ou agent injoignable : **mode hors ligne**, entrées locales sûres seulement (1 à 6, 9 à 12, 14,
+16, 19, 24), **C** pour se connecter ensuite. Lancé depuis worker.exe, le menu reprend sa session.
+
+**Tableau de bord.** Six lignes sous l'en-tête (jobs et partage, RAM et disque, pilote et CUDA,
+place occupée par les installations, IA locales, connexion) ; **T** affiche le détail : jobs, file,
+partage, RAM, disque, chaque GPU et sa VRAM, place par catégorie et par composant, composants
+allumés / éteints / associés / ON-OFF, modèles, comptes IA, surveillance des graveuses. Même source
+que le bouton « Tableau de bord » de worker.exe : l'action locale `dashboard` de l'agent.
+
 - **[ADMIN]** : l'outil ouvre une fenêtre administrateur (Windows te demande d'accepter).
   Si tu refuses, rien n'est modifié.
 - Options des outils de **`outils\`** (entrées 1 à 4, 8 à 16) : `-Racine <dossier>`

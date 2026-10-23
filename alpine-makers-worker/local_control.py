@@ -67,6 +67,11 @@ LAZY_ACTIONS = {
     # {"tool", "name", "params" | "args_file"} aiguillé vers DESKTOP_ACTIONS de worker_agent/desktop_<outil>.py
     # (liste fixe desktop_actions.TOOL_MODULES ; voir docs/desktop/SOCLE.md). Ne plus ajouter de ligne ici pour un outil.
     "desktop": "desktop_actions",
+    # Menu console du Worker connecté comme worker.exe (worker_menu_session_v1) : validité et fin de la session du
+    # propriétaire ; le jeton passe par args_file, jamais par la ligne de commande.
+    "session-check": "self_service", "logout": "self_service",
+    # Tableau de bord commun au menu et à worker.exe (worker_dashboard_v1) : état complet du Worker, lecture seule.
+    "dashboard": "worker_dashboard",
 }
 PARAMS_MAX_BYTES = 2048
 # Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.
@@ -891,6 +896,8 @@ def main():
                              "reconnect / network / cleanup : maintenance ; "
                              "duplicates-* / site-* / jobs-stop / sharing-set / relay-status / manage : gestion du Worker ; "
                              "login / login-state : connexion du compte depuis worker.exe (identifiants dans le fichier args) ; "
+                             "session-check / logout : session du menu du Worker (jeton dans le fichier args) ; "
+                             "dashboard : tableau de bord complet du Worker (lecture seule) ; "
                              "control-room : caméras, machines et Worker vus par l'agent, sans le site (lecture seule) ; "
                              "desktop : outils natifs d'Alpine Makers Desktop (tool, name, params ou args_file)")
     parser.add_argument("--json", action="store_true", help="n'imprime qu'une ligne JSON : la reponse de l'agent")

@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.35"
+AGENT_VERSION = "1.50.36"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -194,6 +194,11 @@ AGENT_CAPABILITIES += ("desktop_converter_v1",)  # littéral : le site lit ces l
 # Versions amont contrôlées par le site : l'installateur accepte la dernière version validée d'un moteur ou module
 # (PrintGuard, dépôts git épinglés) jointe à la commande, revérifiée par component_installer.upstream_spec.
 AGENT_CAPABILITIES += ("upstream_targets_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Menu console du Worker (MENU-WORKER.bat) connecté comme worker.exe : self/login (client « menu »), session jointe par
+# fichier d'arguments aux relais self/update, self/repair, self/cancel-jobs, self/sharing ; le site l'exige dès que
+# l'agent annonce cette capacité. Tableau de bord commun au menu et à worker.exe (action locale « dashboard ») et place
+# occupée par les installations dans le heartbeat (« storage_usage », worker_dashboard.py).
+AGENT_CAPABILITIES += ("worker_menu_session_v1", "worker_dashboard_v1")  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -1473,6 +1478,15 @@ class Agent:
         summary = self.environment_maintenance_summary()
         if summary:
             payload["environment_maintenance"] = summary
+        try:
+            # Tableau de bord : dernière mesure de la place occupée (calculée dans son propre fil, jamais ici).
+            usage = self._dashboard_module().storage_for_heartbeat(self)
+            if usage:
+                payload["storage_usage"] = usage
+        except Exception as error:
+            if not getattr(self, "_dashboard_error_logged", False):  # une seule ligne, pas une par heartbeat
+                self._dashboard_error_logged = True
+                print(f"Mesure de la place occupée indisponible ({type(error).__name__}).", flush=True)
         payload["commands_reconciliation"] = [
             {"command_id": command_id, "state": item.get("state"),
              **({"result": item["response"]} if item.get("response") is not None else {})}
@@ -4022,6 +4036,10 @@ class Agent:
         # systemd on Linux), which recreates it after this clean exit.
         time.sleep(1)
         exit_process(75)
+
+    def _dashboard_module(self):
+        """worker_dashboard.py, chargé à la demande (comme self_service.py) : son absence ne touche que le tableau de bord."""
+        return importlib.import_module((__package__ + "." if __package__ else "") + "worker_dashboard")
 
     def ai_account_manager(self):
         """Gestionnaire des comptes IA (ai_accounts.py), créé à la première commande : un échec d'import ne touche

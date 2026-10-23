@@ -37,6 +37,16 @@ LOGIN_FIELDS = ("ok", "code", "error", "totp", "username", "role", "session_toke
 # n'étaient pas recopiés : worker.exe se croyait non connecté et le site refusait Gestion complète et Desktop.
 LOGIN_RIGHTS_MAX = 32
 USERNAME_MAX, PASSWORD_MAX, TOTP_MAX = 120, 512, 16
+# Menu console du Worker (capacité worker_menu_session_v1) : même connexion que worker.exe, champ « client » = « menu ».
+LOGIN_CLIENTS = ("exe", "menu")
+# Session du propriétaire jointe aux relais qui modifient (site-update, site-repair, jobs-stop, sharing-set) et contrôlée
+# par « session-check » / close par « logout ». Le jeton ne passe JAMAIS par la ligne de commande : fichier d'arguments
+# runtime/local-control/<32 hex>.args.json {"session_token": "…"}, lu puis effacé ici, comme le mot de passe.
+SESSION_PATH = "/api/worker-protocol/self/session"
+LOGOUT_PATH = "/api/worker-protocol/self/logout"
+SESSION_ARGS_MAX_BYTES = 1024
+SESSION_TOKEN_MIN, SESSION_TOKEN_MAX = 16, 200
+_TOKEN_CHARS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
 RELAY_PATHS = {
     "site-update": "/api/worker-protocol/self/update",
     "site-repair": "/api/worker-protocol/self/repair",
@@ -347,21 +357,45 @@ def relay_status(agent, params):
     return {key: value for key, value in record.items() if key != "at"}
 
 
+def check_session_args(value):
+    """Contenu du fichier de session : {"session_token": "<16 à 200 caractères base64url>"}, rien d'autre."""
+    if not isinstance(value, dict) or set(value) != {"session_token"}:
+        raise ValueError("Fichier de session illisible : seul « session_token » est attendu.")
+    token = value["session_token"]
+    if (not isinstance(token, str) or not SESSION_TOKEN_MIN <= len(token) <= SESSION_TOKEN_MAX
+            or any(char not in _TOKEN_CHARS for char in token)):
+        raise ValueError("Jeton de session illisible : reconnecte-toi.")
+    return {"session_token": token}
+
+
+def _with_session(agent, params, body):
+    """Corps neuf pour le site : ``body`` plus le jeton de session lu (puis effacé) dans ``args_file``, s'il est donné.
+
+    Sans fichier, rien n'est ajouté : le site décide (un agent qui annonce worker_menu_session_v1 est refusé sans
+    session, 401 WORKER_EXE_SESSION_REQUIRED, et l'outil redemande la connexion)."""
+    body = dict(body)
+    if "args_file" in params:
+        body.update(args_from_file(agent, params["args_file"], check_session_args, SESSION_ARGS_MAX_BYTES))
+    return body
+
+
 def site_update(agent, params):
     """Demande au site la commande de mise à jour : les gardes de l'agent s'appliquent à son arrivée."""
-    _clean("site-update", params)
-    return _relay(agent, "site-update", lambda: _call(agent, RELAY_PATHS["site-update"], {}))
+    params = _clean("site-update", params)
+    body = _with_session(agent, params, {})
+    return _relay(agent, "site-update", lambda: _call(agent, RELAY_PATHS["site-update"], body))
 
 
 def site_repair(agent, params):
     params = _clean("site-repair", params)
-    body = {"include_heavy": params.get("include_heavy", False)}
+    body = _with_session(agent, params, {"include_heavy": params.get("include_heavy", False)})
     return _relay(agent, "site-repair", lambda: _call(agent, RELAY_PATHS["site-repair"], body))
 
 
 def sharing_set(agent, params):
     """Règle le partage par la route signée. Le corps est un dictionnaire neuf, jamais les paramètres reçus."""
     params = _clean("sharing-set", params)
+    session = _with_session(agent, params, {})  # fichier de session lu (et effacé) avant tout refus
     if "enabled" not in params and "auto_accept_jobs" not in params:
         raise ValueError("Réglage de partage vide : rien n'est demandé au site.")
     if "enabled" in params and "expected" not in params:
@@ -383,6 +417,7 @@ def sharing_set(agent, params):
     for name in ("auto_accept_jobs", "confirm_everyone_auto"):
         if name in params:
             body[name] = params[name]
+    body.update(session)
     return _relay(agent, "sharing-set", lambda: _call(agent, RELAY_PATHS["sharing-set"], body))
 
 
@@ -510,7 +545,7 @@ def _start_sweep(agent, job_ids, tasks):
         agent.stop_sweep.update(state="done", finished_at=time.time(), error=type(error).__name__)
 
 
-def _stop_jobs(agent):
+def _stop_jobs(agent, body=None):
     # Agent 1.50.33 : quoi que réponde le site, les calculs de CE PC reçoivent l'arrêt AVANT l'appel au site (qui peut
     # attendre son délai réseau), puis ceux qui ne s'arrêtent pas seuls sont coupés (arbre de processus vérifié)
     # après STOP_GRACE secondes.
@@ -521,7 +556,9 @@ def _stop_jobs(agent):
              "desktop_tasks_cancelled": [{"tool": task.tool, "label": str(task.label)[:120]} for task in tasks][:20],
              "sweep_grace_s": STOP_GRACE}
     _start_sweep(agent, job_ids, tasks)
-    outcome = _call(agent, RELAY_PATHS["jobs-stop"], {})
+    # Le site exige la session du propriétaire (ou le droit « jobs » d'un co-propriétaire) ; l'arrêt sur CE PC, lui, est
+    # déjà demandé ci-dessus : c'est une mesure de sécurité locale, jamais conditionnée à la connexion.
+    outcome = _call(agent, RELAY_PATHS["jobs-stop"], dict(body or {}))
     if outcome["state"] == "done":
         agent.reconnect_requested.set()  # les arrêts reviennent par le heartbeat : ne pas attendre vingt secondes
     else:
@@ -534,8 +571,9 @@ def _stop_jobs(agent):
 
 def jobs_stop(agent, params):
     """Arrête calculs et installations de ce Worker par le site, et les calculs de CE PC ; aucun équipement n'est commandé."""
-    _clean("jobs-stop", params)
-    return _relay(agent, "jobs-stop", lambda: _stop_jobs(agent))
+    params = _clean("jobs-stop", params)
+    body = _with_session(agent, params, {})
+    return _relay(agent, "jobs-stop", lambda: _stop_jobs(agent, body))
 
 
 # --- Connexion du compte depuis worker.exe (agent 1.50.12) --------------------------------------------------------
@@ -544,9 +582,12 @@ def _check_login_args(value):
     """Contenu du fichier d'arguments : {"username", "password", "totp_code"?}, chaînes bornées, rien d'autre."""
     if not isinstance(value, dict):
         raise ValueError("Fichier d'arguments illisible : un objet est attendu.")
-    unknown = sorted(str(key)[:40] for key in set(value) - {"username", "password", "totp_code"})
+    unknown = sorted(str(key)[:40] for key in set(value) - {"username", "password", "totp_code", "client"})
     if unknown:
         raise ValueError("Argument de connexion non autorisé : " + unknown[0])
+    client = value.get("client", "exe")
+    if client not in LOGIN_CLIENTS:
+        raise ValueError("Client de connexion inconnu.")
     username, password, totp = value.get("username"), value.get("password"), value.get("totp_code", "")
     if not isinstance(username, str) or not username.strip() or len(username) > USERNAME_MAX:
         raise ValueError("Identifiant de connexion manquant ou trop long.")
@@ -556,7 +597,10 @@ def _check_login_args(value):
         totp = ""
     if not isinstance(totp, str) or len(totp) > TOTP_MAX:
         raise ValueError("Code de validation illisible.")
-    return {"username": username.strip(), "password": password, "totp_code": totp.strip()}
+    cleaned = {"username": username.strip(), "password": password, "totp_code": totp.strip()}
+    if client != "exe":
+        cleaned["client"] = client  # worker.exe n'envoie rien de plus qu'avant : le site d'avant le menu l'accepte
+    return cleaned
 
 
 def _login_failure(message, code="", http=None, site_missing=False, unreachable=False):
@@ -586,7 +630,13 @@ def _login_outcome(outcome):
 
 def _login_worker(agent, body, holder, done):
     try:
-        holder["outcome"] = _call(agent, LOGIN_PATH, body)
+        outcome = _call(agent, LOGIN_PATH, body)
+        if (outcome["state"] == "failed" and outcome.get("http") == 400 and outcome.get("site_code") == "SELF_SERVICE_FIELD"
+                and "client" in body):
+            # Site d'avant le menu du Worker : il ne connaît pas « client ». Même demande sans lui (rien d'autre ne change).
+            body = {key: value for key, value in body.items() if key != "client"}
+            outcome = _call(agent, LOGIN_PATH, body)
+        holder["outcome"] = outcome
     except Exception as error:  # filet : aucune exception (ni son texte) ne sort du fil
         holder["outcome"] = {"state": "failed", "http": None, "site_code": "", "site_missing": False,
                              "unreachable": False, "error": f"Connexion interrompue ({type(error).__name__})."}
@@ -691,6 +741,79 @@ def device_login_poll(agent, params):
     return _device_login_request(agent, "/api/worker-protocol/self/device-login/poll", body)
 
 
+def _session_request(agent, path, body):
+    """Appel synchrone (au plus LOGIN_TIMEOUT s) pour « session-check » et « logout » ; rien n'est gardé ici.
+
+    Rend {ok, valid, role, rights, expires_in, ended, code, error, http, unreachable, site_missing} : seuls des champs
+    connus, recopiés depuis la réponse du site, jamais le jeton."""
+    result = {"ok": False, "valid": False, "role": "", "rights": [], "expires_in": 0, "ended": False, "code": "",
+              "error": "", "http": None, "unreachable": False, "site_missing": False}
+    acquired = False
+    for attempt in range(LOGIN_LOCK_RETRIES):
+        if agent.self_relay_lock.acquire(blocking=False):
+            acquired = True
+            break
+        if attempt + 1 < LOGIN_LOCK_RETRIES:
+            agent.stop_requested.wait(LOGIN_LOCK_RETRY_DELAY)
+    if not acquired:
+        return {**result, "code": "SESSION_BUSY", "error": "Une demande au site est déjà en cours ; réessaie dans un instant."}
+    holder, done = {}, threading.Event()
+
+    def run():
+        try:
+            holder["outcome"] = _call(agent, path, body)
+        except Exception as error:  # filet : rien ne sort du fil
+            holder["outcome"] = {"state": "failed", "http": None, "site_code": "", "site_missing": False,
+                                 "unreachable": False, "error": f"Demande interrompue ({type(error).__name__})."}
+        finally:
+            try:
+                done.set()
+            finally:
+                agent.self_relay_lock.release()
+    try:
+        threading.Thread(target=run, name="local-relay-session", daemon=True).start()
+    except BaseException:
+        agent.self_relay_lock.release()
+        raise
+    if not done.wait(LOGIN_TIMEOUT):
+        return {**result, "code": "SESSION_TIMEOUT", "error": "Le site n'a pas répondu à temps.", "unreachable": True}
+    outcome = holder["outcome"]
+    if outcome["state"] != "done":
+        return {**result, "code": outcome["site_code"], "error": outcome["error"], "http": outcome["http"],
+                "unreachable": outcome["unreachable"], "site_missing": outcome["site_missing"]}
+    answer = outcome["response"]
+    result["ok"] = answer.get("ok") is True
+    result["valid"] = answer.get("valid") is True
+    result["ended"] = answer.get("ended") is True
+    role = answer.get("role")
+    result["role"] = role if role in ("owner", "co_owner") else ""
+    rights = answer.get("rights")
+    if isinstance(rights, list):
+        result["rights"] = [item[:40] for item in rights if isinstance(item, str) and item][:LOGIN_RIGHTS_MAX]
+    remaining = answer.get("expires_in")
+    if isinstance(remaining, int) and not isinstance(remaining, bool) and 0 <= remaining <= 7 * 86400:
+        result["expires_in"] = remaining
+    return result
+
+
+def session_check(agent, params):
+    """La session de ``args_file`` vaut-elle encore sur le site ? (menu du Worker, avant une action sensible)."""
+    params = _clean("session-check", params)
+    if "args_file" not in params:
+        raise ValueError("Fichier de session manquant : écris runtime/local-control/<32 hex>.args.json.")
+    body = args_from_file(agent, params["args_file"], check_session_args, SESSION_ARGS_MAX_BYTES)
+    return _session_request(agent, SESSION_PATH, body)
+
+
+def logout(agent, params):
+    """Ferme sur le site la session de ``args_file`` (déconnexion du menu ou de worker.exe)."""
+    params = _clean("logout", params)
+    if "args_file" not in params:
+        raise ValueError("Fichier de session manquant : écris runtime/local-control/<32 hex>.args.json.")
+    body = args_from_file(agent, params["args_file"], check_session_args, SESSION_ARGS_MAX_BYTES)
+    return _session_request(agent, LOGOUT_PATH, body)
+
+
 def login_state(agent, params):
     """État du verrou de connexion de worker.exe, lu dans le dernier état connu du site (``exe_login``)."""
     view = site_state(agent, params)
@@ -705,13 +828,17 @@ def login_state(agent, params):
 
 LOCAL_ACTIONS = {
     "site-state": {"handler": site_state, "params": {"refresh": v_bool}, "read": True},
-    "site-update": {"handler": site_update, "params": {}, "read": False},
-    "site-repair": {"handler": site_repair, "params": {"include_heavy": v_bool}, "read": False},
-    "jobs-stop": {"handler": jobs_stop, "params": {}, "read": False},
+    # « args_file » : session du propriétaire (fichier {"session_token"} lu puis effacé), exigée par le site pour un
+    # agent qui annonce worker_menu_session_v1.
+    "site-update": {"handler": site_update, "params": {"args_file": v_hex(32)}, "read": False},
+    "site-repair": {"handler": site_repair, "params": {"include_heavy": v_bool, "args_file": v_hex(32)}, "read": False},
+    "jobs-stop": {"handler": jobs_stop, "params": {"args_file": v_hex(32)}, "read": False},
     "sharing-set": {"handler": sharing_set, "read": False,
                     "params": {"enabled": v_bool, "audiences": v_list_of(SHARING_AUDIENCES, 3),
                                "tools": v_list_of(SHARING_TOOLS, 3), "expected": v_hex(16),
-                               "auto_accept_jobs": v_bool, "confirm_everyone_auto": v_bool}},
+                               "auto_accept_jobs": v_bool, "confirm_everyone_auto": v_bool, "args_file": v_hex(32)}},
+    "session-check": {"handler": session_check, "params": {"args_file": v_hex(32)}, "read": True},
+    "logout": {"handler": logout, "params": {"args_file": v_hex(32)}, "read": False},
     "relay-status": {"handler": relay_status, "params": {"operation": v_hex(32)}, "read": True},
     # Agent 1.50.12 : connexion depuis worker.exe ; les identifiants passent par le fichier d'arguments, jamais ici.
     "login": {"handler": login, "params": {"args_file": v_hex(32)}, "read": False},
