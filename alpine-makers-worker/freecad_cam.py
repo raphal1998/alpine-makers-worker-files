@@ -1068,11 +1068,23 @@ def main():
     result(True, **details)
 
 
-if __name__ == "__main__":
+def launched_by_freecadcmd():
+    """Vrai quand FreeCADCmd charge ce fichier comme un MODULE (``import freecad_cam``) au lieu de l'exécuter.
+
+    Selon sa version, FreeCADCmd exécute un script ``.py`` de la ligne de commande sous ``__main__`` ou l'importe
+    sous son propre nom : le garde ``__name__ == "__main__"`` seul laissait alors FreeCAD se terminer en une seconde
+    sans rien calculer ni écrire (aucune ligne de résultat). Jamais vrai dans un test qui importe ce module.
+    """
+    return __name__ != "__main__" and "FreeCAD" in sys.modules and any(
+        os.path.basename(str(argument)).lower() == "freecad_cam.py" for argument in sys.argv[1:])
+
+
+if __name__ == "__main__" or launched_by_freecadcmd():
     try:
         main()
     except Exception as exc:
         traceback.print_exc()
         message = str(exc) if isinstance(exc, (CamEngineError, ValueError)) else "Erreur du moteur CAM : %s" % type(exc).__name__
         result(False, error=message)
-        sys.exit(2)
+        if __name__ == "__main__":
+            sys.exit(2)  # importé par FreeCADCmd, un SystemExit relancerait le fichier : la ligne de résultat suffit

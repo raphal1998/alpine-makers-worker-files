@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.50.34 — 2026-10-23
+
+**Préparer pour une CNC : la cause d'un échec FreeCAD est enfin transmise**
+
+### Modifié
+- Le moteur CNC (freecad_cam.py) s'exécute aussi quand FreeCADCmd le charge comme module au lieu de le lancer : la lecture des capacités ne se termine plus en une seconde sans rien calculer.
+
+### Corrigé
+- Convertisseur 3D et Préparer pour une CNC : quand FreeCAD s'arrête sans message, le Worker transmet maintenant la cause (démarrage impossible, plantage, atelier CAM absent, moteur non exécuté), son code de sortie et la fin de sa sortie d'erreur, sans le nom du compte Windows. Le site en tire la marche à suivre.
+
+### Technique
+- Empreinte du paquet publié : `14c4cd5ffdbaf967…` (dossier du paquet).
+
 ## Version 1.50.33 — 2026-10-23
 
 **Menu Worker et worker.exe : arrêter, éteindre et réparer vraiment tout**

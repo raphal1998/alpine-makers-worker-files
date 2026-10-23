@@ -101,11 +101,8 @@ def _run(job, workdir, state):
         # FreeCADCmd peut s'arrêter nativement (entité DXF/IGES mal formée, par exemple) avant
         # d'écrire sa ligne RAPHAL_FREECAD_RESULT= : aucune exception Python à rapporter, mais sa
         # sortie d'erreur garde souvent la trace utile (incident 13/10, conversion muette).
-        detail = str(details.get("error") or "").strip()
-        if not detail and stderr_path.is_file():
-            detail = stderr_path.read_text(encoding="utf-8", errors="replace").strip()[-800:]
-        raise ValueError(detail or "Conversion FreeCAD échouée ou sortie incomplète.")
-    details.pop("ok", None)
+        raise ValueError(engine_failure(details, stdout_path, stderr_path, "Conversion FreeCAD échouée ou sortie incomplète."))
+    _clean(details)
     details["artifacts"] = [destination.name]
     state.finish("completed", result=details)
     return details
@@ -140,8 +137,75 @@ def _supervise(state, process, stdout_path):
     details = json.loads(reported) if reported else {}
     if not isinstance(details, dict):
         details = {}
-    if process is not None and process.returncode:
+    returncode = getattr(process, "returncode", None) if process is not None else None
+    if process is not None and returncode:
         details["ok"] = False
+    # Code de sortie et présence de la ligne de résultat : de quoi expliquer un arrêt muet (voir engine_failure).
+    details["_returncode"] = returncode if isinstance(returncode, int) else None
+    details["_reported"] = bool(reported)
+    return details
+
+
+# Codes de sortie Windows (NTSTATUS) d'un FreeCADCmd qui n'a pas pu démarrer ou s'est arrêté brutalement.
+_START_FAILURES = {0xC0000135: "bibliothèque Windows (DLL) introuvable", 0xC0000139: "point d'entrée de DLL introuvable",
+                   0xC000007B: "bibliothèque Windows incompatible (32/64 bits)", 0xC0000142: "initialisation d'une DLL échouée"}
+_CRASHES = {0xC0000005: "violation d'accès mémoire", 0xC0000409: "dépassement de pile détecté",
+            0xC0000374: "corruption du tas mémoire", 0x80000003: "point d'arrêt (abandon interne)",
+            0xC000001D: "instruction non prise en charge par ce processeur", 0xC00000FD: "pile saturée",
+            0xC0000017: "mémoire insuffisante", 0xC000013A: "interrompu (Ctrl+C ou fermeture de session)"}
+
+
+def _redacted_tail(text, limit=500):
+    """Fin d'une sortie, sans le nom du compte Windows (le job d'un Worker partagé est vu par un autre compte)."""
+    import re
+    text = "\n".join(line for line in str(text or "").splitlines() if not line.startswith("RAPHAL_FREECAD_RESULT="))
+    text = re.sub(r"(?i)([a-z]:[\\/]+users[\\/]+)[^\\/\r\n]+", r"\1…", text)
+    text = re.sub(r"(?i)(/home/)[^/\s]+", r"\1…", text)
+    text = " ".join(text.split())
+    return text[-limit:]
+
+
+def engine_failure(details, stdout_path, stderr_path, generic):
+    """Message d'échec d'un FreeCADCmd muet : cause classée [CODE], code de sortie et fin de sa sortie d'erreur.
+
+    Avant (incident DESKTOP-2OFS575, 22-23/10) : « Calcul FreeCAD CAM échoué. » sans rien d'autre, alors que la
+    sortie d'erreur et le code de sortie de FreeCADCmd disaient pourquoi. Le code entre crochets est lu par le site
+    (tool_availability.py) pour proposer la marche à suivre.
+    """
+    message = str(details.get("error") or "").strip()
+    if message:
+        return message
+    returncode = details.get("_returncode")
+    stderr = stderr_path.read_text(encoding="utf-8", errors="replace") if stderr_path.is_file() else ""
+    stdout = stdout_path.read_text(encoding="utf-8", errors="replace") if stdout_path.is_file() else ""
+    tail = _redacted_tail(stderr) or _redacted_tail(stdout)
+    lowered = (stderr + "\n" + stdout).lower()
+    code = returncode & 0xFFFFFFFF if isinstance(returncode, int) else None
+    shown = f"0x{code:08X}" if code is not None and code > 0xFFFF else str(returncode)
+    if "no module named 'path" in lowered or "no module named 'cam" in lowered:
+        text = "[FREECAD_CAM_MISSING] L'atelier CAM (module Path) de FreeCAD est absent ou cassé sur ce Worker."
+    elif "unexpectedly terminated" in lowered:
+        text = ("[FREECAD_PATH_REFUSED] FreeCADCmd s'est arrêté (« Application unexpectedly terminated ») : un chemin "
+                "du Worker contient sans doute un caractère accentué que FreeCAD refuse.")
+    elif code in _START_FAILURES:
+        text = f"[FREECAD_START_FAILED] FreeCADCmd n'a pas pu démarrer : {_START_FAILURES[code]} (code {shown})."
+    elif code in _CRASHES:
+        text = f"[FREECAD_CRASHED] FreeCADCmd s'est arrêté brutalement : {_CRASHES[code]} (code {shown})."
+    elif code == 0 and not details.get("_reported"):
+        text = ("[FREECAD_NO_RESULT] FreeCADCmd s'est terminé sans exécuter le moteur du Worker (aucune ligne de "
+                "résultat, code 0).")
+    elif code is not None and code != 0:
+        text = f"[FREECAD_EXIT] FreeCADCmd s'est arrêté avec le code {shown} sans message."
+    else:
+        text = f"[FREECAD_NO_RESULT] {generic}"
+    if details.get("_reported") and code:
+        text += " Le moteur avait pourtant écrit son résultat avant cet arrêt."
+    return (text + (f" Sortie : {tail}" if tail else ""))[:900]
+
+
+def _clean(details):
+    for key in ("ok", "_returncode", "_reported"):
+        details.pop(key, None)
     return details
 
 
@@ -203,8 +267,8 @@ def _run_cam(job, workdir, state, parameters):
         process = _launch(state, command, stdout_path, stderr_path)
     details = _supervise(state, process, stdout_path)
     if not details.get("ok"):
-        raise ValueError(str(details.get("error") or "Calcul FreeCAD CAM échoué."))
-    details.pop("ok", None)
+        raise ValueError(engine_failure(details, stdout_path, stderr_path, "Calcul FreeCAD CAM échoué."))
+    _clean(details)
     wanted = ["cam_capabilities.json"] if cam["op"] == "capabilities" else details.get("artifacts")
     if not isinstance(wanted, list) or not wanted:
         raise ValueError("Le moteur CNC n'a annoncé aucun fichier.")

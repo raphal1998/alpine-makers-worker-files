@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.33"
+AGENT_VERSION = "1.50.34"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
