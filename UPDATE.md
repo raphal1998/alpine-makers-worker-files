@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.50.35 — 2026-10-23
+
+**Installations : la dernière version validée est installée directement (PrintGuard 2.6.x)**
+
+### Ajouté
+- Installations : un moteur ou un module reçoit directement la dernière version validée par le site (PrintGuard 2.6.x au lieu de 2.4.0). L'agent la revérifie avant de l'installer : même dépôt et même archive officiels, taille et SHA-256 publiés, version au moins égale à sa version embarquée.
+
+### Corrigé
+- PrintGuard : « Installer » sur une copie plus ancienne passe directement à la version validée, et « Mettre à jour » n'installe plus la 2.4.0. Un paquet sans ses modèles ou annonçant une autre version est refusé, la version en place est conservée. Le mode TEST accepte PrintGuard 2.4.0 ou ultérieur.
+
+### Technique
+- Empreinte du paquet publié : `fadafcd48aeecd18…` (dossier du paquet).
+
 ## Version 1.50.34 — 2026-10-23
 
 **Préparer pour une CNC : la cause d'un échec FreeCAD est enfin transmise**

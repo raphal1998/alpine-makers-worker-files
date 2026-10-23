@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.34"
+AGENT_VERSION = "1.50.35"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -191,6 +191,9 @@ AGENT_CAPABILITIES += ("desktop_library_v1",)  # littéral : le site lit ces lig
 AGENT_CAPABILITIES += ("desktop_equipment_v1",)  # vues natives, routes signées et session du propriétaire
 # Agent 1.50.22 : Convertisseur 2D/3D de worker.exe (desktop_converter.py → route signée self/converter).
 AGENT_CAPABILITIES += ("desktop_converter_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Versions amont contrôlées par le site : l'installateur accepte la dernière version validée d'un moteur ou module
+# (PrintGuard, dépôts git épinglés) jointe à la commande, revérifiée par component_installer.upstream_spec.
+AGENT_CAPABILITIES += ("upstream_targets_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -3860,6 +3863,15 @@ class Agent:
         if not script.is_file(): raise AgentError(f"Installateur contrôlé indisponible : {script.name}")
         environment = dict(os.environ); environment["ALPINE_WORKER_ROOT"] = str(self.root)
         environment.pop("ALPINE_ASSET_TOKEN", None)
+        environment.pop("ALPINE_UPSTREAM_TARGET", None)
+        upstream_target = payload.get("upstream_target")
+        if kind in {"tool", "component"} and action in {"install", "update", "repair"} and isinstance(upstream_target, dict):
+            # Dernière version validée par le site : l'installateur la revérifie contre son catalogue embarqué
+            # (même dépôt, même archive, version au moins égale au plancher) et refuse toute autre valeur.
+            serialized = json.dumps(upstream_target, ensure_ascii=True, sort_keys=True)
+            if len(serialized) > 16384:
+                raise AgentError("Version cible du site trop volumineuse : installation annulée.")
+            environment["ALPINE_UPSTREAM_TARGET"] = serialized
         token = payload.get("auth_token")
         if kind == "model" and action in {"install", "update", "repair"} and isinstance(token, str) and token and token != "«redacted»":
             # Clé d'une source à clé (CivitAI) : l'installateur ne la lit que pour un modèle de son propre catalogue

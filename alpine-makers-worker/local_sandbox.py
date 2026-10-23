@@ -95,7 +95,7 @@ def refuse_unsafe_operation(command, payload=None):
 
 
 def printguard_environment(root, component_root, base):
-    """Configure PrintGuard 2.4's documented PORT and bundled MediaMTX endpoints.
+    """Configure PrintGuard's (2.4.0 or later) documented PORT and bundled MediaMTX endpoints.
 
     Only the child environment and a private config are changed. Do not connect
     to or stop an existing server to reclaim a port; an occupied test port is a
@@ -108,11 +108,23 @@ def printguard_environment(root, component_root, base):
     root, component_root = Path(root).resolve(), Path(component_root).resolve()
     if not component_root.is_relative_to(root / "components"):
         raise ValueError("PrintGuard TEST doit être installé dans les composants de ce Worker.")
-    metadata = component_root / "_internal" / "printguard-2.4.0.dist-info" / "METADATA"
+    # Version installée (2.4.0 ou une version plus récente validée par le site) : le dossier du paquet et son METADATA
+    # doivent annoncer la même version, au moins 2.4.0, dont le schéma PORT/MediaMTX est documenté.
+    versions = []
+    internal = component_root / "_internal"
+    for child in (internal.iterdir() if internal.is_dir() else ()):
+        match = re.fullmatch(r"printguard-(\d{1,4})\.(\d{1,4})\.(\d{1,6})\.dist-info", child.name, re.IGNORECASE)
+        if match and child.is_dir():
+            versions.append((tuple(int(part) for part in match.groups()), child))
+    if not versions or max(versions)[0] < (2, 4, 0):
+        raise ValueError("Version PrintGuard non vérifiée pour les ports TEST ; aucun service lancé.")
+    version, folder = max(versions)
+    metadata = folder / "METADATA"
     if not metadata.is_file() or metadata.stat().st_size > 65536 or not metadata.resolve().is_relative_to(component_root):
         raise ValueError("Version PrintGuard non vérifiée pour les ports TEST ; aucun service lancé.")
     metadata_text = metadata.read_text(encoding="utf-8")
-    if not re.search(r"(?mi)^Name: printguard\s*$", metadata_text) or not re.search(r"(?m)^Version: 2\.4\.0\s*$", metadata_text):
+    expected = re.escape(".".join(str(part) for part in version))
+    if not re.search(r"(?mi)^Name: printguard\s*$", metadata_text) or not re.search(rf"(?m)^Version: {expected}\s*$", metadata_text):
         raise ValueError("Version PrintGuard non vérifiée pour les ports TEST ; aucun service lancé.")
     # Work with the known bundled schema, not an inherited external config.
     source = component_root / "_internal" / "mediamtx.yml"

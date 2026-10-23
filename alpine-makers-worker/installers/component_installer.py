@@ -59,8 +59,12 @@ CATALOG = {
     "orca-bridge": {"kind": "dashboard-file"},
     "cuda-toolkit": {"kind": "cuda-toolkit"},
     "freecad": {"kind": "system-freecad"},
+    # Version plancher embarquée. Le site contrôle régulièrement les publications officielles (upstream_versions.py)
+    # et joint à la commande la dernière version validée (``upstream_target``) : même dépôt, même nom d'archive,
+    # taille et SHA-256 publiés par l'éditeur ; jamais une adresse libre (voir upstream_spec).
     "printguard": {"kind": "upstream-package", "version": "2.4.0",
                    "url": "https://github.com/oliverbravery/PrintGuard/releases/download/v2.4.0/PrintGuard-windows-x64.zip",
+                   "url_template": "https://github.com/oliverbravery/PrintGuard/releases/download/v{version}/PrintGuard-windows-x64.zip",
                    "size": 168620029,
                    "sha256": "47e8aea53356f151fe404f80f49a626da668bda5047e305d17befa6ab97dab9f"},
     # Moteur d'Alpine Laser Studio : le code (laser_engine/) arrive avec le paquet Worker ; le
@@ -110,6 +114,79 @@ PIP_WHEEL_PREFERENCE = ("--prefer-binary", "--only-binary", ",".join(NATIVE_WHEE
 MAX_ARCHIVE_BYTES = 2 * 1024 * 1024 * 1024
 MAX_EXTRACTED_BYTES = 4 * 1024 * 1024 * 1024
 DOWNLOAD_RESERVE_BYTES = 512 * 1024 * 1024
+# Version cible validée par le site, transmise par l'agent dans l'environnement de l'installateur (jamais en argument).
+UPSTREAM_TARGET_ENV = "ALPINE_UPSTREAM_TARGET"
+UPSTREAM_TARGET_KINDS = frozenset({"upstream-package", "git", "git-backend"})
+_UPSTREAM_SEMVER = re.compile(r"\d{1,4}\.\d{1,4}\.\d{1,6}")
+_UPSTREAM_COMMIT = re.compile(r"[0-9a-f]{40}")
+_UPSTREAM_SHA256 = re.compile(r"[0-9a-f]{64}")
+_PRINTGUARD_DIST_INFO = re.compile(r"printguard-(\d{1,4}\.\d{1,4}\.\d{1,6})\.dist-info", re.IGNORECASE)
+
+
+def version_tuple(value):
+    """« 2.6.3 » → (2, 6, 3) ; None pour tout autre texte."""
+    value = str(value or "")
+    return tuple(int(part) for part in value.split(".")) if _UPSTREAM_SEMVER.fullmatch(value) else None
+
+
+def upstream_spec(component, spec, target=None):
+    """Spécification effective d'un composant : celle du catalogue embarqué, ou la version cible du site.
+
+    La cible ne choisit qu'une VERSION du même éditeur : l'adresse d'une archive est reconstruite depuis le modèle
+    embarqué (même dépôt, même nom de fichier), taille et SHA-256 viennent de la publication officielle et sont
+    revérifiés au téléchargement ; une révision git est une empreinte de commit complète du même dépôt d'origine.
+    Une version antérieure au plancher embarqué, un autre dépôt ou un champ inattendu sont refusés : l'installation
+    s'arrête plutôt que d'installer autre chose que ce qui a été validé. Le site applique la même fonction avant
+    d'envoyer une cible."""
+    if target is None:
+        raw = os.environ.get(UPSTREAM_TARGET_ENV) or ""
+        if not raw:
+            return spec
+        try:
+            target = json.loads(raw)
+        except ValueError:
+            raise RuntimeError("Version cible transmise par le site illisible : installation annulée, rien n’a été modifié.") from None
+    refused = "Version cible transmise par le site refusée par l’agent : installation annulée, rien n’a été modifié."
+    if not isinstance(target, dict) or target.get("component") != component or spec.get("kind") not in UPSTREAM_TARGET_KINDS:
+        raise RuntimeError(refused)
+    kind = spec["kind"]
+    if kind == "upstream-package":
+        version = str(target.get("version") or "")
+        floor = version_tuple(spec.get("version"))
+        if version_tuple(version) is None or floor is None or version_tuple(version) < floor or not spec.get("url_template"):
+            raise RuntimeError(refused)
+        url = spec["url_template"].format(version=version)
+        size, digest = target.get("size"), str(target.get("sha256") or "")
+        if target.get("url") != url or isinstance(size, bool) or not isinstance(size, int) or not 1024 * 1024 <= size <= MAX_ARCHIVE_BYTES \
+                or not _UPSTREAM_SHA256.fullmatch(digest):
+            raise RuntimeError(refused)
+        return {**spec, "version": version, "url": url, "size": size, "sha256": digest, "upstream_target": True}
+    repos = target.get("repos")
+    if not isinstance(repos, dict) or not repos or any(not isinstance(ref, str) or not _UPSTREAM_COMMIT.fullmatch(ref) for ref in repos.values()):
+        raise RuntimeError(refused)
+    if kind == "git":
+        if set(repos) != {"."}:
+            raise RuntimeError(refused)
+        return {**spec, "ref": repos["."], "upstream_target": True}
+    if not set(repos) <= set(spec["repos"]):
+        raise RuntimeError(refused)
+    merged = {relative: (url, repos.get(relative, ref)) for relative, (url, ref) in spec["repos"].items()}
+    return {**spec, "repos": merged, "upstream_target": True}
+
+
+def printguard_installed_version(root):
+    """Version de PrintGuard réellement installée, lue dans son paquet (dossier ``printguard-X.Y.Z.dist-info``)."""
+    found = []
+    for parent in (Path(root) / "_internal", Path(root)):
+        try:
+            children = list(parent.iterdir()) if parent.is_dir() and not is_link(parent) else []
+        except OSError:
+            children = []
+        for child in children:
+            match = _PRINTGUARD_DIST_INFO.fullmatch(child.name)
+            if match and child.is_dir() and not is_link(child):
+                found.append(match[1])
+    return max(found, key=version_tuple) if found else None
 
 
 def _installation_output(line):
@@ -868,26 +945,35 @@ def install_cuda_toolkit(worker_root, root):
     return f"CUDA Toolkit Worker prêt : {cuda_root}"
 
 
-def install_printguard(worker_root, root):
-    progress(5, "Préparation de PrintGuard 2.4.0 depuis son éditeur…")
+def install_printguard(worker_root, root, spec=None):
+    # Version : plancher embarqué, ou dernière version validée par le site (upstream_spec), jamais une adresse libre.
+    spec = spec or upstream_spec("printguard", CATALOG["printguard"])
+    version = spec["version"]
+    progress(5, f"Préparation de PrintGuard {version} depuis son éditeur…")
     if os.name != "nt":
         raise RuntimeError("Le paquet PrintGuard Worker est actuellement disponible uniquement sous Windows.")
-    spec = CATALOG["printguard"]
     with tempfile.TemporaryDirectory(prefix="printguard-install-", dir=WorkerStorage(worker_root).path("temp")) as temporary:
         temporary_path = Path(temporary)
         archive = temporary_path / "printguard.zip"
         extracted = temporary_path / "extracted"
         extracted.mkdir()
-        # Same upstream 2.4.0 archive as the former dashboard package. No Alpine
-        # token goes to GitHub; verify exact bytes before extraction/replacement.
+        # Archive officielle de l'éditeur. No Alpine token goes to GitHub; verify
+        # exact bytes before extraction/replacement.
         download_pinned(spec["url"], archive, spec["size"], spec["sha256"], "PrintGuard officiel", value=15)
         safe_extract(archive, extracted)
         progress(82, "Paquet téléchargé, vérification de PrintGuard…")
         executable = next(extracted.rglob("PrintGuard.exe"), None)
         if not executable:
             raise RuntimeError("Le paquet PrintGuard ne contient pas l’exécutable attendu.")
+        packaged = printguard_installed_version(executable.parent)
+        if packaged and packaged != version:
+            raise RuntimeError(f"Le paquet PrintGuard annonce la version {packaged} au lieu de {version} : installation refusée.")
+        if not component_ready("printguard", executable.parent):
+            # Une version plus récente qui aurait changé l'emplacement de ses modèles n'écrase pas une installation qui marche.
+            raise RuntimeError(f"Le paquet PrintGuard {version} ne contient pas les modèles attendus : installation refusée, "
+                               "la version en place est conservée.")
         replace_component(root, executable.parent)
-    return "PrintGuard 2.4.0 installé depuis l’éditeur officiel, archive SHA-256 vérifiée."
+    return f"PrintGuard {version} installé depuis l’éditeur officiel, archive SHA-256 vérifiée."
 
 
 def find_freecad(worker_root):
@@ -1857,9 +1943,18 @@ def _manage(component, action):
             except Exception:
                 (root / ".raphal-ready").unlink(missing_ok=True)
                 raise
+        if component == "printguard":
+            # Installer = obtenir la dernière version validée : une copie plus ancienne est remplacée directement.
+            spec = upstream_spec(component, CATALOG[component])
+            installed = printguard_installed_version(root)
+            if spec.get("upstream_target") and installed and version_tuple(installed) < version_tuple(spec["version"]):
+                progress(3, f"PrintGuard {installed} installé : passage direct à la version validée {spec['version']}.")
+                return install_printguard(worker_root, root, spec)
         progress(99, "Composant déjà installé et opérationnel.")
         return "Composant déjà installé."
-    spec = CATALOG[component]
+    spec = upstream_spec(component, CATALOG[component]) if CATALOG[component]["kind"] in UPSTREAM_TARGET_KINDS else CATALOG[component]
+    if os.environ.get(UPSTREAM_TARGET_ENV) and spec is CATALOG[component]:
+        raise RuntimeError("Ce composant n’accepte pas de version cible du site : installation annulée.")
     if spec["kind"] == "git":
         return install_git(component, root, spec)
     if spec["kind"] == "git-backend":
@@ -1878,7 +1973,7 @@ def _manage(component, action):
         return install_laser_engine(worker_root, root, spec)
     if spec["kind"] == "fire-watch":
         return install_fire_watch(worker_root, root)
-    return install_printguard(worker_root, root)
+    return install_printguard(worker_root, root, spec)
 
 
 if __name__ == "__main__":
