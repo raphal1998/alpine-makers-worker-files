@@ -97,7 +97,22 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.32"
+AGENT_VERSION = "1.50.33"
+# Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
+# un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
+EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
+
+
+def equipment_grbl_command(item):
+    """Commande GRBL portée par un ``equipment.command`` (« stop », « stream »…), « » sans commande GRBL, None sinon."""
+    if not isinstance(item, dict) or item.get("command") != "equipment.command":
+        return None
+    payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+    wire = payload.get("wire") if isinstance(payload.get("wire"), dict) else {}
+    grbl = wire.get("grbl") if isinstance(wire.get("grbl"), dict) else {}
+    return str(grbl.get("command") or "")
+
+
 AGENT_CAPABILITIES = ("equipment_v2", "installation_inventory_v1", "model_catalog_v2", "installation_cancel_v1", "managed_engine_install_v1", "hardware_profiles_v1", "runtime_profile_inventory_v1", "printguard_camera_v1", "printguard_settings_v1", "printguard_autopause_v1", "comfyui_sampler_choice_v1", "comfyui_dit_v1", "worker_logs_v1", "ai3d_backends_v1", "equipment_http_printers_v1", "agent_disconnect_v1", "storage_audit_cancel_v1", "comfyui_extended_sampling_v1", "equipment_grbl_v1", "equipment_grbl_frame_loop_v1", "equipment_grbl_frame_laser_v1", "equipment_grbl_frame_laser_open_v1", "equipment_usb_camera_v1", "mesh_repair_v1", "laser_engine_v1", "laser_engine_raster_v1", "laser_engine_v2", "laser_assistant_v1", "laser_assistant_v2", "equipment_grbl_v2", "fire_watch_v1", "ai_accounts_v1")
 AGENT_CAPABILITIES += ("legal_compliance_v1",)
 # Paramètres GRBL du contrôleur (agent 1.50.17) : écriture groupée $n=v contrôlée (settings/write_batch), relue et vérifiée.
@@ -518,6 +533,10 @@ class Agent:
         self.config_stamp = None
         self.component_locks = {}
         self.command_tails = {}
+        # ARRÊT GRBL (1.50.34) : rang de réception des commandes d'équipement en cours et du dernier ARRÊT par machine.
+        self.equipment_dispatch_seq = 0
+        self.equipment_received = {}
+        self.equipment_stop_marks = {}
         self.lifecycle_tail = None
         # agent.update / restart / disconnect → files de comptes IA reçues avant elles : attendues seulement APRÈS les
         # contrôles de refus et l'annulation des connexions (1.35.1), pour qu'un refus ne coupe aucune connexion.
@@ -4100,6 +4119,14 @@ class Agent:
         finally:
             self.result_delivery_lock.release()
 
+    def equipment_stop_requested(self, equipment_id, command_id):
+        """True si un ARRÊT de cette machine a été reçu après la commande ``command_id`` : le job qu'elle porte ne doit
+        plus démarrer (il était en file derrière un homing, un téléchargement ou un autre travail)."""
+        with self.command_lock:
+            received = self.equipment_received.get(str(command_id or ""))
+            mark = self.equipment_stop_marks.get(str(equipment_id or ""))
+        return bool(received and mark is not None and received[0] == str(equipment_id or "") and mark > received[1])
+
     def _dispatch_command(self, item):
         command_id = str(item.get("command_id") or "")
         if not command_id or len(command_id) > 128 or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-" for ch in command_id):
@@ -4107,6 +4134,9 @@ class Agent:
         finished = threading.Event()
         previous = []
         login = item.get("command") == "ai_accounts.login"
+        grbl_command = equipment_grbl_command(item)
+        # ARRÊT / annulation du jog : ni la file de la machine ni celle d'une mise à jour ne les retardent (1.50.34).
+        urgent = grbl_command in EQUIPMENT_URGENT_GRBL
         def ordered_command():
             try:
                 for predecessor in previous:
@@ -4117,6 +4147,7 @@ class Agent:
                     self.ai_accounts.release_login(command_id)
                 with self.command_lock:
                     self.lifecycle_ai_tails.pop(command_id, None)
+                    self.equipment_received.pop(command_id, None)
                 finished.set()
         thread = threading.Thread(
             target=ordered_command,
@@ -4127,7 +4158,17 @@ class Agent:
             if command_id in self.inflight_commands or command_id in self.pending_command_results or command_id in self.completed_commands or (existing and existing.get("state") != "received"):
                 return
             self.journal.update("commands", command_id, state="received", command=str(item.get("command") or ""), **self._command_identity())
-            if self.lifecycle_tail is not None and item.get("command") not in AI_ACCOUNTS_UNQUEUED:
+            if grbl_command is not None:
+                equipment_id = str((item.get("payload") or {}).get("equipment_id") or "unknown")
+                self.equipment_dispatch_seq += 1
+                self.equipment_received[command_id] = (equipment_id, self.equipment_dispatch_seq)
+                if grbl_command == "stop":
+                    # Tout job de cette machine reçu avant cet ARRÊT et pas encore parti est refusé à son départ.
+                    self.equipment_stop_marks[equipment_id] = self.equipment_dispatch_seq
+            if urgent:
+                # Hors file : une mise à jour ou un redémarrage, eux, l'attendent (même verrou, clé propre à la machine).
+                self.command_tails["equipment-urgent:" + str((item.get("payload") or {}).get("equipment_id") or "unknown")] = finished
+            if self.lifecycle_tail is not None and item.get("command") not in AI_ACCOUNTS_UNQUEUED and not urgent:
                 previous.append(self.lifecycle_tail)
             if item.get("command") in AGENT_LIFECYCLE_COMMANDS:
                 # Do not replace modules or exit while an installer, camera
@@ -4145,7 +4186,7 @@ class Agent:
                 logins = self.ai_accounts.login_ids() if self.ai_accounts is not None else set()
                 self.lifecycle_ai_tails[command_id] = (ai_tails, logins)
                 self.lifecycle_tail = finished
-            if str(item.get("command") or "").startswith(("tool.", "model.", "component.", "equipment.", "asset.")) or item.get("command") in {"system.free_resources", "agent.maintain_environments"}:
+            if not urgent and (str(item.get("command") or "").startswith(("tool.", "model.", "component.", "equipment.", "asset.")) or item.get("command") in {"system.free_resources", "agent.maintain_environments"}):
                 payload = item.get("payload") or {}
                 if item.get("command") in {"system.free_resources", "agent.maintain_environments"}:
                     # Same lifecycle-blocking treatment as an engine/component command,
@@ -4189,6 +4230,7 @@ class Agent:
                 self.inflight_commands.discard(command_id)
                 self.command_threads.discard(thread)
                 self.lifecycle_ai_tails.pop(command_id, None)
+                self.equipment_received.pop(command_id, None)
             raise
 
     @staticmethod

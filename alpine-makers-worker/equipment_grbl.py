@@ -40,6 +40,7 @@ READ_SLICE = 0.05       # s : délai de lecture du port série, fixé une fois p
 SETTLE_QUIET = 0.2      # s : silence attendu après la bannière avant la première commande
 SETTLE_LIMIT = 1.0      # s : au plus, pour une carte qui parle encore après son démarrage
 RESYNC_GRACE = 0.25     # s : délai après le dernier « ok » avant de conclure que des accusés sont perdus
+STOP_LOCK_WAIT = 15.0   # s : ARRÊT hors job, attente de la liaison tenue par un homing ou un palpage (libérée par le reset)
 MAX_LINE_LENGTH = 79      # LINE_BUFFER_SIZE 80 : error:11 au-delà.
 SETTINGS_TOLERANCE = 0.0015   # relecture $$ (3 décimales) comparée à la valeur écrite par lot
 MACHINE_KINDS = ("laser", "cnc")
@@ -685,6 +686,7 @@ class GrblController:
         self.status_seq = 0
         self.alarm_seq = 0
         self.last_alarm_code = None
+        self.stop_seq = 0   # ARRÊT demandés (emergency_stop) : un job démarré avant un ARRÊT s'annule
 
     # ------------------------------------------------------------------ liaison
     def _write(self, data):
@@ -1005,17 +1007,36 @@ class GrblController:
     def cancel_jog(self):
         self._realtime("jog_cancel")
 
-    def emergency_stop(self):
-        """Arrêt d'urgence, utilisable à tout moment : pause, laser coupé, reset."""
+    def emergency_stop(self, lock_wait=STOP_LOCK_WAIT, banner_timeout=5.0):
+        """ARRÊT, utilisable à tout moment : flux coupé, pause (``!``), broche/laser coupés (0x9E), reset (0x18).
+
+        Aucune commande de mouvement n'est envoyée ; c'est le reset qui coupe la broche et vide les tampons. Pendant un
+        job, l'annulation est levée AVANT les octets temps réel : le fil du job n'envoie plus aucune ligne, puis fait sa
+        propre fin de protection. ``stop_seq`` avance à chaque appel : un job démarré juste avant (fil pas encore en
+        envoi) s'annule à sa première vérification. Hors job, la bannière du reset est attendue ; si un autre fil (homing,
+        palpage) tient la liaison, il la libère en recevant le reset, et une bannière qu'il aurait déjà lue compte.
+        Rend le rapport d'état relu après le reset, ou None (job en cours, ou liaison encore tenue après ``lock_wait``).
+        """
+        self.stop_seq += 1
+        streaming = self._streaming.is_set()
+        if streaming:
+            self._cancel.set()
+        banners = self.banner_seq
         self._realtime("hold")
         self._realtime("spindle_stop")
         self._realtime("reset")
-        if self._streaming.is_set():
+        if streaming or self._streaming.is_set():
             self._cancel.set()
             return None
-        with self._lock:
-            self._wait_banner(5.0)
+        if not self._lock.acquire(timeout=max(0.0, float(lock_wait))):
+            self._log("ARRÊT envoyé (pause, broche coupée, reset) ; liaison encore occupée : confirmation au prochain rapport d'état.")
+            return None
+        try:
+            if self.banner_seq == banners:
+                self._wait_banner(banner_timeout)
             return self._status_sync(2.0)
+        finally:
+            self._lock.release()
 
     # ------------------------------------------------------------ arrêt incendie
     @property
@@ -1703,12 +1724,55 @@ class GrblController:
                 line = self._read(0) if handled < 256 else None
             if acked:
                 notify()
+        if self.machine_kind == "cnc" and max_pending is None and not stopping:
+            # Les « ok » arrivent quand GRBL planifie une ligne, pas quand il l'exécute : un programme court tient en
+            # entier dans le tampon de planification. Le job reste actif (ARRÊT, Pause, état « En usinage ») jusqu'à ce
+            # que la machine soit réellement arrêtée en Idle.
+            interrupted = self._finish_motion(report, should_cancel)
+            if interrupted is not None:
+                return interrupted
         if self.machine_kind == "laser":
             try:
                 self._expect_ok("M5", 5.0, tolerate=(9,))
             except GrblError as error:
                 self._log(f"Coupure laser de fin de job non confirmée : {error}")
         return report(True, reason="stopped" if stopping else None)
+
+    def _finish_motion(self, report, should_cancel):
+        """Fin d'un job CNC : toutes les lignes sont acquittées, on attend Idle (``?`` toutes les ``status_interval``).
+
+        Rend None une fois la machine en Idle, ou le rapport d'interruption : annulation / ARRÊT (fin de protection),
+        réinitialisation de la carte, carte muette plus de ``idle_timeout`` s. Une alarme lève ``GrblAlarm``. Une
+        machine en Run, Hold (pause de l'opérateur) ou Door n'est pas inactive : l'attente continue.
+        """
+        asked_at = None
+        last_seen = self.now()
+        while True:
+            if self._cancel.is_set() or (should_cancel and should_cancel()):
+                self._protective_stop()
+                return report(False, "Job annulé.", "cancelled")
+            now = self.now()
+            if asked_at is None or now - asked_at >= self.status_interval:
+                self._realtime("status")
+                asked_at = now
+            line = self._read(self.poll_interval)
+            if line is None:
+                if self.now() - last_seen > self.idle_timeout:
+                    self._protective_stop()
+                    return report(False, f"GRBL ne répond plus depuis {self.idle_timeout:g} s pendant la fin de l’usinage : job interrompu.", "timeout")
+                continue
+            kind, payload = self._classify(line)
+            if kind == "status":
+                last_seen = self.now()
+                if payload["state"] == "Idle":
+                    return None
+                if payload["state"] == "Alarm":
+                    code = self.last_alarm_code or 0
+                    raise GrblAlarm(code, report=report(False, "Machine en alarme pendant la fin de l’usinage.", "alarm"))
+            elif kind == "alarm":
+                raise GrblAlarm(payload, report=report(False, f"ALARM:{payload} — {describe_alarm(payload)}", "alarm"))
+            elif kind == "banner":
+                return report(False, "GRBL s’est réinitialisé pendant le job (reset ou coupure).", "reset")
 
     def stream_cycle(self, prologue, cycle, epilogue, progress=None, should_cancel=None, should_stop=None, interlocks=None,
                      allow_door=False, door_timeout=None, max_seconds=None, planner_ahead=2, on_cycle=None):

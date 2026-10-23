@@ -267,6 +267,8 @@ GRBL_FRAME_PENDING_LINES = 2
 GRBL_FRAME_IDLE_WAIT = 30.0     # fin des segments déjà partis entre deux passes
 GRBL_FRAME_DOOR_WAIT = 8.0      # capot ouvert : délai avant de conclure que la carte bloque le mouvement
 GRBL_FRAME_STOP_WAIT = 40.0
+# ARRÊT : fin du fil du job attendue au plus (fin de protection : décélération 5 s, bannière 5 s, état 2 s).
+GRBL_STOP_JOIN_WAIT = 15.0
 GRBL_FRAME_PLANNER_AHEAD = 2    # cadrage en continu : segments planifiés d'avance (mouvement fluide, arrêt réactif)
 # Cadrage laser allumé (agent 1.29.0) : point laser visible sur la plaque, capot fermé, 10 % au plus.
 GRBL_FRAME_LASER_MAX_PCT = 10.0
@@ -1550,23 +1552,30 @@ class Device:
                            "laser_pct": float(job.get("laser_pct") or 0.0)},
                 "interlocks": self.grbl_interlock_states()}
 
-    def grbl_start_job(self, name, text, total, command_id, checklist_confirmed, progress, operator_checks=True, loop=False, door_open=False, laser_pct=0.0):
+    def grbl_start_job(self, name, text, total, command_id, checklist_confirmed, progress, operator_checks=True, loop=False, door_open=False, laser_pct=0.0,
+                       stop_requested=None):
         """Envoi du G-code dans un fil dédié : le fil de commande de l'agent reste libre pour hold/stop.
 
         ``loop`` (cadrage seulement) repasse le contour jusqu'à ``grbl_loop_stop`` ; ``door_open``
         (cadrage seulement, laser coupé) ne vérifie pas la porte : la carte décide si elle bouge.
+        ``stop_requested()`` vrai (ARRÊT reçu après ce job) : refus, rien n'est envoyé. Le numéro d'ARRÊT du
+        contrôleur est relevé ici : un ARRÊT exécuté avant que le fil n'envoie sa première ligne annule le job.
         """
         with self.lock:
             if self.grbl_job.get("active") or (self.grbl_thread and self.grbl_thread.is_alive()):
                 raise ValueError("Un job GRBL est déjà en cours sur cette machine.")
             if self.grbl is None:
                 raise ValueError("Contrôleur GRBL non connecté.")
+            if stop_requested is not None and stop_requested():
+                self.grbl_checklist = False   # aucun job ne démarre : la check-list validée pour lui ne vaut plus
+                raise ValueError("ARRÊT demandé après la mise en file de ce travail : il est annulé, rien n’a été envoyé à la machine.")
+            stop_seq = getattr(self.grbl, "stop_seq", 0)
             self.grbl_checklist = bool(checklist_confirmed)
             self.grbl_loop_stop.clear()
             self.grbl_job = {"active": True, "name": name, "command_id": command_id, "sent": 0, "done": 0, "total": total, "percent": 0.0,
                              "started_at": time.time(), "finished_at": None, "ok": None, "error": None, "reason": None,
                              "loop": bool(loop), "passes": 0, "door_open": bool(door_open), "laser_pct": float(laser_pct or 0.0)}
-            self.grbl_thread = threading.Thread(target=self._grbl_run_job, args=(text, progress, operator_checks, bool(loop), bool(door_open)),
+            self.grbl_thread = threading.Thread(target=self._grbl_run_job, args=(text, progress, operator_checks, bool(loop), bool(door_open), stop_seq),
                                                 name="grbl-job-" + self.spec["id"][:8], daemon=True)
             self.grbl_thread.start()
 
@@ -1574,7 +1583,7 @@ class Device:
         with self.lock:
             self.grbl_job["passes"] = int(count)
 
-    def _grbl_run_job(self, text, progress, operator_checks, loop=False, door_open=False):
+    def _grbl_run_job(self, text, progress, operator_checks, loop=False, door_open=False, stop_seq=None):
         raise_current_thread_priority()   # fil dédié au travail : la priorité disparaît avec lui
         grbl = grbl_module()
         controller = self.grbl
@@ -1582,6 +1591,10 @@ class Device:
         fire_stops = getattr(controller, "fire_stops", 0)  # un arrêt incendie pendant le job en devient le motif
         # Capot ouvert autorisé (cadrage, laser coupé) : aucune sécurité vérifiée par le Worker pendant le parcours.
         provider = (lambda: []) if door_open else (lambda: self.grbl_interlocks(operator=operator_checks))
+
+        def cancelled():
+            # Déconnexion du relais, ou ARRÊT exécuté depuis le départ du job (même avant sa première ligne).
+            return self.stop.is_set() or (stop_seq is not None and getattr(controller, "stop_seq", stop_seq) != stop_seq)
 
         def stopping():
             return self.grbl_loop_stop.is_set() or self.stop.is_set()
@@ -1602,7 +1615,7 @@ class Device:
             if cycle_parts:
                 # Contour fermé : repassé sans pause ni retour à l'origine ; le laser (s'il est allumé) le reste
                 # d'un tour à l'autre et ne s'éteint qu'à l'arrêt du cadrage.
-                report = controller.stream_cycle(*cycle_parts, progress=advance, should_cancel=self.stop.is_set, should_stop=stopping,
+                report = controller.stream_cycle(*cycle_parts, progress=advance, should_cancel=cancelled, should_stop=stopping,
                                                  interlocks=provider, allow_door=door_open, door_timeout=GRBL_FRAME_DOOR_WAIT,
                                                  max_seconds=GRBL_FRAME_LOOP_MAX_SECONDS, planner_ahead=GRBL_FRAME_PLANNER_AHEAD,
                                                  on_cycle=self._grbl_count_pass)
@@ -1615,7 +1628,7 @@ class Device:
             deadline = time.monotonic() + GRBL_FRAME_LOOP_MAX_SECONDS
             passes = 0
             while True:
-                report = controller.stream(text, progress=advance, should_cancel=self.stop.is_set, interlocks=provider, allow_door=door_open,
+                report = controller.stream(text, progress=advance, should_cancel=cancelled, interlocks=provider, allow_door=door_open,
                                            should_stop=stopping if loop else None, max_pending=GRBL_FRAME_PENDING_LINES if loop else None)
                 passes += 1
                 with self.lock:
@@ -2695,15 +2708,30 @@ class EquipmentRelay:
             status = controller.status(1.0) or {}
             return result("Reprise demandée.", status.get("state") in {"Run", "Idle", "Jog"})
         if command == "stop":
-            self.agent.command_progress(command_id, 50, "Arrêt de protection : pause, laser/broche coupés, reset…")
-            controller.emergency_stop()
-            if active and device.grbl_thread is not None:
-                device.grbl_thread.join(timeout=10)
+            # ARRÊT (agent 1.50.34) : exécuté hors de la file de la machine (agent.py), jamais derrière un homing, un
+            # palpage ou un lancement en préparation. Flux coupé d'abord, puis « ! », 0x9E et reset 0x18 ; aucun mouvement.
+            self.agent.command_progress(command_id, 50, "ARRÊT : flux coupé, pause, broche/laser coupés, reset GRBL…")
+            status = controller.emergency_stop()
+            thread = device.grbl_thread
+            if thread is not None and thread.is_alive():
+                thread.join(timeout=GRBL_STOP_JOIN_WAIT)
             with device.lock:
                 job = dict(device.grbl_job)
             if job.get("active"):
-                raise ValueError("Arrêt envoyé, mais le job ne s’est pas terminé dans les 10 s : vérifie la machine.")
-            return result("Arrêt de protection exécuté : machine réinitialisée, laser et broche coupés." + (f" Job interrompu ({job.get('reason')})." if active else ""))
+                raise ValueError(f"ARRÊT envoyé (pause, broche coupée, reset), mais le job ne s’est pas terminé en {GRBL_STOP_JOIN_WAIT:g} s : "
+                                 "vérifie la machine et coupe son alimentation si elle bouge encore.")
+            status = status or controller.last_status or {}
+            state = status.get("state")
+            parts = ["ARRÊT exécuté : plus aucune ligne envoyée, pause puis reset GRBL (broche/laser coupés, tampons vidés)."]
+            if active:
+                parts.append(f"Job « {job.get('name') or 'job'} » interrompu après {int(job.get('done') or 0)} / {int(job.get('total') or 0)} lignes.")
+            if state == "Alarm":
+                parts.append("Machine en alarme (position à vérifier) : Home ou Déverrouiller avant de reprendre.")
+            elif state:
+                parts.append(f"État de la machine : {state}.")
+            else:
+                parts.append("État de la machine en attente du prochain rapport.")
+            return result(" ".join(parts), confirmed=state in {"Idle", "Alarm", "Hold"})
         if command == "reset":
             controller.reset()
             return result("Reset GRBL effectué ; la machine est peut-être verrouillée (déverrouille ou lance un homing).")
@@ -2964,9 +2992,11 @@ class EquipmentRelay:
             raise
         self.agent.command_progress(command_id, 5, f"Lancement du {'cadrage en continu' if loop else 'job'} « {name} » ({len(lines)} lignes)…")
         progress = self._grbl_progress(command_id)
+        stopped_since = getattr(self.agent, "equipment_stop_requested", None)
         try:
             device.grbl_start_job(name, text, len(lines), command_id, confirmed, progress, operator_checks=command == "stream" or laser_on,
-                                  loop=loop, door_open=door_open, laser_pct=laser_pct)
+                                  loop=loop, door_open=door_open, laser_pct=laser_pct,
+                                  stop_requested=(lambda: stopped_since(device.spec["id"], command_id) is True) if callable(stopped_since) else None)
             job = device.grbl_wait_started(3.0)
         finally:
             # La commande répond ici : la suite du job est suivie par le rapport de l'équipement, pas par elle.

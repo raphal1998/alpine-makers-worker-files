@@ -54,6 +54,10 @@ def _words(line: str) -> list[tuple[str, float]]:
         text = text[1:]
     if not text or text.startswith("%"):
         return []
+    # Même lecture des nombres que le contrôle (« X0. », « .5 », « Z-3.5. » réparé) ; repli tolérant sinon.
+    words, _notes = cam_gcode_check.read_words(text)
+    if words is not None:
+        return [(letter, float(value)) for letter, value in words if value is not None]
     return [(letter, float(value)) for letter, value in _TOKEN.findall(text)]
 
 

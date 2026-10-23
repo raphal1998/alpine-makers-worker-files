@@ -1,5 +1,21 @@
 # Historique des mises à jour
 
+## Version 1.50.33 — 2026-10-23
+
+**Menu Worker et worker.exe : arrêter, éteindre et réparer vraiment tout**
+
+### Ajouté
+- Réparer (24) fait d'abord un diagnostic profond, même agent arrêté ou figé : agent figé ou en doublon, processus restés seuls, ports pris par un autre programme, fichiers d'état abîmés, journal des jobs, verrous, disque, moteurs absents, et les erreurs qui reviennent dans les journaux, avec une piste. Il répare ce qui est sûr (fichiers déplacés et sauvegardés, jamais effacés) et dit le reste.
+- Touche D du menu : quelle entrée pour quel problème. Après un échec, le menu et worker.exe indiquent l'entrée à utiliser ensuite. Moteurs (9) : choix 4 pour forcer l'arrêt d'un moteur bloqué.
+
+### Corrigé
+- Arrêter tous les jobs (21) arrête aussi les calculs lancés depuis worker.exe (convertisseur, préparation CNC FreeCAD, Labo image, tranchage) et coupe, après 20 secondes, l'arbre de processus de ce qui résiste (FreeCAD et ses enfants), seulement ce que l'agent a lancé.
+- Éteindre (11) arrête tous les processus du Worker (agent resté seul, moteurs, calculs, installateurs, orphelins) en trois passes et vérifie qu'il n'en reste aucun ; Rallumer (12) et Redémarrer (10) nettoient les restes et attendent le verrou du superviseur avant de relancer.
+- ARRÊT CNC exécuté immédiatement, même pendant un homing ou un palpage ; flux coupé avant la pause et le reset ; usinage suivi jusqu'à l'arrêt réel de la machine ; nombres lus comme un contrôleur (« X0. », « .5 », « Z-3.5. » réparé avec avertissement).
+
+### Technique
+- Empreinte du paquet publié : `97fc5307c03abb20…` (dossier du paquet).
+
 ## Version 1.50.32 — 2026-10-23
 
 ### Technique
