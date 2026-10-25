@@ -373,7 +373,21 @@ Site ou agent injoignable : **mode hors ligne**, entrées locales sûres seuleme
 place occupée par les installations, IA locales, connexion) ; **T** affiche le détail : jobs, file,
 partage, RAM, disque, chaque GPU et sa VRAM, place par catégorie et par composant, composants
 allumés / éteints / associés / ON-OFF, modèles, comptes IA, surveillance des graveuses. Même source
-que le bouton « Tableau de bord » de worker.exe : l'action locale `dashboard` de l'agent.
+que le bouton « Tableau de bord » de worker.exe : l'action locale `dashboard` de l'agent. L'accueil de
+worker.exe en montre le résumé dans « État du Worker » (dix tuiles, relues toutes les 30 s).
+
+**Journal des jobs.** Chaque job terminé sur CE Worker (réussi, échoué ou annulé) ajoute une ligne
+JSON au fichier `data\journal-des-jobs.jsonl` : jobs du site (images, 3D, Labo image, convertisseur,
+préparation CNC, tranchage, Laser Studio, CNC Studio), calculs lancés depuis worker.exe (conversion,
+réparation, tranchage, export, G-code laser, analyse CNC…) et gravures / usinages GRBL (pas les
+cadrages). Une ligne : job, outil, date et heure (lancement, fin, durée), statut, compte demandeur si
+le site le donne, fichiers créés (chemin relatif au dossier du Worker, lien du site), erreur courte ;
+ni jeton, ni e-mail, ni chemin absolu. Le fichier est gardé par les mises à jour ; au-delà de 4 Mio il
+passe en `journal-des-jobs.1.jsonl` (trois archives gardées). **J** dans le menu affiche les 20 derniers
+jobs ; worker.exe → **Journal des jobs** les trie par date et heure, filtre par jours, plage horaire,
+outil, statut ou texte, montre l'image produite (« Voir ») ou ouvre le fichier / le lien du site, et
+supprime des entrées (sélection, filtre ou tout, après confirmation ; droit « jobs » pour un
+co-propriétaire). La suppression ne touche que ce PC, jamais l'historique du site.
 
 - **[ADMIN]** : l'outil ouvre une fenêtre administrateur (Windows te demande d'accepter).
   Si tu refuses, rien n'est modifié.

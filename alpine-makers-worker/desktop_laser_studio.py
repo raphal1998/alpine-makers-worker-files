@@ -373,7 +373,8 @@ def _compute(agent, params):
                                         "excerpt": excerpt, "stats": result.get("stats") or {},
                                         "warnings": warnings + list(result.get("warnings") or []), "simulation": simulation,
                                         "sendable": size <= SEND_MAX_BYTES, "send_max_bytes": SEND_MAX_BYTES})
-    return desk.start_task(agent, TOOL, labels[op], work)
+    # Seule la génération du G-code de travail est un job du journal local ; aperçu et cadrage n'en sont pas.
+    return desk.start_task(agent, TOOL, labels[op], work, journal=op == "gcode")
 
 
 # --- actions qui passent par le site (route /grbl du site, rien en local) ---------------------------------------------

@@ -1,5 +1,19 @@
 # Historique des mises à jour
 
+## Version 1.50.38 — 2026-10-25
+
+**Journal des jobs sur chaque Worker, résumé du tableau de bord dans worker.exe**
+
+### Ajouté
+- Journal des jobs sur chaque Worker : chaque job terminé (jobs du site, calculs de worker.exe, gravures et usinages) ajoute une ligne à data\journal-des-jobs.jsonl, au format de l’historique du site, sans secret ni chemin absolu. worker.exe → « Journal des jobs » : tri par date et heure, filtres jour, heure, outil et statut, aperçu de l’image, « Voir », suppression confirmée.
+- Accueil de worker.exe : « État du Worker » résume le tableau de bord en dix tuiles (agent et mise à jour, session, liaison au site, jobs, partage, RAM, disque, processeur, GPU et VRAM, pilote NVIDIA et CUDA), relues toutes les 30 s. Menu du Worker : touche J pour les 20 derniers jobs.
+
+### Modifié
+- worker.exe : dans une fenêtre basse, la colonne de gauche se resserre (logo masqué) et « Tableau de bord » ne passe plus sous les liens du bas.
+
+### Technique
+- Empreinte du paquet publié : `a303c8996ccbe680…` (dossier du paquet).
+
 ## Version 1.50.37 — 2026-10-25
 
 **Versions installées remontées au site : mises à jour des moteurs et modules signalées**

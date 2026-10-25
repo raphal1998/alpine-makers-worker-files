@@ -627,7 +627,7 @@ def _repair(agent, params):
             return _finish(agent, answer)
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
-    return desk.start_task(agent, TOOL, ("Analyser " if parameters["analyze_only"] else "Réparer ") + name, work)
+    return desk.start_task(agent, TOOL, ("Analyser " if parameters["analyze_only"] else "Réparer ") + name, work, journal=True)
 
 
 def _build(agent, params):
@@ -646,7 +646,7 @@ def _build(agent, params):
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
         return {"path": str(target), "name": target.name, "bytes": target.stat().st_size, "engine": "freecad"}
-    return desk.start_task(agent, TOOL, "Pièce paramétrique " + name, work)
+    return desk.start_task(agent, TOOL, "Pièce paramétrique " + name, work, journal=True)
 
 
 def _slice(agent, params):
@@ -693,7 +693,8 @@ def _slice(agent, params):
                 "bed_type": str(result.get("bed_type") or "")[:40], "fallback_used": bool(result.get("fallback_used")),
                 "profile_mode": str(result.get("profile_mode") or "")[:20],
                 "bridge_version": str(result.get("bridge_version") or "")[:20], "plates": sliced_info(target)}
-    return desk.start_task(agent, TOOL, "Trancher " + files[0]["name"] + (f" (+{len(files) - 1})" if multi else ""), work)
+    return desk.start_task(agent, TOOL, "Trancher " + files[0]["name"] + (f" (+{len(files) - 1})" if multi else ""), work,
+                           journal=True)
 
 
 def _clean_bridge_workspace(agent, execution):
@@ -727,7 +728,7 @@ def _export_3mf(agent, params):
         finally:
             _drop_inbox(source)
         return {"path": str(target), "name": target.name, "bytes": target.stat().st_size, "faces": faces}
-    return desk.start_task(agent, TOOL, "Exporter " + _stem(name) + ".3mf", work)
+    return desk.start_task(agent, TOOL, "Exporter " + _stem(name) + ".3mf", work, journal=True)
 
 
 def _outputs(agent, params):

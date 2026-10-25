@@ -250,11 +250,25 @@ def _expire(tasks, now):
         del tasks[finished.pop(0).id]
 
 
-def start_task(agent, tool, label, work):
+def _journal(name, *args):
+    """job_journal.<name>(*args) (journal local des jobs, job_journal_v1) ; module absent ou en échec : rien."""
+    try:
+        module = importlib.import_module(".job_journal", __package__) if __package__ else importlib.import_module("job_journal")
+        return getattr(module, name)(*args)
+    except Exception as error:
+        print(f"Journal local des jobs indisponible ({type(error).__name__}).", flush=True)
+        return None
+
+
+def start_task(agent, tool, label, work, journal=False):
     """Lance ``work(task)`` dans un fil démon et rend aussitôt ``{"task": id, "state": "running"}``.
 
     ``work`` rend le résultat (objet JSON, petit : sinon ``result_file``), lève ``TaskError`` pour un refus prévu,
-    ``TaskCancelled`` s'il voit ``task.cancelled()``. Aucune exception ne sort du fil."""
+    ``TaskCancelled`` s'il voit ``task.cancelled()``. Aucune exception ne sort du fil.
+
+    ``journal`` vrai (calculs de ce PC : conversion, réparation, tranchage, Labo image, G-code…, jamais une lecture du
+    site ni un ordre de machine) : la fin de la tâche, terminée, échouée ou annulée, est inscrite au journal local des
+    jobs avec les fichiers produits, relevés dans le résultat avant que worker.exe ne le lise."""
     tasks = _tasks(agent)
     task = Task(tool, str(label)[:120])
     with _GUARD:
@@ -264,10 +278,13 @@ def start_task(agent, tool, label, work):
         tasks[task.id] = task
 
     def run():
+        outputs = None
         try:
             result = work(task)
             if task.cancelled():
                 raise TaskCancelled()
+            if journal:
+                outputs = _journal("desktop_outputs", agent.root, result)
             task.result, task.state = result, "done"
             task.progress = 100
         except TaskCancelled:
@@ -279,6 +296,8 @@ def start_task(agent, tool, label, work):
             print(f"Tâche Desktop interrompue ({tool} : {type(error).__name__}).", flush=True)
         finally:
             task.finished = time.monotonic()
+            if journal:
+                _journal("record_desktop_task", agent, task, outputs)
 
     try:
         threading.Thread(target=run, name="desktop-task-" + tool, daemon=True).start()

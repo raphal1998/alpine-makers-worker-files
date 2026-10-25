@@ -291,3 +291,104 @@ function Show-TableauDeBord {
     $surveillance = Get-ChampGestion $Tableau 'fire_watch'
     Write-Etat 'Surveillance des graveuses' ([string](Get-ChampGestion $surveillance 'state' 'inconnue')) 'info'
 }
+
+# --- Journal des jobs (touche J du menu) ------------------------------------------------------------------------------
+# Le fichier data\journal-des-jobs.jsonl (une ligne JSON par job terminé, écrit par l'agent : worker_agent/job_journal.py)
+# est lu ici directement, en lecture partagée : la touche J marche aussi agent arrêté. Lecture seule : filtres,
+# aperçus et suppression sont dans worker.exe (« Journal des jobs »).
+$script:JournalStatuts = @{ 'termine' = @('Terminé', 'Green'); 'echoue' = @('Échoué', 'Red'); 'annule' = @('Annulé', 'Yellow') }
+
+function Read-LignesJournal {
+    <# Lignes d'un fichier du journal (vide s'il manque), ouvert sans gêner l'agent qui écrit ou fait tourner les fichiers. #>
+    param([string]$Chemin)
+    if (-not (Test-Path -LiteralPath $Chemin -PathType Leaf)) { return @() }
+    try {
+        $flux = [System.IO.File]::Open($Chemin, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete))
+        try { $texte = (New-Object System.IO.StreamReader($flux, (New-Object System.Text.UTF8Encoding($false)))).ReadToEnd() } finally { $flux.Dispose() }
+    } catch { return @() }
+    return @($texte -split "`n" | Where-Object { $_.Trim() })
+}
+
+function ConvertTo-MomentJournal {
+    <# Secondes epoch UTC (format du journal et de l'historique du site) ou date ISO 8601 -> date locale ; $null sinon. #>
+    param($Valeur)
+    if ($null -eq $Valeur -or $Valeur -is [bool]) { return $null }
+    if ($Valeur -is [string]) {
+        if (-not $Valeur) { return $null }
+        $date = [DateTimeOffset]::MinValue
+        if ([DateTimeOffset]::TryParse($Valeur, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeLocal, [ref]$date)) { return $date.LocalDateTime }
+        return $null
+    }
+    return ConvertTo-DateLocale $Valeur
+}
+
+function Format-DureeJournal {
+    param($Secondes)
+    if ($null -eq $Secondes -or $Secondes -is [bool] -or $Secondes -is [string]) { return '—' }
+    try { $total = [long][Math]::Round([double]$Secondes) } catch { return '—' }
+    if ($total -lt 1) { return '< 1 s' }
+    if ($total -lt 60) { return ('{0} s' -f $total) }
+    if ($total -lt 3600) { return ('{0} min {1:00} s' -f [Math]::Floor($total / 60), ($total % 60)) }
+    return ('{0} h {1:00} min' -f [Math]::Floor($total / 3600), [Math]::Floor(($total % 3600) / 60))
+}
+
+function Get-JournalDesJobs {
+    <# Les -Nombre derniers jobs du journal local, plus récents d'abord (lancement, à défaut réception, à défaut fin). #>
+    param([string]$Racine, [int]$Nombre = 20)
+    $dossier = Join-Path $Racine 'data'
+    # Les lignes sont écrites à la fin de chaque job : les plus récentes sont en fin du fichier courant, puis des archives.
+    $lignes = @(Read-LignesJournal -Chemin (Join-Path $dossier 'journal-des-jobs.jsonl'))
+    foreach ($numero in 1..3) {
+        if ($lignes.Count -ge ($Nombre * 3)) { break }
+        $lignes = @(Read-LignesJournal -Chemin (Join-Path $dossier ('journal-des-jobs.' + $numero + '.jsonl'))) + $lignes
+    }
+    $entrees = @()
+    foreach ($ligne in @($lignes | Select-Object -Last ($Nombre * 3))) {
+        try { $entree = $ligne | ConvertFrom-Json } catch { continue }
+        if ($null -eq $entree -or -not $script:JournalStatuts.ContainsKey([string]$entree.status) -or -not [string]$entree.job_id) { continue }
+        $moment = $null
+        foreach ($champ in 'started_at', 'created_at', 'finished_at') { if ($null -eq $moment) { $moment = ConvertTo-MomentJournal ($entree.$champ) } }
+        $entrees += [pscustomobject]@{ Moment = $moment; Entree = $entree }
+    }
+    return @($entrees | Sort-Object -Property @{ Expression = { if ($_.Moment) { $_.Moment } else { [datetime]::MinValue } }; Descending = $true } | Select-Object -First $Nombre)
+}
+
+function Show-JournalDesJobs {
+    <# Touche J du menu : les 20 derniers jobs faits sur ce Worker (date et heure, statut, durée, job, fichiers créés). #>
+    param([string]$Racine, [int]$Nombre = 20)
+    Write-Section 'Journal des jobs de ce Worker'
+    $liste = @(Get-JournalDesJobs -Racine $Racine -Nombre $Nombre)
+    if ($liste.Count -eq 0) {
+        Write-Info 'Aucun job enregistré pour l''instant (data\journal-des-jobs.jsonl, écrit par l''agent à la fin de chaque job).'
+        return
+    }
+    $jour = ''
+    foreach ($item in $liste) {
+        $e = $item.Entree
+        $cle = if ($item.Moment) { $item.Moment.ToString('yyyy-MM-dd') } else { '?' }
+        if ($cle -ne $jour) {
+            $jour = $cle
+            $titre = if ($item.Moment) { $item.Moment.ToString('dddd d MMMM yyyy', [Globalization.CultureInfo]::GetCultureInfo('fr-FR')) } else { 'date inconnue' }
+            if ($item.Moment -and $item.Moment.Date -eq (Get-Date).Date) { $titre = 'Aujourd''hui — ' + $titre }
+            elseif ($item.Moment -and $item.Moment.Date -eq (Get-Date).Date.AddDays(-1)) { $titre = 'Hier — ' + $titre }
+            Write-Host ''
+            Write-Host ('  ' + $titre) -ForegroundColor Cyan
+        }
+        $statut = $script:JournalStatuts[[string]$e.status]
+        $heure = if ($item.Moment) { $item.Moment.ToString('HH:mm') } else { '--:--' }
+        $fichiers = @($e.outputs | Where-Object { $_ -and $_.name } | ForEach-Object { [string]$_.name })
+        $cree = if ($fichiers.Count -eq 0) { '' } elseif ($fichiers.Count -le 2) { '  ->  ' + ($fichiers -join ', ') } else { '  ->  ' + ($fichiers[0..1] -join ', ') + ' +' + ($fichiers.Count - 2) }
+        $libelle = [string]$e.label
+        $place = 96 - 4 - 7 - 9 - 13 - $cree.Length
+        if ($place -lt 20) { $cree = ''; $place = 63 }
+        if ($libelle.Length -gt $place) { $libelle = $libelle.Substring(0, [Math]::Max(1, $place - 1)) + '…' }
+        Write-Host ('    ' + $heure + '  ') -NoNewline -ForegroundColor Gray
+        Write-Host ($statut[0].PadRight(9)) -NoNewline -ForegroundColor $statut[1]
+        Write-Host ((Format-DureeJournal $e.duration_s).PadLeft(11) + '  ') -NoNewline -ForegroundColor DarkGray
+        Write-Host $libelle -NoNewline -ForegroundColor White
+        Write-Host $cree -ForegroundColor DarkGray
+        if ([string]$e.error) { Write-Host ((' ' * 33) + ([string]$e.error).Substring(0, [Math]::Min(63, ([string]$e.error).Length))) -ForegroundColor DarkYellow }
+    }
+    Write-Host ''
+    Write-Conseil 'Journal complet, filtres par jour et par heure, aperçu des fichiers et suppression : worker.exe, « Journal des jobs ».'
+}

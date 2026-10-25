@@ -299,7 +299,7 @@ def _analyze(agent, params):
             result_path.with_name("preview.json").unlink(missing_ok=True)
         result.update(op=op, engine=engine["label"], program=token, analyzed_at=time.time())
         return desk.result_file(agent, result)
-    return desk.start_task(agent, TOOL, ("Simulation" if op == "simulate" else "Analyse") + " du programme", work)
+    return desk.start_task(agent, TOOL, ("Simulation" if op == "simulate" else "Analyse") + " du programme", work, journal=True)
 
 
 # --- appels signés au site --------------------------------------------------------------------------------------

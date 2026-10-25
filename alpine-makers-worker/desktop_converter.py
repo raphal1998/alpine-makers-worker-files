@@ -374,9 +374,10 @@ def _cleanup(workdir):
     shutil.rmtree(workdir, ignore_errors=True)
 
 
-def _started(agent, label, work):
-    """Ouvre la tâche ; un refus immédiat (source absente…) reste une ValueError sans tâche."""
-    return desk.start_task(agent, TOOL, label, work)
+def _started(agent, label, work, journal=False):
+    """Ouvre la tâche ; un refus immédiat (source absente…) reste une ValueError sans tâche. ``journal`` : calcul de ce
+    PC inscrit au journal local des jobs (conversion, analyse, réparation, calcul CNC ; jamais une lecture du site)."""
+    return desk.start_task(agent, TOOL, label, work, journal=journal)
 
 
 # --- Actions : état et caches ------------------------------------------------------------------------------------
@@ -535,7 +536,7 @@ def _convert(agent, params):
             return _finish(agent, {"run": run, "files": files, "steps": steps, "record": record})
         finally:
             _cleanup(workdir)
-    return _started(agent, f"Conversion {name} → .{target}", work)
+    return _started(agent, f"Conversion {name} → .{target}", work, journal=True)
 
 
 def _analyze(agent, params):
@@ -554,7 +555,7 @@ def _analyze(agent, params):
             return {"name": display, "report": result.get("report") or {}, "engine": result.get("engine") or ""}
         finally:
             _cleanup(workdir)
-    return _started(agent, "Analyse " + name, work)
+    return _started(agent, "Analyse " + name, work, journal=True)
 
 
 def _repair(agent, params):
@@ -583,7 +584,7 @@ def _repair(agent, params):
                                    "engine": result.get("engine") or "", "record": record})
         finally:
             _cleanup(workdir)
-    return _started(agent, "Réparation " + name, work)
+    return _started(agent, "Réparation " + name, work, journal=True)
 
 
 # --- Actions : Préparer pour une CNC ----------------------------------------------------------------------------
@@ -675,7 +676,7 @@ def _cam_compute(agent, params):
                                    "ackable": sorted(ackable_codes(result)), "gcode_file": gcode, "record": record})
         finally:
             _cleanup(workdir)
-    return _started(agent, "Calcul CNC " + project["name"], work)
+    return _started(agent, "Calcul CNC " + project["name"], work, journal=True)
 
 
 def _run_record(agent, run):

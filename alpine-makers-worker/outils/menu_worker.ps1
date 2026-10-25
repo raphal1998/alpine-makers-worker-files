@@ -666,10 +666,12 @@ function Write-Menu {
     }
     Write-Host ''
     Write-Host ('  ' + ('-' * ($script:LargeurMenu - 2))) -ForegroundColor DarkGray
-    Write-Host '  [ A] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Aide   ' -ForegroundColor White -NoNewline
-    Write-Host '[ D] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Dépannage   ' -ForegroundColor White -NoNewline
-    Write-Host '[ T] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Tableau de bord complet   ' -ForegroundColor White -NoNewline
-    Write-Host '[ R] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Rafraîchir   ' -ForegroundColor White -NoNewline
+    # Une seule ligne de touches (la hauteur du menu en dépend), tenue dans 98 colonnes.
+    Write-Host '  [ A] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Aide  ' -ForegroundColor White -NoNewline
+    Write-Host '[ D] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Dépannage  ' -ForegroundColor White -NoNewline
+    Write-Host '[ T] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Tableau de bord  ' -ForegroundColor White -NoNewline
+    Write-Host '[ J] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Jobs faits  ' -ForegroundColor White -NoNewline
+    Write-Host '[ R] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Rafraîchir  ' -ForegroundColor White -NoNewline
     Write-Host '[ Q] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Quitter' -ForegroundColor White
     Write-Host '  ' -NoNewline
     Write-Host '[ADMIN]' -ForegroundColor Yellow -NoNewline; Write-Host ' ouvrira une fenêtre administrateur   ' -ForegroundColor DarkGray -NoNewline
@@ -1015,7 +1017,7 @@ while ($true) {
         try { $saisie = Read-Host '  Ton choix' } catch { Exit-MenuConnecte 0 }   # pas de clavier (console fermée, entrée redirigée)
         if ($null -eq $saisie) { Exit-MenuConnecte 0 }
         $saisie = $saisie.Trim().ToUpper()
-        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, R, Q, puis Entrée.'); continue }
+        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, J, R, Q, puis Entrée.'); continue }
         if ($saisie -eq 'Q') { Write-Host ''; Write-Info 'À bientôt.'; Exit-MenuConnecte 0 }
         if ($saisie -eq 'R') { $redessiner = $true; continue }
         if ($saisie -eq 'A') { Show-Aide; continue }
@@ -1023,6 +1025,12 @@ while ($true) {
         if ($saisie -eq 'T') {
             if (Get-Command -Name 'Show-TableauDeBord' -CommandType Function -ErrorAction SilentlyContinue) { Show-TableauDeBord -Racine $Racine }
             else { Write-Alerte 'commun_tableau.ps1 est absent de ce Worker : mets le Worker à jour.' }
+            continue
+        }
+        if ($saisie -eq 'J') {
+            # Journal local des jobs (job_journal_v1) : lu dans data\, lecture seule, même agent arrêté.
+            if (Get-Command -Name 'Show-JournalDesJobs' -CommandType Function -ErrorAction SilentlyContinue) { Show-JournalDesJobs -Racine $Racine }
+            else { Write-Alerte 'Le journal des jobs demande des outils plus récents : mets le Worker à jour.' }
             continue
         }
         if ($script:ConnexionExigee -and $script:SocleConnexion -and ($saisie -eq 'C' -or $saisie -eq 'L')) {
@@ -1036,7 +1044,7 @@ while ($true) {
             $redessiner = $true; continue
         }
         $numero = 0
-        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, R, Q.'); continue }
+        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, J, R, Q.'); continue }
         $entree = $script:Entrees | Where-Object { $_.Numero -eq $numero } | Select-Object -First 1
         if (-not $entree) { Write-Alerte ('Il n''y a pas d''entrée ' + $numero + '. Les numéros vont de 1 à ' + $script:NumeroMax + '.'); continue }
         if (-not (Test-EntreeVisible $entree)) {

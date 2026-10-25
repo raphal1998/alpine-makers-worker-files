@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.37"
+AGENT_VERSION = "1.50.38"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -203,6 +203,9 @@ AGENT_CAPABILITIES += ("worker_menu_session_v1", "worker_dashboard_v1")  # litt�
 # de l'installateur ou déduit des fichiers : component_installer.installed_version) : le site prévient le propriétaire
 # quand une version validée plus récente existe ; rien n'est mis à jour sans son geste.
 AGENT_CAPABILITIES += ("installed_versions_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Journal local des jobs (job_journal.py) : chaque job terminé ici (site, worker.exe, gravure GRBL) ajoute une ligne à
+# data/journal-des-jobs.jsonl ; worker.exe le lit, le filtre et le vide par les actions locales job-journal*.
+AGENT_CAPABILITIES += ("job_journal_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -4353,7 +4356,8 @@ class Agent:
             atomic_json(workdir / "job.json", {**payload, "execution_id": execution_id})
             entry = self.journal.update("jobs", job_id, execution_id=execution_id, tool_id=tool_id,
                 workdir=str(workdir.resolve()), state="preparing", engine_stop_confirmed=True, attempts=0,
-                worker_id=str(self.config.get("worker_id") or ""), server_url=str(self.config.get("server_url") or ""))
+                worker_id=str(self.config.get("worker_id") or ""), server_url=str(self.config.get("server_url") or ""),
+                accepted_at=time.time())
             if self.journal.get("cancels", job_id):
                 self.cancel_job(job_id)
                 entry = self.journal.get("jobs", job_id)
@@ -4431,6 +4435,8 @@ class Agent:
         response = {**response, "execution_id": entry["execution_id"]}
         self.journal.update("jobs", job_id, response=response, state=response["status"],
                             engine_stop_confirmed=response.get("engine_stop_confirmed") is True)
+        if response["status"] in TERMINAL and response.get("engine_stop_confirmed") is True and not entry.get("local_journal"):
+            self._local_job_journal(job_id, entry, response)
         try:
             self.request(f"/api/worker-protocol/jobs/{job_id}/status", "POST", response)
         except Exception:
@@ -4438,6 +4444,15 @@ class Agent:
         if response["status"] in TERMINAL and response.get("engine_stop_confirmed") is True:
             self.journal.update("jobs", job_id, acked=True)
         return True
+
+    def _local_job_journal(self, job_id, entry, response):
+        """Journal local des jobs (job_journal_v1) : une ligne par job terminé, une seule fois ; jamais bloquant."""
+        try:
+            module = importlib.import_module((__package__ + "." if __package__ else "") + "job_journal")
+            if module.record_site_job(self, job_id, entry, response):
+                self.journal.update("jobs", job_id, local_journal=True)
+        except Exception as error:
+            print(f"Journal local des jobs indisponible ({type(error).__name__}) ; le job n'est pas touché.", flush=True)
 
     def run_job(self, payload):
         job_id = str(payload.get("job_id") or "")
@@ -4520,7 +4535,8 @@ class Agent:
                     except (PermissionError, OSError, ValueError):
                         runner_identity = None
                     self.journal.update("jobs", job_id, runner_pid=process.pid, runner_identity=runner_identity,
-                                        runner_name=runner_name, attempts=entry.get("attempts", 0) + 1)
+                                        runner_name=runner_name, attempts=entry.get("attempts", 0) + 1,
+                                        started_at=entry.get("started_at") or time.time())
                     # Do not kill a client on timeout: its engine may still compute.
                     process.wait()
                 state = read_json(workdir / ".runner-state.json", {})

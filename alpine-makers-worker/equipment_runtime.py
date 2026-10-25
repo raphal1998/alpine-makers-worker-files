@@ -318,6 +318,20 @@ def grbl_module():
     return equipment_grbl
 
 
+def journal_machine_job(root, spec, job):
+    """Fin d'un job GRBL dans le journal local des jobs (job_journal.py, chargé à la demande). Rien ne sort d'ici : un
+    journal absent ou illisible n'empêche jamais la fin du job ni le job suivant."""
+    try:
+        try:
+            from . import job_journal
+        except ImportError:
+            import job_journal
+        return job_journal.record_machine_job(root, spec, job)
+    except Exception as error:
+        print(f"Journal local des jobs indisponible ({type(error).__name__}).", flush=True)
+        return False
+
+
 def package_installed(name, marker):
     """Paquet optionnel réellement présent, pas un dossier vide ou partiel laissé par une copie
     interrompue : Python prend un dossier « serial/ » vide pour un paquet namespace, find_spec
@@ -1553,7 +1567,7 @@ class Device:
                 "interlocks": self.grbl_interlock_states()}
 
     def grbl_start_job(self, name, text, total, command_id, checklist_confirmed, progress, operator_checks=True, loop=False, door_open=False, laser_pct=0.0,
-                       stop_requested=None):
+                       stop_requested=None, command="stream"):
         """Envoi du G-code dans un fil dédié : le fil de commande de l'agent reste libre pour hold/stop.
 
         ``loop`` (cadrage seulement) repasse le contour jusqu'à ``grbl_loop_stop`` ; ``door_open``
@@ -1574,7 +1588,8 @@ class Device:
             self.grbl_loop_stop.clear()
             self.grbl_job = {"active": True, "name": name, "command_id": command_id, "sent": 0, "done": 0, "total": total, "percent": 0.0,
                              "started_at": time.time(), "finished_at": None, "ok": None, "error": None, "reason": None,
-                             "loop": bool(loop), "passes": 0, "door_open": bool(door_open), "laser_pct": float(laser_pct or 0.0)}
+                             "loop": bool(loop), "passes": 0, "door_open": bool(door_open), "laser_pct": float(laser_pct or 0.0),
+                             "command": str(command or "stream")}
             self.grbl_thread = threading.Thread(target=self._grbl_run_job, args=(text, progress, operator_checks, bool(loop), bool(door_open), stop_seq),
                                                 name="grbl-job-" + self.spec["id"][:8], daemon=True)
             self.grbl_thread.start()
@@ -1667,6 +1682,9 @@ class Device:
             with self.lock:
                 self.grbl_job.update(active=False, finished_at=time.time(), **outcome)
                 self.grbl_checklist = False
+                finished = dict(self.grbl_job)
+            # Journal local des jobs (job_journal_v1) : gravure ou usinage terminé, échoué ou annulé ; jamais bloquant.
+            journal_machine_job(self.root, self.spec, finished)
 
     def grbl_wait_started(self, timeout):
         """Attend que le job envoie ses premières lignes, ou qu'il échoue tout de suite."""
@@ -2996,7 +3014,8 @@ class EquipmentRelay:
         try:
             device.grbl_start_job(name, text, len(lines), command_id, confirmed, progress, operator_checks=command == "stream" or laser_on,
                                   loop=loop, door_open=door_open, laser_pct=laser_pct,
-                                  stop_requested=(lambda: stopped_since(device.spec["id"], command_id) is True) if callable(stopped_since) else None)
+                                  stop_requested=(lambda: stopped_since(device.spec["id"], command_id) is True) if callable(stopped_since) else None,
+                                  command=command)
             job = device.grbl_wait_started(3.0)
         finally:
             # La commande répond ici : la suite du job est suivie par le rapport de l'équipement, pas par elle.

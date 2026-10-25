@@ -72,6 +72,9 @@ LAZY_ACTIONS = {
     "session-check": "self_service", "logout": "self_service",
     # Tableau de bord commun au menu et à worker.exe (worker_dashboard_v1) : état complet du Worker, lecture seule.
     "dashboard": "worker_dashboard",
+    # Journal local des jobs (job_journal_v1) : data/journal-des-jobs.jsonl, lu (filtres jour/heure/outil/statut) et
+    # vidé depuis worker.exe ; la suppression ne touche que ce PC, jamais l'historique du site.
+    "job-journal": "job_journal", "job-journal-delete": "job_journal",
 }
 PARAMS_MAX_BYTES = 2048
 # Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.
@@ -898,6 +901,7 @@ def main():
                              "login / login-state : connexion du compte depuis worker.exe (identifiants dans le fichier args) ; "
                              "session-check / logout : session du menu du Worker (jeton dans le fichier args) ; "
                              "dashboard : tableau de bord complet du Worker (lecture seule) ; "
+                             "job-journal / job-journal-delete : journal local des jobs (lecture filtrée, suppression confirmée) ; "
                              "control-room : caméras, machines et Worker vus par l'agent, sans le site (lecture seule) ; "
                              "desktop : outils natifs d'Alpine Makers Desktop (tool, name, params ou args_file)")
     parser.add_argument("--json", action="store_true", help="n'imprime qu'une ligne JSON : la reponse de l'agent")

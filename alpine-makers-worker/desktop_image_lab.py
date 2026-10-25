@@ -1037,7 +1037,8 @@ def _run(agent, params):
     if _running_runs(agent) >= RUNS_MAX:
         raise ValueError(f"{RUNS_MAX} calculs du Labo sont déjà en cours : attends la fin de l’un d’eux.")
     label = "Labo · " + (tool.get("result") or tool["label"])
-    return desk.start_task(agent, TOOL, label, lambda task: _run_work(agent, task, tool_id, settings, meta, model_id))
+    return desk.start_task(agent, TOOL, label, lambda task: _run_work(agent, task, tool_id, settings, meta, model_id),
+                           journal=True)
 
 
 def _runner_state(workdir):
