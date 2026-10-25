@@ -352,7 +352,7 @@ function Invoke-RelaisSiteUneFois {
         Ok = $false; Resultat = $null; Local = $null; Erreur = ''; Http = 0; CodeSite = ''; SiteSansFonction = $false; SiteInjoignable = $false
         AgentTropAncien = $false; AgentARedemarrer = $false; AgentMuet = $false; DelaiDepasse = $false
     }
-    if (@('site-update', 'site-repair', 'jobs-stop', 'sharing-set') -cnotcontains [string]$Action) { $r.Erreur = 'Action de relais inconnue.'; return $r }
+    if (@('site-update', 'site-repair', 'jobs-stop', 'sharing-set', 'resources-set') -cnotcontains [string]$Action) { $r.Erreur = 'Action de relais inconnue.'; return $r }
     if ($DelaiSecondes -lt 5) { $DelaiSecondes = 5 }
     $limite = (Get-Date).AddSeconds($DelaiSecondes)
     $depot = $null

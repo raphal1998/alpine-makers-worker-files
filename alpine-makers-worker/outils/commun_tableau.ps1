@@ -208,6 +208,25 @@ function Show-TableauDeBord {
     if ($bureau -gt 0) { Write-Etat 'Calculs de worker.exe' ([string]$bureau) 'alerte' }
     $graveuses = @(Get-ChampGestion $jobs 'grbl_jobs' @())
     if ($graveuses.Count -gt 0) { Write-Etat 'Gravures / cadrages' ($graveuses -join ', ') 'alerte' }
+    # Jobs et ressources (resource_limits_v1) : limites appliquées par l'agent ; détail et réglage dans l'entrée 26.
+    $ressources = Get-ChampGestion $Tableau 'resources'
+    if ($null -ne $ressources) {
+        foreach ($portee in @(@('per_job', 'Limites par job'), @('total', 'Limites cumulées'))) {
+            $bloc = Get-ChampGestion (Get-ChampGestion $ressources 'effective') $portee[0]
+            $parties = @()
+            foreach ($r in @(@('vram_mb', 'VRAM'), @('ram_mb', 'RAM'))) {
+                $v = Get-ChampGestion $bloc $r[0]
+                if ($null -ne $v) { $parties += ($r[1] + ' ' + (Format-MioTableau $v)) }
+            }
+            $cpu = Get-ChampGestion $bloc 'cpu_percent'
+            if ($null -ne $cpu) { $parties += ('processeur ' + [string]$cpu + ' %') }
+            if ($parties.Count -eq 0) { $parties = @('aucune') }
+            Write-Etat $portee[1] ($parties -join ' · ') 'info'
+        }
+        foreach ($moteur in @(Get-ChampGestion (Get-ChampGestion $ressources 'usage') 'engines' @())) {
+            if ([bool](Get-ChampGestion $moteur 'restart_required' $false)) { Write-Etat ([string](Get-ChampGestion $moteur 'name' 'Moteur')) 'à redémarrer pour appliquer les limites (quand aucun job ne tourne)' 'alerte' }
+        }
+    }
     $partage = Get-ChampGestion $Tableau 'sharing'
     Write-Etat 'Mode de partage' ([string](Get-ChampGestion $partage 'label' 'inconnu')) 'info'
     if ([bool](Get-ChampGestion $partage 'known' $false)) {

@@ -135,6 +135,8 @@ $script:Entrees = @(
     (New-Entree 22 'gestion'    'Mode de partage'               'Privé, comptes choisis ou public.'             'ps1' 'mode_partage.ps1')
     (New-Entree 23 'gestion'    'Mettre à jour le Worker'       'Installe la version proposée par le site.'     'ps1' 'mettre_a_jour.ps1')
     (New-Entree 24 'gestion'    'Réparer'                       'Diagnostic profond, puis réparations sûres.'   'ps1' 'reparer.ps1')
+    # 26 (25 est l'entrée du PC du propriétaire) : jobs simultanés et limites VRAM / RAM / processeur, session exigée.
+    (New-Entree 26 'gestion'    'Jobs et ressources'            'Jobs simultanés, limites VRAM, RAM et CPU.'    'ps1' 'ressources_jobs.ps1')
 
     (New-Entree 17 'rouge'      'Supprimer les moteurs IA'      'Désinstalle les moteurs (Worker allumé).'      'ps1' 'supprimer_moteurs.ps1' -Arret -Rouge -RelanceWorker)
     (New-Entree 20 'rouge'      'Supprimer les doublons'        'Libère la place après un contrôle récent.'     'ps1' 'supprimer_doublons.ps1' -Rouge)
@@ -973,15 +975,15 @@ if ($Choix) {
 
 # Le menu fait une soixantaine de lignes : on agrandit la fenêtre quand la console le permet
 # (console Windows classique ; sous Windows Terminal l'appel est sans effet et on continue).
-# Les deux nombres ci-dessous suivent le menu réel : 70 = lignes de -Apercu dans le cas le plus long (25 entrées,
-# erreurs + mise à jour + état périmé, six lignes du tableau de bord, ligne K des licences, sans alerte) ; 77 = ce
+# Les deux nombres ci-dessous suivent le menu réel : 71 = lignes de -Apercu dans le cas le plus long (26 entrées,
+# erreurs + mise à jour + état périmé, six lignes du tableau de bord, ligne K des licences, sans alerte) ; 78 = ce
 # compte, l'invite, et la place de quelques alertes.
 try {
     $ui = $Host.UI.RawUI
     $tampon = $ui.BufferSize
     if ($tampon.Width -lt 100) { $tampon.Width = 100; $ui.BufferSize = $tampon }
     $fenetre = $ui.WindowSize
-    $hauteur = [Math]::Min(77, $ui.MaxPhysicalWindowSize.Height)
+    $hauteur = [Math]::Min(78, $ui.MaxPhysicalWindowSize.Height)
     $largeur = [Math]::Min([Math]::Max($fenetre.Width, 100), $ui.MaxPhysicalWindowSize.Width)
     if ($fenetre.Height -lt $hauteur -or $fenetre.Width -lt $largeur) {
         $fenetre.Height = [Math]::Max($fenetre.Height, $hauteur); $fenetre.Width = $largeur
@@ -989,7 +991,7 @@ try {
     }
 } catch { }
 # Fenêtre restée basse (Windows Terminal, petite console) : le menu se resserre et redit l'état près de l'invite.
-try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 70) { $script:Compact = $true } } catch { }
+try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 71) { $script:Compact = $true } } catch { }
 
 # Connexion du propriétaire avant tout menu, comme worker.exe : Worker associé (config.json porte un worker_id),
 # menu interactif hors worker.exe. Fermeture ou abandon = sortie (code 3, comme worker.exe).

@@ -79,6 +79,9 @@ LAZY_ACTIONS = {
     "job-journal": "job_journal", "job-journal-delete": "job_journal",
     # Licences et droits de ce Worker (legal_status_v1) : lus sur le site avec la session de worker.exe ou du menu (args_file).
     "legal-status": "legal_status",
+    # Jobs et ressources (resource_limits_v1) : lecture des réglages appliqués et des mesures, sans réseau ; modification
+    # relayée au site (route signée self/resources), session du propriétaire jointe par args_file.
+    "resources": "resource_limits", "resources-set": "resource_limits",
 }
 PARAMS_MAX_BYTES = 2048
 # Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.

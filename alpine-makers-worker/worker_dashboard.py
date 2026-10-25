@@ -524,6 +524,12 @@ def _guard(view, *args):
         return None
 
 
+def _resources(agent):
+    """Jobs et ressources (resource_limits_v1) : réglages appliqués, limites effectives et dernière mesure (déjà faite)."""
+    runtime = getattr(agent, "resources", None)
+    return runtime.local_view() if runtime is not None else None
+
+
 def dashboard(agent, params):
     """État complet du Worker, lecture seule, sans réseau. ``refresh`` relance les mesures d'arrière-plan si possible."""
     force = bool((params or {}).get("refresh", False))
@@ -539,7 +545,8 @@ def dashboard(agent, params):
             "driver_version": _text(snapshot.get("driver_version"), 30),
             "cpu": {"name": _text(cpu.get("name"), 80), "cores": _int(cpu.get("cores"), 1, 4096)},
             "components": rows, "models": models, "ai_accounts": _guard(_ai_view, agent, force),
-            "fire_watch": _guard(_fire_watch, agent), "inventory_known": bool(snapshot.get("tools") or snapshot.get("gpus"))}
+            "fire_watch": _guard(_fire_watch, agent), "inventory_known": bool(snapshot.get("tools") or snapshot.get("gpus")),
+            "resources": _guard(_resources, agent)}
 
 
 LOCAL_ACTIONS = {

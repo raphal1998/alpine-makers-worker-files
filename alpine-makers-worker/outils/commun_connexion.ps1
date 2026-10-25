@@ -118,6 +118,7 @@ function Get-DroitEntreeMenu {
         { $_ -in 18, 23, 24 } { return 'maintenance' }     # Contrôle total, Mettre à jour, Réparer
         19 { return 'status' }                             # Contrôler les doublons (ne supprime rien)
         21 { return 'jobs' }                               # Arrêter tous les jobs
+        26 { return 'jobs' }                               # Jobs et ressources
     }
     return ''                                              # 7, 8, 13, 15, 22, zone rouge, entrées du PC du propriétaire
 }

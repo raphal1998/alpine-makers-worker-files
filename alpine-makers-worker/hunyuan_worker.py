@@ -912,6 +912,36 @@ def secrets_compare(left, right):
     return bool(left and right and hmac.compare_digest(str(left), str(right)))
 
 
+def apply_resource_limits():
+    """Jobs et ressources du Worker (resource_limits_v1) : threads alignés sur la part du processeur et fraction de la
+    VRAM de la carte, posés par l'agent dans l'environnement du moteur à son démarrage. Sans ces variables, torch n'est
+    pas importé ici et rien ne change. Rend ce qui a été appliqué."""
+    threads_text = os.environ.get("ALPINE_TORCH_THREADS") or ""
+    fraction_text = os.environ.get("ALPINE_TORCH_VRAM_FRACTION") or ""
+    if not threads_text and not fraction_text:
+        return {}
+    try:
+        import torch
+    except ImportError:
+        return {}
+    applied = {}
+    try:
+        threads = int(threads_text or 0)
+    except ValueError:
+        threads = 0
+    if threads > 0:
+        torch.set_num_threads(threads)
+        applied["threads"] = threads
+    try:
+        fraction = float(fraction_text or 0)
+    except ValueError:
+        fraction = 0.0
+    if 0 < fraction <= 1 and torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(fraction, 0)
+        applied["vram_fraction"] = fraction
+    return applied
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -934,6 +964,9 @@ def main():
     token = Path(args.token_file).read_text(encoding="utf-8").strip()
     if len(token) < 32:
         raise SystemExit("Invalid worker token.")
+    applied = apply_resource_limits()
+    if applied:
+        print("Limites de ressources du Worker appliquées : " + ", ".join(f"{key}={value}" for key, value in applied.items()), flush=True)
     runtime = InferenceRuntime(root, Path(args.generated_root), args.idle_timeout)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     server.token = token

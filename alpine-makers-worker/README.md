@@ -715,7 +715,7 @@ Mes Workers, sur la fiche du Worker.
 - **Lancement direct** : `outils\rallumer_worker.bat` ; `-Simulation`, `-Oui` ;
   `-SansMoteurs` rallume l'agent **sans** redemander le démarrage des moteurs.
 
-### GESTION DU WORKER (18 à 24) — deux entrées pour les pannes
+### GESTION DU WORKER (18 à 24, 26) — deux entrées pour les pannes
 
 #### 21 · Arrêter tous les jobs
 
@@ -748,6 +748,21 @@ Mes Workers, sur la fiche du Worker.
   « À faire à la main », avec l'entrée à utiliser.
 - **Lancement direct** : `outils\reparer.bat` ; `-Simulation`, `-Oui`. Le diagnostic seul :
   `python outils\diagnostic_profond.py --json`.
+
+#### 26 · Jobs et ressources
+
+- **Fait** : affiche les jobs simultanés et les limites de VRAM, RAM et processeur, par job et
+  cumulées sur tous les jobs, appliquées par l'agent (copie des réglages du site), le matériel
+  détecté, l'utilisation mesurée, les jobs en file et les moteurs à redémarrer ; puis propose de
+  les régler (« 6 » ou « 6 Gio », « 50 % », « aucune »). Le site vérifie chaque valeur (par job ≤
+  cumulé ≤ matériel détecté) et prévient le propriétaire ; le Worker applique au heartbeat suivant.
+- **Plafond dur ou admission** : RAM et processeur des calculs lancés par job sont plafonnés par
+  Windows ; la VRAM (et la RAM des moteurs résidents) passe par l'admission : un job trop gros est
+  refusé, un job qui dépasse le cumul attend. ComfyUI et PyTorch reçoivent la limite de VRAM à
+  leur démarrage : un moteur déjà lancé est signalé « à redémarrer » (entrée 9), jamais pendant un job.
+- **Exige** : la connexion du propriétaire (ou d'un co-propriétaire qui a le droit « jobs ») pour
+  modifier. **Lancement direct** : `outils\ressources_jobs.bat` ; `-JobsMax 2 -VramParJob 6
+  -RamCumulee "50 %" -Oui`, `-SansLimites`, `-Simulation`.
 
 ### ENTRETIEN (13 à 16) — sauvegarde, ménage, démarrage du PC
 

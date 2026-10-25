@@ -4,6 +4,9 @@ The bootstrap waits for its parent before importing an installer. On Windows
 this closes the spawn/AssignProcessToJobObject race: no descendant can escape
 the job before ownership has been established. Killing by executable name or
 by an unverified, reusable PID is deliberately unsupported.
+
+Le même groupe Windows (WindowsJob) et la même amorce (« --run ») servent aussi aux plafonds de RAM et de processeur
+des jobs (job_limits.py, capacité resource_limits_v1) : groupe par job imbriqué dans le groupe cumulé du Worker.
 """
 import os
 import runpy
@@ -24,11 +27,54 @@ def scope_record():
     return {"platform": os.name, "name": "Local\\AlpineWorkerInstall_" + uuid.uuid4().hex}
 
 
+_STRUCTURES = {}
+JOB_LIMIT_JOB_MEMORY = 0x200        # JOB_OBJECT_LIMIT_JOB_MEMORY : mémoire engagée de tout le groupe
+JOB_LIMIT_KILL_ON_CLOSE = 0x2000    # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+CPU_RATE_ENABLE, CPU_RATE_HARD_CAP = 0x1, 0x4   # JOB_OBJECT_CPU_RATE_CONTROL_ENABLE | _HARD_CAP
+
+
+def _structures():
+    """Structures Windows des groupes de processus (Job Objects), créées une fois."""
+    if not _STRUCTURES:
+        import ctypes
+        from ctypes import wintypes
+
+        class BasicLimits(ctypes.Structure):
+            _fields_ = [("ProcessTime", ctypes.c_longlong), ("JobTime", ctypes.c_longlong),
+                        ("Flags", wintypes.DWORD), ("MinWorking", ctypes.c_size_t),
+                        ("MaxWorking", ctypes.c_size_t), ("ActiveLimit", wintypes.DWORD),
+                        ("Affinity", ctypes.c_size_t), ("Priority", wintypes.DWORD), ("Scheduling", wintypes.DWORD)]
+
+        class ExtendedLimits(ctypes.Structure):
+            _fields_ = [("Basic", BasicLimits), ("IO", ctypes.c_ulonglong * 6),
+                        ("ProcessMemory", ctypes.c_size_t), ("JobMemory", ctypes.c_size_t),
+                        ("PeakProcessMemory", ctypes.c_size_t), ("PeakJobMemory", ctypes.c_size_t)]
+
+        class Accounting(ctypes.Structure):
+            _fields_ = [("Times", ctypes.c_longlong * 4), ("PageFaults", ctypes.c_uint32),
+                        ("Total", ctypes.c_uint32), ("Active", ctypes.c_uint32), ("Terminated", ctypes.c_uint32)]
+
+        class CpuRate(ctypes.Structure):   # JOBOBJECT_CPU_RATE_CONTROL_INFORMATION (union réduite à CpuRate)
+            _fields_ = [("ControlFlags", wintypes.DWORD), ("CpuRate", wintypes.DWORD)]
+
+        _STRUCTURES.update(BasicLimits=BasicLimits, ExtendedLimits=ExtendedLimits, Accounting=Accounting, CpuRate=CpuRate)
+    return _STRUCTURES
+
+
 class WindowsJob:
-    def __init__(self, name, *, create=False):
+    """Groupe de processus Windows (Job Object).
+
+    Installateurs (défaut) : groupe NEUF, tué à la fermeture de son dernier handle. ``kill_on_close=False`` : groupe
+    des jobs (job_limits.py), qui survit à un redémarrage de l'agent tant qu'un de ses processus vit ; ``reuse=True`` :
+    rouvre le groupe de ce nom s'il existe déjà (groupe cumulé du Worker), au lieu de refuser."""
+
+    def __init__(self, name, *, create=False, kill_on_close=True, reuse=False):
         import ctypes
         from ctypes import wintypes
         self.ctypes = ctypes
+        self.kill_on_close = bool(kill_on_close)
+        self.reused = False
+        self.cpu_rate_set = False if create else None   # None : état du contrôle du débit inconnu (groupe repris)
         self.kernel = kernel = ctypes.WinDLL("kernel32", use_last_error=True)
         kernel.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
         kernel.CreateJobObjectW.restype = wintypes.HANDLE
@@ -46,17 +92,12 @@ class WindowsJob:
                 return  # The last process/handle of this unique job has gone.
             raise OSError(error, "Impossible de vérifier le groupe privé de l’installation.")
         if create:
-            class BasicLimits(ctypes.Structure):
-                _fields_ = [("ProcessTime", ctypes.c_longlong), ("JobTime", ctypes.c_longlong),
-                            ("Flags", wintypes.DWORD), ("MinWorking", ctypes.c_size_t),
-                            ("MaxWorking", ctypes.c_size_t), ("ActiveLimit", wintypes.DWORD),
-                            ("Affinity", ctypes.c_size_t), ("Priority", wintypes.DWORD), ("Scheduling", wintypes.DWORD)]
-            class ExtendedLimits(ctypes.Structure):
-                _fields_ = [("Basic", BasicLimits), ("IO", ctypes.c_ulonglong * 6),
-                            ("ProcessMemory", ctypes.c_size_t), ("JobMemory", ctypes.c_size_t),
-                            ("PeakProcessMemory", ctypes.c_size_t), ("PeakJobMemory", ctypes.c_size_t)]
-            value = ExtendedLimits()
-            value.Basic.Flags = 0x2000  # KILL_ON_JOB_CLOSE, no breakaway allowed.
+            if error == 183 and reuse:
+                self.reused = True   # groupe déjà là (processus d'un job lancé avant un redémarrage de l'agent)
+                self.cpu_rate_set = None
+                return
+            value = _structures()["ExtendedLimits"]()
+            value.Basic.Flags = JOB_LIMIT_KILL_ON_CLOSE if self.kill_on_close else 0  # no breakaway allowed.
             if error == 183 or not kernel.SetInformationJobObject(self.handle, 9, ctypes.byref(value), ctypes.sizeof(value)):
                 self.close()
                 raise OSError("Impossible d’isoler l’installation dans un nouveau groupe privé.")
@@ -65,13 +106,63 @@ class WindowsJob:
         if not self.kernel.AssignProcessToJobObject(self.handle, int(process._handle)):
             raise OSError(self.ctypes.get_last_error(), "L’installation ne peut pas être isolée ; elle n’a pas été exécutée.")
 
+    def set_limits(self, memory_bytes=None, cpu_percent=None):
+        """Plafonds durs du groupe : mémoire engagée de tout le groupe (``memory_bytes``) et part du processeur
+        (``cpu_percent`` de 0,01 à 100, plafond strict par intervalle de planification). ``None`` retire le plafond."""
+        structures = _structures()
+        value = structures["ExtendedLimits"]()
+        flags = JOB_LIMIT_KILL_ON_CLOSE if self.kill_on_close else 0
+        if memory_bytes:
+            flags |= JOB_LIMIT_JOB_MEMORY
+            value.JobMemory = int(memory_bytes)
+        value.Basic.Flags = flags
+        if not self.kernel.SetInformationJobObject(self.handle, 9, self.ctypes.byref(value), self.ctypes.sizeof(value)):
+            raise OSError(self.ctypes.get_last_error(), "Plafond de mémoire du groupe de processus refusé par Windows.")
+        # Contrôle du débit : posé seulement s'il est demandé, ou retiré s'il avait été posé (un groupe neuf qui n'en a
+        # jamais eu refuse sa désactivation, erreur 87). Un groupe repris après un redémarrage de l'agent : inconnu,
+        # retiré par prudence (erreur 87 tolérée : il n'y en avait pas).
+        rate = structures["CpuRate"]()
+        if cpu_percent:
+            rate.ControlFlags = CPU_RATE_ENABLE | CPU_RATE_HARD_CAP
+            rate.CpuRate = max(1, min(10000, int(round(float(cpu_percent) * 100))))
+        if cpu_percent or self.cpu_rate_set is not False:
+            if not self.kernel.SetInformationJobObject(self.handle, 15, self.ctypes.byref(rate), self.ctypes.sizeof(rate)):
+                error = self.ctypes.get_last_error()
+                if cpu_percent or error != 87:
+                    raise OSError(error, "Plafond du processeur du groupe de processus refusé par Windows.")
+        self.cpu_rate_set = bool(cpu_percent)
+
+    def accounting(self):
+        """Temps processeur cumulé (s) et processus actifs du groupe, enfants imbriqués compris."""
+        value = _structures()["Accounting"]()
+        if not self.handle or not self.kernel.QueryInformationJobObject(self.handle, 1, self.ctypes.byref(value), self.ctypes.sizeof(value), None):
+            raise OSError("Comptes du groupe de processus illisibles.")
+        return {"cpu_seconds": (int(value.Times[0]) + int(value.Times[1])) / 1e7, "active": int(value.Active)}
+
+    def peak_memory(self):
+        """Pic de mémoire engagée du groupe (octets) depuis sa création."""
+        value = _structures()["ExtendedLimits"]()
+        if not self.handle or not self.kernel.QueryInformationJobObject(self.handle, 9, self.ctypes.byref(value), self.ctypes.sizeof(value), None):
+            raise OSError("Mémoire du groupe de processus illisible.")
+        return int(value.PeakJobMemory)
+
+    def process_ids(self, maximum=512):
+        """PID des processus du groupe (ceux de ses groupes imbriqués compris)."""
+        ctypes = self.ctypes
+
+        class ProcessList(ctypes.Structure):
+            _fields_ = [("Assigned", ctypes.c_uint32), ("Listed", ctypes.c_uint32), ("Ids", ctypes.c_size_t * maximum)]
+        value = ProcessList()
+        if not self.handle or not self.kernel.QueryInformationJobObject(self.handle, 3, ctypes.byref(value), ctypes.sizeof(value), None):
+            error = ctypes.get_last_error()
+            if error != 234:   # ERROR_MORE_DATA : liste tronquée, déjà remplie jusqu'à ``maximum``
+                raise OSError(error, "Processus du groupe illisibles.")
+        return [int(value.Ids[index]) for index in range(min(int(value.Listed), maximum))]
+
     def stopped(self):
         if not self.handle:
             return True
-        class Accounting(self.ctypes.Structure):
-            _fields_ = [("Times", self.ctypes.c_longlong * 4), ("PageFaults", self.ctypes.c_uint32),
-                        ("Total", self.ctypes.c_uint32), ("Active", self.ctypes.c_uint32), ("Terminated", self.ctypes.c_uint32)]
-        value = Accounting()
+        value = _structures()["Accounting"]()
         if not self.kernel.QueryInformationJobObject(self.handle, 1, self.ctypes.byref(value), self.ctypes.sizeof(value), None):
             raise OSError("L’arrêt des sous-processus de l’installation n’est pas confirmé.")
         return value.Active == 0

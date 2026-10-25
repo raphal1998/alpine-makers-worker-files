@@ -163,6 +163,7 @@ $script:NomsEntrees = @{
     17 = 'Supprimer les moteurs IA'
     18 = 'Contrôle total et réparation'; 19 = 'Contrôler les doublons'; 20 = 'Supprimer les doublons'; 21 = 'Arrêter tous les jobs'
     22 = 'Mode de partage';        23 = 'Mettre à jour le Worker';     24 = 'Réparer'
+    26 = 'Jobs et ressources'
 }
 # Les entrées propres au PC du propriétaire (25 et suivantes) sont ajoutées à cette table par
 # menu_proprietaire.ps1, livré seulement aux Workers du compte propriétaire.

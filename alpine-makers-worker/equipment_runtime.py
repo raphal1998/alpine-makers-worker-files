@@ -1125,7 +1125,11 @@ class Device:
                 process = subprocess.Popen([sys.executable, str(script), "--root", str(self.root), "--options", json.dumps(options),
                                             "--parent", str(os.getpid())],
                                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, env=env,
-                                           cwd=str(self.root), creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                                           # Capture en continu : priorité « inférieure à la normale » (agent 1.50.41),
+                                           # le bureau du PC garde la main ; la cadence demandée ne change pas.
+                                           cwd=str(self.root), creationflags=(subprocess.CREATE_NO_WINDOW
+                                                                              | getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0))
+                                           if os.name == "nt" else 0)
                 # L'arrêt demandé tue le processus : la lecture bloquante ci-dessous se termine alors sur une fin de flux.
                 threading.Thread(target=self._usb_kill_on_stop, args=(process,), daemon=True).start()
                 stamps, reported, measured, backend = [], 0.0, False, ""

@@ -197,6 +197,28 @@ def validate_request(raw):
 
 
 # ------------------------------------------------------------------ isolement
+def apply_resource_limits(torch):
+    """Jobs et ressources du Worker (resource_limits_v1) : threads alignés sur la part du processeur et fraction de la
+    VRAM de la carte, posés par l'agent dans l'environnement du job. Variables absentes : rien ne change. Rend ce qui
+    a été appliqué."""
+    applied = {}
+    try:
+        threads = int(os.environ.get("ALPINE_TORCH_THREADS") or 0)
+    except ValueError:
+        threads = 0
+    if threads > 0:
+        torch.set_num_threads(threads)
+        applied["threads"] = threads
+    try:
+        fraction = float(os.environ.get("ALPINE_TORCH_VRAM_FRACTION") or 0)
+    except ValueError:
+        fraction = 0.0
+    if 0 < fraction <= 1 and torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(fraction, 0)
+        applied["vram_fraction"] = fraction
+    return applied
+
+
 def block_network():
     """Coupe le réseau du processus : toute tentative (téléchargement de poids, télémétrie) lève une erreur."""
     import socket
@@ -340,6 +362,7 @@ def restore(request):
     torch.hub.load_state_dict_from_url = no_download
     torch.hub.download_url_to_file = no_download
     torch.manual_seed(0)
+    apply_resource_limits(torch)
     gfpgan_bytes = _verified_bytes(request["gfpgan"], request["gfpgan_sha256"], GFPGAN_MAX_BYTES, "GFPGAN v1.4")
     detector_bytes = _verified_bytes(request["detector"], request["detector_sha256"], DETECTOR_MAX_BYTES, "du détecteur de visages")
 

@@ -80,6 +80,7 @@ if __package__:
     from .installers import environment_maintenance
     from . import comfyui_assets
     from .checkpoint_baseline import checkpoint_architecture
+    from . import host_stability, job_limits, resource_limits
 else:
     import worker_legal as legal_compliance
     import local_sandbox
@@ -96,8 +97,11 @@ else:
     from installers import environment_maintenance
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
+    import host_stability
+    import job_limits
+    import resource_limits
 
-AGENT_VERSION = "1.50.40"
+AGENT_VERSION = "1.50.41"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -214,6 +218,13 @@ AGENT_CAPABILITIES += ("worker_login_trust_v1",)  # littéral : le site lit ces 
 # Licences et droits de ce Worker (legal_status.py) : worker.exe et le menu les lisent sur le site par l'action locale
 # « legal-status » (route signée self/legal-status, session du compte connecté par fichier d'arguments), lecture seule.
 AGENT_CAPABILITIES += ("legal_status_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Jobs et ressources (resource_limits.py) : réglages du site gardés en cache (runtime/resource-limits.json), admission
+# et file locale avant chaque job, plafonds RAM/processeur Windows par job et cumulés (job_limits.py), réglages VRAM et
+# threads des moteurs, mesures dans le heartbeat (« resource_usage ») ; actions locales resources / resources-set.
+AGENT_CAPABILITIES += ("resource_limits_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Stabilité du PC hôte (host_stability.py) : ComfyUI sans mémoire épinglée, moteurs et captures en priorité basse,
+# journal logs/ressources.log, moteurs inactifs déchargés quand la RAM du PC devient rare.
+AGENT_CAPABILITIES += ("host_stability_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -634,6 +645,8 @@ class Agent:
         # celui qui tient la liaison série des machines GRBL. Sa création ne lance aucun fil (voir loop())
         # et son échec n'empêche jamais l'agent de démarrer.
         self.agent_version = AGENT_VERSION
+        # Jobs et ressources (resource_limits_v1) : copie des réglages du site, admission, plafonds, mesures.
+        self.resources = resource_limits.ResourceRuntime(self)
         self.fire_watch = None
         self.fire_watch_error = ""
         self.fire_watch_wanted = False
@@ -814,6 +827,11 @@ class Agent:
     def _handle_heartbeat_commands(self, response, identity):
         if identity != self._command_identity():
             return  # A response for the previous association must not cancel new work.
+        try:
+            # Jobs et ressources : réglages du site (source de vérité), gardés en cache pour s'appliquer hors ligne.
+            self.resources.apply_site_settings(response.get("resource_settings"))
+        except Exception as error:
+            print(f"Réglages des ressources non appliqués ({type(error).__name__}).", flush=True)
         for command_id in response.get("commands_cancel_requested") or []:
             self.cancel_installation(str(command_id))
         for job_id in response.get("jobs_cancel_requested") or []:
@@ -1549,6 +1567,13 @@ class Agent:
         if summary:
             payload["environment_maintenance"] = summary
         try:
+            # Jobs et ressources : dernière mesure (faite dans son propre fil), réglage appliqué, pics des jobs passés.
+            payload["resource_usage"] = self.resources.heartbeat_view()
+        except Exception as error:
+            if not getattr(self, "_resource_error_logged", False):  # une seule ligne, pas une par heartbeat
+                self._resource_error_logged = True
+                print(f"Mesure des ressources indisponible ({type(error).__name__}).", flush=True)
+        try:
             # Tableau de bord : dernière mesure de la place occupée (calculée dans son propre fil, jamais ici).
             usage = self._dashboard_module().storage_for_heartbeat(self)
             if usage:
@@ -2046,7 +2071,10 @@ class Agent:
             entry = root / "main.py"
             if not entry.is_file():
                 raise AgentError("ComfyUI n’est pas installé sur ce worker.")
-            return root, [str(self._component_python(root)), str(entry), "--listen", "127.0.0.1", "--port", str(self._runtime_port(tool_id))]
+            # PC partagé avec d'autres services : sans mémoire épinglée (jusqu'à 40 % de la RAM, non paginable), si la
+            # version installée connaît l'option ; « comfyui_pinned_memory: true » dans config.json la remet.
+            return root, [str(self._component_python(root)), str(entry), "--listen", "127.0.0.1", "--port", str(self._runtime_port(tool_id)),
+                          *host_stability.comfyui_stability_arguments(root, self.config)]
         if tool_id == "ai3d":
             root = WorkerStorage(self.root, self.config).component("hunyuan3d")
             python = self._component_python(root)
@@ -2872,6 +2900,15 @@ class Agent:
                     command.extend(["--force-fp32", "--use-split-cross-attention", "--disable-xformers", "--disable-dynamic-vram"])
                 if profile["vram_total_mb"] is not None and profile["vram_total_mb"] < 10000:
                     command.append("--lowvram")
+        # Jobs et ressources : limite de VRAM d'un job appliquée par le moteur lui-même (ComfyUI --reserve-vram = total
+        # − limite ; Hunyuan3D : fraction PyTorch) et threads alignés sur la part du processeur. Gardés dans la fiche du
+        # moteur : un changement de réglage demande un redémarrage du moteur, signalé, jamais forcé.
+        resource_settings = None
+        if tool_id in resource_limits.ENGINE_TOOLS:
+            resource_settings = self.resources.engine_settings(tool_id, profile.get("vram_total_mb"))
+            if tool_id == "image_generation":
+                command.extend(resource_limits.comfyui_arguments(resource_settings))
+            environment.update(self.resources.engine_environment(resource_settings))
         if tool_id == "ai3d":
             cuda_marker = self.root / "components" / "cuda-toolkit" / "cuda-path.txt"
             if cuda_marker.is_file():
@@ -2914,17 +2951,22 @@ class Agent:
             environment.setdefault("PRINTGUARD_DISABLE_MEDIA_PUBLISH", "1")
         self._runtime_progress(45, "Démarrage du processus moteur sur le Worker…")
         with log_path.open("a", encoding="utf-8") as output:
+            # Priorité « inférieure à la normale » (host_stability_v1) : le bureau et les services du PC gardent la main
+            # quand un moteur charge ou calcule ; seul l'ordre d'accès au processeur change, pas le résultat.
             process = subprocess.Popen(
                 command, cwd=str(root), stdout=output, stderr=subprocess.STDOUT, env=environment,
-                creationflags=(subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP) if os.name == "nt" else 0,
+                creationflags=(subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP | host_stability.engine_priority_flag())
+                if os.name == "nt" else 0,
                 start_new_session=os.name != "nt",
             )
         try:
             identity = process_identity(process.pid)
         except (PermissionError, OSError, TypeError, ValueError):
             identity = None
-        record_path.write_text(json.dumps({"pid": process.pid, "root": str(root), "started_at": time.time(),
-                                           "process_identity": identity}), encoding="utf-8")
+        started_record = {"pid": process.pid, "root": str(root), "started_at": time.time(), "process_identity": identity}
+        if resource_settings is not None:
+            started_record["resource_settings"] = resource_settings
+        record_path.write_text(json.dumps(started_record), encoding="utf-8")
         ready = self._wait_runtime_ready(process, tool_id)
         exit_code = process.poll()
         if exit_code is not None or not ready:
@@ -4467,8 +4509,29 @@ class Agent:
         except Exception as error:
             print(f"Journal local des jobs indisponible ({type(error).__name__}) ; le job n'est pas touché.", flush=True)
 
+    def _report_job_waiting(self, job_id, message):
+        """Job en file sur ce Worker (ressources cumulées ou jobs simultanés) : le site affiche le motif. Le journal garde
+        « preparing » (réconcilié en « downloading ») : rien n'est lancé, aucun moteur ne calcule pour ce job."""
+        entry = self.journal.get("jobs", job_id) or {}
+        self.request(f"/api/worker-protocol/jobs/{job_id}/status", "POST",
+                     {"status": "downloading", "progress": 0, "engine_stop_confirmed": True, "message": str(message)[:900],
+                      "execution_id": entry.get("execution_id", "")})
+
+    def _job_cancel_seen(self, job_id):
+        return job_id in self.cancelled or bool((self.journal.get("jobs", job_id) or {}).get("cancel_requested"))
+
+    def _resources_job_ended(self, job_id, completed):
+        """Fin (ou sortie) de run_job : groupe Windows fermé, pic mesuré gardé ; la place réservée n'est rendue que si le
+        job n'est plus actif (un job « incertain » garde sa place jusqu'à sa conclusion)."""
+        try:
+            entry = self.journal.get("jobs", job_id)
+            self.resources.finish(job_id, completed, release=not entry or not self._job_active(entry))
+        except Exception as error:
+            print(f"Ressources du job non libérées ({type(error).__name__}).", flush=True)
+
     def run_job(self, payload):
         job_id = str(payload.get("job_id") or "")
+        completed = False
         try:
             entry = self._accept_job(payload)
             workdir = Path(entry["workdir"])
@@ -4476,7 +4539,11 @@ class Agent:
                 self._job_status(job_id, entry["response"])
                 return
             if runner_active(workdir):
-                return  # The old runner outlived an agent restart.
+                # The old runner outlived an agent restart : sa place reste comptée dans le cumul des ressources.
+                stored = read_json(workdir / "job.json", {})
+                self.resources.register(job_id, entry["tool_id"], stored.get("model_id"),
+                                        stored.get("parameters") if isinstance(stored.get("parameters"), dict) else {})
+                return
             state = read_json(workdir / ".runner-state.json", {})
             if not state and entry.get("cancel_requested"):
                 self._job_status(job_id, {"status": "cancelled", "progress": 100, "engine_stop_confirmed": True,
@@ -4485,6 +4552,21 @@ class Agent:
             tool_id = entry["tool_id"]
             payload = read_json(workdir / "job.json")
             parameters = payload.get("parameters") if isinstance(payload.get("parameters"), dict) else {}
+            if not state and not entry.get("launch_intent"):
+                # Jobs et ressources : admission avant tout téléchargement ou lancement. Refus (le job dépasse à lui seul
+                # une limite) : ResourceRefusal, conclu « échoué » sans rien lancer ; cumul atteint : le job attend ici,
+                # dans son propre fil, sans bloquer les autres jobs.
+                admitted = self.resources.admit(job_id, tool_id, payload.get("model_id"), parameters,
+                                                cancelled=lambda: self._job_cancel_seen(job_id),
+                                                report=lambda message: self._report_job_waiting(job_id, message))
+                if admitted is None:
+                    if self.stop_requested.is_set():
+                        return   # agent qui s'arrête : le job reprend (et repasse l'admission) au redémarrage
+                    self._job_status(job_id, {"status": "cancelled", "progress": 100, "engine_stop_confirmed": True,
+                                             "message": "Annulé pendant l'attente de ressources sur le Worker : rien n'a été lancé."})
+                    return
+            elif state.get("state") not in TERMINAL:
+                self.resources.register(job_id, tool_id, payload.get("model_id"), parameters)
             if not entry.get("prepared"):
                 single = parameters.get("input_file") if isinstance(parameters.get("input_file"), dict) else {}
                 sources = [single] + (parameters.get("input_files") if isinstance(parameters.get("input_files"), list) else [])
@@ -4534,15 +4616,47 @@ class Agent:
                 handler = Path(__file__).with_name("runners") / f"{runner_name}.py"
                 if not handler.is_file():
                     raise AgentError("Runner Worker indisponible.")
+                # Jobs et ressources : threads alignés sur la part du processeur, fraction de VRAM (Labo image), et plafonds
+                # durs Windows (groupe du job imbriqué dans le groupe cumulé). Sans limite RAM/processeur : lancement d'avant.
+                environment.update(self.resources.job_environment(resource_limits.job_kind(tool_id, parameters)))
+                try:
+                    # Un groupe neuf par tentative : un reste de la tentative précédente ne bloque jamais la relance.
+                    scope = self.resources.job_scope(job_id, f"{entry['execution_id']}:{entry.get('attempts', 0)}")
+                except OSError as error:
+                    raise AgentError(f"Plafonds de RAM et de processeur refusés par Windows ({error}) : job non lancé. Retire ces "
+                                     "limites dans Mes Workers → Jobs et ressources pour lancer sans plafond dur.") from None
+                command = [sys.executable, str(handler), str(workdir / "job.json"), str(workdir)]
+                launch = {"stdout": None, "stderr": subprocess.STDOUT, "env": environment,
+                          "creationflags": subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0}
+                if scope is not None:
+                    # L'amorce attend « start » : aucun descendant ne naît avant l'entrée du lanceur dans ses groupes.
+                    command, launch["stdin"] = job_limits.gated_command(command), subprocess.PIPE
                 with (workdir / "runner.log").open("a", encoding="utf-8") as log:
+                    launch["stdout"] = log
                     self.journal.update("jobs", job_id, launch_intent=True, launch_failed=False)
                     try:
-                        process = subprocess.Popen([sys.executable, str(handler), str(workdir / "job.json"), str(workdir)],
-                            stdout=log, stderr=subprocess.STDOUT, env=environment,
-                            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                        process = subprocess.Popen(command, **launch)
                     except OSError:
+                        if scope is not None:
+                            scope.close()
                         self.journal.update("jobs", job_id, launch_failed=True)
                         raise
+                    if scope is not None:
+                        try:
+                            self.resources.attach(job_id, scope, process)
+                        except OSError as error:
+                            # Sans « start », l'amorce sort (code 130) sans avoir rien exécuté.
+                            try:
+                                process.stdin.close()
+                                process.wait(30)
+                            except (OSError, subprocess.SubprocessError):
+                                pass
+                            scope.close()
+                            self.journal.update("jobs", job_id, launch_failed=True)
+                            raise AgentError(f"Plafonds de RAM et de processeur refusés par Windows ({error}) : job non lancé.") from None
+                        process.stdin.write(b"start\n")
+                        process.stdin.flush()
+                        process.stdin.close()
                     try:
                         runner_identity = process_identity(process.pid)
                     except (PermissionError, OSError, ValueError):
@@ -4569,6 +4683,7 @@ class Agent:
                         uploaded[candidate] = self.upload_artifact(job_id, candidate_path)
                         self.journal.update("jobs", job_id, uploaded=uploaded)
                 output["artifacts"] = list(uploaded.values())
+            completed = state["state"] == "completed"
             self._job_status(job_id, {"status": state["state"], "engine_stop_confirmed": True, "progress": 100,
                                      "message": "Moteur terminé ; résultat confirmé.", "error": state.get("error", ""), "result": output})
         except Exception as error:
@@ -4589,6 +4704,9 @@ class Agent:
                     self.request(f"/api/worker-protocol/jobs/{job_id}/status", "POST", {"status": "failed", "engine_stop_confirmed": True, "execution_id": payload.get("execution_id", ""), "error": str(error)})
                 except Exception:
                     pass
+        finally:
+            if self._valid_execution_id(job_id):
+                self._resources_job_ended(job_id, completed)
 
     def _resume_jobs(self):
         for job_id, entry in self.journal.records("jobs").items():
@@ -4687,6 +4805,11 @@ class Agent:
         # Après le relais d'équipements : la surveillance lit ses caméras et arrête ses machines GRBL.
         self._start_fire_watch()
         self._start_environment_maintenance()
+        try:
+            # Jobs et ressources : mesure en continu (VRAM par processus, RAM, processeur) dans son propre fil.
+            self.resources.ensure_sampler()
+        except Exception as error:
+            print(f"Mesure des ressources non démarrée ({type(error).__name__}).", flush=True)
         try:
             while not self.stop_requested.is_set():
                 self.main_loop_seen = time.monotonic()

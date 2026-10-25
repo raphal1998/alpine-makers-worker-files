@@ -1,5 +1,22 @@
 # Historique des mises à jour
 
+## Version 1.50.41 — 2026-10-25
+
+**Jobs et ressources, et un PC hôte qui ne se fige plus**
+
+### Ajouté
+- Jobs et ressources : dans Mes Workers, worker.exe (gestion complète) et le menu (entrée 26), règle les jobs simultanés et les limites de VRAM, RAM et processeur, par job et cumulées (Gio ou % du total). Le Worker refuse un job trop gros, fait attendre celui qui dépasse le cumul, plafonne RAM et processeur sous Windows et mesure son utilisation.
+- Journal des ressources : logs\ressources.log reçoit toutes les 20 s la RAM, la mémoire engagée, le processeur, la VRAM et la RAM de chaque moteur (2 Mio au plus). Quand la RAM libre du PC devient rare et qu'aucun job ne tourne, ComfyUI et Hunyuan3D rendent leurs modèles.
+
+### Modifié
+- Moteurs IA et capture des caméras en priorité « inférieure à la normale » : le bureau et les services du PC gardent la main. ComfyUI reçoit --reserve-vram et Hunyuan3D une fraction de VRAM selon la limite ; un moteur lancé avant un changement est signalé « à redémarrer ».
+
+### Corrigé
+- PC hôte figé : ComfyUI démarre sans mémoire épinglée (il verrouillait jusqu'à 40 % de la RAM, non paginable) ; « comfyui_pinned_memory: true » dans config.json la remet. La VRAM par processus est lue sans PowerShell, y compris sur un Windows en français, et seulement pendant un job.
+
+### Technique
+- Empreinte du paquet publié : `20575f662a352079…` (dossier du paquet).
+
 ## Version 1.50.40 — 2026-10-25
 
 **Licences et droits du Worker dans worker.exe et le menu**
