@@ -189,6 +189,195 @@ def printguard_installed_version(root):
     return max(found, key=version_tuple) if found else None
 
 
+# ---------------------------------------------------------------- versions installées (installed_versions_v1)
+# Relevé compact remonté par le heartbeat : version, révision git ou paquets épinglés de chaque moteur ou module installé,
+# lus dans les marqueurs écrits par l'installateur (.raphal-ready, .alpine-managed.json) ou déduits des fichiers installés
+# (HEAD git, paquet PrintGuard, ressource de version Windows d'OrcaSlicer, dossier FreeCAD / CUDA). Jamais de chemin
+# local ni de secret : le site compare ces valeurs à la dernière version validée (component_updates.py).
+INSTALLED_VERSION_SOURCES = frozenset({"marker", "git", "package", "exe", "path", "agent"})
+INSTALLED_VERSION_MAX_PINS = 16
+_GIT_REF_NAME = re.compile(r"refs/[A-Za-z0-9._/-]{1,200}")
+_INSTALLED_LABEL = re.compile(r"[0-9][0-9A-Za-z.+_-]{0,39}")
+_FREECAD_FOLDER = re.compile(r"FreeCAD[ _-]?(\d{1,3}\.\d{1,3}(?:\.\d{1,4})?)", re.IGNORECASE)
+_CUDA_FOLDER = re.compile(r"v?(\d{1,3}\.\d{1,3})")
+_PACKAGE_PIN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}(\[[A-Za-z0-9._,-]{1,100}\])?==[A-Za-z0-9][A-Za-z0-9.+!_-]{0,63}")
+
+
+def _read_small_text(path, limit=64 * 1024):
+    """Petit fichier texte d'un composant (jamais un lien, jamais plus que ``limit`` octets) ; None sinon."""
+    path = Path(path)
+    try:
+        if is_link(path) or not path.is_file() or path.stat().st_size > limit:
+            return None
+        return path.read_text(encoding="utf-8", errors="strict")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _read_json_marker(path):
+    text = _read_small_text(path)
+    try:
+        value = json.loads(text) if text else None
+    except ValueError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def git_head(repo):
+    """Commit extrait d'un dépôt installé (HEAD détaché, sinon branche locale), lu sans lancer git ; None sinon."""
+    git = Path(repo) / ".git"
+    if is_link(git) or not git.is_dir():
+        return None
+    head = (_read_small_text(git / "HEAD", 512) or "").strip()
+    if _UPSTREAM_COMMIT.fullmatch(head):
+        return head
+    if not head.startswith("ref: "):
+        return None
+    name = head[5:].strip()
+    if not _GIT_REF_NAME.fullmatch(name) or ".." in name.split("/"):
+        return None
+    loose = (_read_small_text(git / name, 512) or "").strip()
+    if _UPSTREAM_COMMIT.fullmatch(loose):
+        return loose
+    for line in (_read_small_text(git / "packed-refs", 1024 * 1024) or "").splitlines():
+        parts = line.strip().split(" ")
+        if len(parts) == 2 and parts[1] == name and _UPSTREAM_COMMIT.fullmatch(parts[0]):
+            return parts[0]
+    return None
+
+
+def windows_file_version(path):
+    """« X.Y.Z » de la ressource de version d'un exécutable Windows (ctypes, sans processus) ; None ailleurs ou si absente."""
+    if os.name != "nt":
+        return None
+    path = Path(path)
+    if is_link(path) or not path.is_file():
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+        library = ctypes.WinDLL("version")
+        library.GetFileVersionInfoSizeW.argtypes = (wintypes.LPCWSTR, ctypes.POINTER(wintypes.DWORD))
+        library.GetFileVersionInfoSizeW.restype = wintypes.DWORD
+        library.GetFileVersionInfoW.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p)
+        library.GetFileVersionInfoW.restype = wintypes.BOOL
+        library.VerQueryValueW.argtypes = (ctypes.c_void_p, wintypes.LPCWSTR, ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.UINT))
+        library.VerQueryValueW.restype = wintypes.BOOL
+        size = library.GetFileVersionInfoSizeW(str(path), None)
+        if not size or size > 1024 * 1024:
+            return None
+        buffer = ctypes.create_string_buffer(size)
+        if not library.GetFileVersionInfoW(str(path), 0, size, buffer):
+            return None
+        pointer, length = ctypes.c_void_p(), wintypes.UINT()
+        if not library.VerQueryValueW(buffer, "\\", ctypes.byref(pointer), ctypes.byref(length)) or length.value < 52 or not pointer.value:
+            return None
+        # VS_FIXEDFILEINFO : signature, version de structure, puis dwFileVersionMS / dwFileVersionLS.
+        fixed = ctypes.cast(pointer, ctypes.POINTER(ctypes.c_uint32 * 13)).contents
+        if fixed[0] != 0xFEEF04BD:
+            return None
+        version = f"{fixed[2] >> 16}.{fixed[2] & 0xFFFF}.{fixed[3] >> 16}"
+        return version if version != "0.0.0" else None
+    except (OSError, AttributeError, ValueError, TypeError):
+        return None
+
+
+def _installed_pins(value):
+    """Paquets épinglés d'un marqueur (nom==version) ; None si la liste est absente ou contient autre chose."""
+    if not isinstance(value, list):
+        return None
+    pins = [str(item) for item in value if isinstance(item, str) and _PACKAGE_PIN.fullmatch(item)]
+    return pins if len(pins) == len(value) else None
+
+
+def _marker_version(marker):
+    version = (marker or {}).get("version")
+    return version if isinstance(version, str) and _INSTALLED_LABEL.fullmatch(version) else None
+
+
+def installed_version(component, root, *, hardware=None, executable=None):
+    """Version réellement installée d'un composant prêt de ce catalogue, sous forme compacte, ou None si inconnue.
+
+    ``root`` : dossier du composant tel que l'inventaire l'a retenu ; ``executable`` : FreeCADCmd trouvé par l'agent.
+    Le marqueur écrit par l'installateur sert de référence ; à défaut, la version est déduite des fichiers installés."""
+    spec = CATALOG.get(component)
+    if not spec:
+        return None
+    root = Path(root)
+    kind = spec["kind"]
+    if kind == "git":
+        ref = git_head(root)
+        if ref:
+            return {"ref": ref, "source": "git"}
+        ref = str((_read_json_marker(root / ".raphal-ready") or {}).get("ref") or "")
+        return {"ref": ref, "source": "marker"} if _UPSTREAM_COMMIT.fullmatch(ref) else None
+    if kind == "git-backend":
+        listed = (_read_json_marker(root / ".raphal-ready") or {}).get("refs")
+        listed = listed if isinstance(listed, dict) else {}
+        refs, source = {}, "git"
+        for relative in spec["repos"]:
+            ref = git_head(root if relative == "." else root / relative)
+            if not ref and _UPSTREAM_COMMIT.fullmatch(str(listed.get(relative) or "")):
+                ref, source = listed[relative], "marker"
+            if ref:
+                refs[relative] = ref
+        return {"refs": refs, "source": source} if refs else None
+    if kind == "upstream-package":
+        found = printguard_installed_version(root)
+        if found:
+            return {"version": found, "source": "package"}
+        version = _marker_version(_read_json_marker(root / ".alpine-managed.json"))
+        return {"version": version, "source": "marker"} if version else None
+    if kind == "orca-portable":
+        version = _marker_version(_read_json_marker(root / ".alpine-managed.json"))
+        if version:
+            return {"version": version, "source": "marker"}
+        version = windows_file_version(root / "orca-slicer.exe")
+        return {"version": version, "source": "exe"} if version else None
+    if kind == "dashboard-file":
+        # Le bridge est aussi livré avec le paquet de l'agent : il suit la version du Worker.
+        return {"source": "agent"}
+    if kind == "python-venv":
+        pins = _installed_pins((_read_json_marker(root / ".raphal-ready") or {}).get("packages"))
+        # Même règle que laser_engine_outdated : un moteur installé avant les bibliothèques actuelles est à compléter.
+        value = {"source": "marker", "outdated": pins is None or not set(spec["packages"]) <= set(pins)}
+        if pins is not None:
+            value["packages"] = pins[:INSTALLED_VERSION_MAX_PINS]
+        return value
+    if kind == "fire-watch":
+        marker = fire_watch_marker(root)
+        if marker is None:
+            return None
+        value = {"source": "marker"}
+        if marker.get("profile") in {"gpu", "cpu"}:
+            value["profile"] = marker["profile"]
+        pins = _installed_pins(marker.get("packages"))
+        if pins is not None:
+            value["packages"] = pins[:INSTALLED_VERSION_MAX_PINS]
+        models = marker.get("models") if isinstance(marker.get("models"), dict) else {}
+        value["models"] = sorted(key for key in models if isinstance(key, str) and FIRE_WATCH_MODEL_ID.fullmatch(key))[:INSTALLED_VERSION_MAX_PINS]
+        try:
+            value["outdated"] = bool(fire_watch_outdated(root, hardware=hardware))
+        except Exception:  # noqa: BLE001 - catalogue ou matériel illisible : l'état « à compléter » reste inconnu
+            pass
+        return value
+    if kind == "system-freecad":
+        found = Path(executable) if executable else None
+        if found is None:
+            text = (_read_small_text(root / "freecad-path.txt", 4096) or "").strip()
+            found = Path(text) if text else None
+        for folder in (found.parents if found else ())[:3]:
+            match = _FREECAD_FOLDER.search(folder.name)
+            if match:
+                return {"version": match[1], "source": "path"}
+        return None
+    if kind == "cuda-toolkit":
+        text = (_read_small_text(root / "cuda-path.txt", 4096) or "").strip()
+        match = _CUDA_FOLDER.fullmatch(Path(text).name) if text else None
+        return {"version": match[1], "source": "path"} if match else None
+    return None
+
+
 def _installation_output(line):
     """Never forward pip index credentials or signed URLs to the dashboard."""
     line = re.sub(r"https?://[^\s<>]+", "[URL masquée]", str(line))
@@ -687,7 +876,11 @@ def safe_extract(archive_path, destination):
         archive.extractall(destination)
 
 
-def replace_component(root, payload_root):
+def replace_component(root, payload_root, facts=None):
+    """Remplace le composant par le dossier préparé ; ``facts`` (ex. {"version": "2.6.3"}) rejoint son marqueur
+    .alpine-managed.json, d'où l'inventaire relit la version installée (installed_versions_v1)."""
+    version = _marker_version(facts if isinstance(facts, dict) else None)
+    marker = {"owner": "Alpine Makers", "component": root.name, **({"version": version} if version else {})}
     components = root.parent.resolve()
     payload_root = payload_root.resolve()
     if components.parent not in payload_root.parents:
@@ -704,7 +897,7 @@ def replace_component(root, payload_root):
                 os.replace(root, previous)
             try:
                 os.replace(staging, root)
-                (root / ".alpine-managed.json").write_text(json.dumps({"owner": "Alpine Makers", "component": root.name}), encoding="utf-8")
+                (root / ".alpine-managed.json").write_text(json.dumps(marker), encoding="utf-8")
             except OSError:
                 if previous.exists() and not root.exists():
                     os.replace(previous, root)
@@ -854,7 +1047,8 @@ def install_orca(worker_root, root):
         executable = next(extracted.rglob("orca-slicer.exe"), None)
         if not executable or not (executable.parent / "resources" / "profiles" / "BBL").is_dir():
             raise RuntimeError("Le paquet OrcaSlicer ne contient pas le moteur et les profils BBL attendus.")
-        replace_component(root, executable.parent)
+        # Version de la publication installée (« v2.3.1 » → 2.3.1), consignée pour l'inventaire (installed_versions_v1).
+        replace_component(root, executable.parent, {"version": str(release.get("tag_name") or "").strip().removeprefix("v")})
     return f"OrcaSlicer {release.get('tag_name') or ''} installé. Le bridge est un module séparé."
 
 
@@ -972,7 +1166,7 @@ def install_printguard(worker_root, root, spec=None):
             # Une version plus récente qui aurait changé l'emplacement de ses modèles n'écrase pas une installation qui marche.
             raise RuntimeError(f"Le paquet PrintGuard {version} ne contient pas les modèles attendus : installation refusée, "
                                "la version en place est conservée.")
-        replace_component(root, executable.parent)
+        replace_component(root, executable.parent, {"version": version})
     return f"PrintGuard {version} installé depuis l’éditeur officiel, archive SHA-256 vérifiée."
 
 
@@ -1872,7 +2066,10 @@ def _manage(component, action):
             raise RuntimeError("Marqueur de composant sous forme de lien ; installation annulee.")
         # Written BEFORE installation: failed/partial installations remain
         # identifiable without treating an arbitrary folder as Worker-owned.
-        (root / ".alpine-managed.json").write_text(json.dumps({"owner": "Alpine Makers", "component": component}), encoding="utf-8")
+        # La version déjà consignée est gardée : la copie en place reste celle-là tant que le remplacement n'a pas réussi.
+        kept_version = _marker_version(_read_json_marker(root / ".alpine-managed.json"))
+        (root / ".alpine-managed.json").write_text(json.dumps({"owner": "Alpine Makers", "component": component,
+                                                               **({"version": kept_version} if kept_version else {})}), encoding="utf-8")
     progress(2, f"{action.capitalize()} · {component}")
     if action == "uninstall":
         if component == "orca-bridge":

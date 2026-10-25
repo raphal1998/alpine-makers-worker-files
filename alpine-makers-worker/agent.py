@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.36"
+AGENT_VERSION = "1.50.37"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -199,6 +199,10 @@ AGENT_CAPABILITIES += ("upstream_targets_v1",)  # littéral : le site lit ces li
 # l'agent annonce cette capacité. Tableau de bord commun au menu et à worker.exe (action locale « dashboard ») et place
 # occupée par les installations dans le heartbeat (« storage_usage », worker_dashboard.py).
 AGENT_CAPABILITIES += ("worker_menu_session_v1", "worker_dashboard_v1")  # littéral : le site lit ces lignes sans importer l'agent
+# Versions réellement installées des moteurs et modules (champ « installed_versions » du heartbeat, lu dans les marqueurs
+# de l'installateur ou déduit des fichiers : component_installer.installed_version) : le site prévient le propriétaire
+# quand une version validée plus récente existe ; rien n'est mis à jour sans son geste.
+AGENT_CAPABILITIES += ("installed_versions_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -1323,7 +1327,57 @@ class Agent:
                 "gpus": gpus, "cuda_version": cuda, "driver_version": gpus[0]["driver_version"] if gpus else "",
                 "gpu_optional": gpu_optional,
                 "max_concurrent_jobs": int(self.config.get("max_concurrent_jobs") or 1),
-                "current_jobs": 0, "status": "online", "tools": tools, "models": models}
+                "current_jobs": 0, "status": "online", "tools": tools, "models": models,
+                "installed_versions": self.installed_versions(tools, hardware)}
+
+    # Moteurs dont l'inventaire retient un autre dossier que components/<moteur> (configuration, exécutable trouvé).
+    def _installed_engine_root(self, engine, storage):
+        if engine in {"comfyui", "hunyuan3d"}:
+            return storage.component(engine), None
+        if engine == "orca":
+            executable = self._orca_executable()
+            return (executable.parent if executable else self.root / "components" / "orca"), None
+        if engine == "printguard":
+            executable = self._printguard_executable()
+            return (executable.parent if executable else self.root / "components" / "printguard"), None
+        if engine == "freecad":
+            return self.root / "components" / "freecad", self._freecad_executable()
+        return self.root / "components" / engine, None
+
+    def installed_versions(self, tools, hardware=None):
+        """Version réellement installée de chaque moteur et module prêt, géré par ce Worker (installed_versions_v1).
+
+        Relevé compact pour le heartbeat (version, révision git, paquets épinglés ; jamais de chemin ni de secret),
+        calculé sur le fil d'inventaire. Un moteur externe (dossier choisi hors de l'espace Worker) n'est pas relevé :
+        le site ne le met jamais à jour lui-même. Une erreur de lecture ne fait jamais tomber l'inventaire."""
+        try:
+            if __package__:
+                from .installers.component_installer import CATALOG, installed_version
+            else:
+                from installers.component_installer import CATALOG, installed_version
+            storage = WorkerStorage(self.root, self.config)
+        except Exception:  # noqa: BLE001 - installateur absent du paquet : rien à relever
+            return {}
+        found = {}
+        wanted = []
+        for tool in tools if isinstance(tools, list) else []:
+            facts = ((tool.get("config") or {}).get("installation") or {}) if isinstance(tool, dict) else {}
+            engine = str(tool.get("engine_id") or "") if isinstance(tool, dict) else ""
+            if engine in CATALOG and facts.get("engine_status") == "installed" and facts.get("managed") is True:
+                wanted.append((engine, True))
+            modules = facts.get("modules") if isinstance(facts.get("modules"), dict) else {}
+            wanted.extend((module, False) for module, status in modules.items() if module in CATALOG and status == "installed")
+        for component, is_engine in wanted:
+            if component in found:
+                continue
+            try:
+                root, executable = self._installed_engine_root(component, storage) if is_engine else (self.root / "components" / component, None)
+                value = installed_version(component, root, hardware=hardware, executable=executable)
+            except Exception:  # noqa: BLE001 - un composant illisible reste « version inconnue » pour le site
+                value = None
+            if value:
+                found[component] = value
+        return found
 
     def _refresh_inventory(self):
         try:

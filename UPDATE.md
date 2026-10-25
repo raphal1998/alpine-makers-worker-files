@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.50.37 — 2026-10-25
+
+**Versions installées remontées au site : mises à jour des moteurs et modules signalées**
+
+### Ajouté
+- Le Worker communique au site la version réellement installée de chaque moteur et module (révision git, version de PrintGuard et d’OrcaSlicer, bibliothèques des moteurs laser, CNC et surveillance IA, FreeCAD, CUDA), sans chemin ni secret. Le site prévient le propriétaire et les co-propriétaires quand une version validée plus récente existe ; rien n’est mis à jour sans leur clic.
+
+### Modifié
+- PrintGuard et OrcaSlicer : l’installateur consigne la version posée et la garde si une nouvelle installation échoue ; pour une copie plus ancienne, elle est relue dans le paquet PrintGuard ou dans l’exécutable d’OrcaSlicer.
+
+### Technique
+- Empreinte du paquet publié : `aa72719e08098786…` (dossier du paquet).
+
 ## Version 1.50.36 — 2026-10-23
 
 **Menu du Worker connecté comme worker.exe, tableau de bord complet**
