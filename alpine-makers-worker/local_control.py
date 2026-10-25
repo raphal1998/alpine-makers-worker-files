@@ -59,6 +59,8 @@ LAZY_ACTIONS = {
     "manage": "full_control",
     # Agent 1.50.12 : connexion du compte depuis worker.exe (route signée self/login). Les identifiants passent par
     # runtime/local-control/<32 hex>.args.json, lu puis efface par l'agent ; params ne porte que « args_file ».
+    # Appareil de confiance (worker_login_trust_v1) : remember_device et device_trust passent par ce même fichier,
+    # jamais par --params-b64 (refusés par le validateur de « login ») ni par la ligne de commande.
     "login": "self_service", "login-state": "self_service",
     "device-login-start": "self_service", "device-login-poll": "self_service",
     # Agent 1.50.19 : Salle de contrôle native de worker.exe, lecture seule de l'état local des équipements.
@@ -75,6 +77,8 @@ LAZY_ACTIONS = {
     # Journal local des jobs (job_journal_v1) : data/journal-des-jobs.jsonl, lu (filtres jour/heure/outil/statut) et
     # vidé depuis worker.exe ; la suppression ne touche que ce PC, jamais l'historique du site.
     "job-journal": "job_journal", "job-journal-delete": "job_journal",
+    # Licences et droits de ce Worker (legal_status_v1) : lus sur le site avec la session de worker.exe ou du menu (args_file).
+    "legal-status": "legal_status",
 }
 PARAMS_MAX_BYTES = 2048
 # Fichier d'etat a la racine du Worker : l'etat en une ligne, lisible sans rien lancer.
@@ -898,10 +902,12 @@ def main():
                              "fire-watch : etat de la surveillance IA des graveuses (lecture seule) ; "
                              "reconnect / network / cleanup : maintenance ; "
                              "duplicates-* / site-* / jobs-stop / sharing-set / relay-status / manage : gestion du Worker ; "
-                             "login / login-state : connexion du compte depuis worker.exe (identifiants dans le fichier args) ; "
+                             "login / login-state : connexion du compte depuis worker.exe ou le menu (identifiants et jeton "
+                             "d'appareil de confiance dans le fichier args) ; "
                              "session-check / logout : session du menu du Worker (jeton dans le fichier args) ; "
                              "dashboard : tableau de bord complet du Worker (lecture seule) ; "
                              "job-journal / job-journal-delete : journal local des jobs (lecture filtrée, suppression confirmée) ; "
+                             "legal-status : licences et droits de ce Worker lus sur le site (session dans le fichier args) ; "
                              "control-room : caméras, machines et Worker vus par l'agent, sans le site (lecture seule) ; "
                              "desktop : outils natifs d'Alpine Makers Desktop (tool, name, params ou args_file)")
     parser.add_argument("--json", action="store_true", help="n'imprime qu'une ligne JSON : la reponse de l'agent")

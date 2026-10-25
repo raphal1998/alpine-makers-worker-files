@@ -1,5 +1,23 @@
 # Historique des mises à jour
 
+## Version 1.50.40 — 2026-10-25
+
+**Licences et droits du Worker dans worker.exe et le menu**
+
+### Ajouté
+- Licences et droits : worker.exe (bouton « § Licences et droits ») et le menu (touche K) montrent, pour ton compte, l’état juridique des moteurs, modules et modèles de ce Worker, avec les états de la page Licences et justificatifs, un résumé chiffré et ce qu’il reste à faire (accepter les conditions, déclarer tes droits…). Lecture seule, connexion exigée.
+
+### Technique
+- Empreinte du paquet publié : `5f184dea8261e0ae…` (dossier du paquet).
+
+## Version 1.50.39 — 2026-10-25
+
+**Connexion : ne plus demander le code 2FA sur ce PC pendant 7 jours (worker.exe et menu)**
+
+### Ajouté
+- worker.exe et MENU-WORKER.bat : après un code 2FA réussi, case (ou question O/N) « Ne plus demander le code 2FA sur ce PC pendant 7 jours ». Le jeton rendu par le site est gardé chiffré par Windows (DPAPI, ton compte Windows seulement, accès fermé, nom de fichier sans le pseudo) et remplace ensuite le code ; pseudo et mot de passe restent demandés.
+- « Oublier ce PC » : bouton de l’écran de connexion de worker.exe (ou case décochée), touche O du menu, question à la déconnexion. Un jeton échu ou retiré depuis le site (Gestion du compte → appareils de confiance) est effacé et le code redemandé. Le jeton ne passe ni par une ligne de commande ni par un journal.
+
 ## Version 1.50.38 — 2026-10-25
 
 **Journal des jobs sur chaque Worker, résumé du tableau de bord dans worker.exe**

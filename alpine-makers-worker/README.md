@@ -369,6 +369,19 @@ arrêter les jobs et régler le partage. **L** : se déconnecter, **Q** : quitte
 Site ou agent injoignable : **mode hors ligne**, entrées locales sûres seulement (1 à 6, 9 à 12, 14,
 16, 19, 24), **C** pour se connecter ensuite. Lancé depuis worker.exe, le menu reprend sa session.
 
+**Ne plus demander le code 2FA sur ce PC (7 jours).** worker.exe : case « Ne plus demander le code 2FA
+sur ce PC pendant 7 jours » sous le champ du code ; menu : question « Ne plus demander le code sur ce PC
+pendant 7 jours ? » juste après le code (**O** = oui, Entrée = non). Après un code réussi, le site rend un
+jeton d'appareil de confiance, gardé **chiffré par Windows** (DPAPI : seul ton compte Windows sur ce PC
+peut le lire) dans `runtime\local-control\trust-exe-…bin` ou `trust-menu-…bin` (ACL fermée, nom sans le
+pseudo). Aux connexions suivantes, pseudo et mot de passe restent demandés, le jeton remplace le code
+(« Code non demandé : ce PC est de confiance jusqu'au … »). Il ne passe que par le fichier d'arguments
+de l'agent, jamais par une ligne de commande ni un journal. Jeton échu ou retiré depuis le site : effacé
+de ce PC, le code est redemandé. **Oublier ce PC** : bouton de l'écran de connexion de worker.exe (ou
+décocher la case), touche **O** du menu, ou question posée à la déconnexion **L** ; worker.exe et le
+menu sont oubliés ensemble. L'option du compte et la liste des appareils se gèrent sur le site
+(paramètres 2FA).
+
 **Tableau de bord.** Six lignes sous l'en-tête (jobs et partage, RAM et disque, pilote et CUDA,
 place occupée par les installations, IA locales, connexion) ; **T** affiche le détail : jobs, file,
 partage, RAM, disque, chaque GPU et sa VRAM, place par catégorie et par composant, composants
@@ -388,6 +401,17 @@ jobs ; worker.exe → **Journal des jobs** les trie par date et heure, filtre pa
 outil, statut ou texte, montre l'image produite (« Voir ») ou ouvre le fichier / le lien du site, et
 supprime des entrées (sélection, filtre ou tout, après confirmation ; droit « jobs » pour un
 co-propriétaire). La suppression ne touche que ce PC, jamais l'historique du site.
+
+**Licences et droits.** **K** dans le menu (connexion requise) et worker.exe → **Licences et droits**
+montrent, pour le compte connecté, l'état juridique de chaque moteur, module et modèle installé sur
+CE Worker, puis des moteurs et modules qu'il peut encore installer : mêmes états que la page
+« Licences et justificatifs » du site (autorisation obtenue, documenté, conditions acceptées,
+déclaration utilisateur, demande en cours, restriction connue, à vérifier, conditions à accepter),
+ce qu'il faut faire (accepter les conditions, déclarer ses droits, confirmer son pays, attendre une
+réponse…) et un résumé par état. L'agent les lit sur le site (action locale `legal-status`, session
+passée par fichier d'arguments) ; rien n'est accepté ni déclaré d'ici : les boutons ouvrent les
+pages du site. Droit « état, journaux et diagnostic » pour un co-propriétaire. Même section dans
+Mes Workers, sur la fiche du Worker.
 
 - **[ADMIN]** : l'outil ouvre une fenêtre administrateur (Windows te demande d'accepter).
   Si tu refuses, rien n'est modifié.

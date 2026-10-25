@@ -29,6 +29,8 @@
     propriétaire, exactement comme worker.exe (même route du site par l'agent, 2FA, co-propriétaires et leurs
     droits, verrou après trois échecs, notifications). Mot de passe et code 2FA : saisie masquée, jamais en ligne
     de commande ni dans un journal. Site ou agent injoignable : mode hors ligne, entrées locales sûres seulement.
+    Appareil de confiance (worker_login_trust_v1) : après un code, « Ne plus demander le code sur ce PC pendant
+    7 jours ? » ; le jeton rendu par le site est gardé chiffré (DPAPI) et remplace le code ensuite. O : oublier ce PC.
     Tableau de bord (commun_tableau.ps1) : six lignes sous l'en-tête, T pour le détail ; même source que
     l'onglet « Tableau de bord » de worker.exe (action locale « dashboard » de l'agent).
 
@@ -401,7 +403,13 @@ function Test-EntreeVisible {
 function Get-TexteConnexionMenu {
     <# Texte et niveau de la ligne « Connexion » du tableau de bord. #>
     if ($env:ALPINE_WORKER_GUI -eq '1') { return @('ouvert depuis worker.exe (connexion faite par worker.exe)', 'ok') }
-    if ($script:SocleConnexion -and $global:AlpineSessionWorker) { return @(('connecté : ' + (Get-ResumeSessionWorker) + '   L : se déconnecter'), 'ok') }
+    if ($script:SocleConnexion -and $global:AlpineSessionWorker) {
+        $texte = 'connecté : ' + (Get-ResumeSessionWorker) + '   L : se déconnecter'
+        # Appareil de confiance (code 2FA non demandé sur ce PC) : O l'oublie.
+        if ((Get-Command -Name 'Test-ConfianceWorker' -CommandType Function -ErrorAction SilentlyContinue) -and
+            (Test-ConfianceWorker -Racine $Racine -Utilisateur ([string]$global:AlpineSessionWorker.Utilisateur))) { $texte += '   O : oublier ce PC' }
+        return @($texte, 'ok')
+    }
     if ($script:ConnexionExigee -and -not $script:SocleConnexion) { return @('commun_connexion.ps1 absent : actions locales sûres seulement (mets le Worker à jour)', 'erreur') }
     if ($script:ConnexionExigee) { return @('mode hors ligne : actions locales sûres seulement   C : se connecter', 'alerte') }
     return @('aperçu : la connexion du propriétaire est demandée à l''ouverture du menu', 'info')
@@ -673,6 +681,9 @@ function Write-Menu {
     Write-Host '[ J] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Jobs faits  ' -ForegroundColor White -NoNewline
     Write-Host '[ R] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Rafraîchir  ' -ForegroundColor White -NoNewline
     Write-Host '[ Q] ' -ForegroundColor Cyan -NoNewline;   Write-Host 'Quitter' -ForegroundColor White
+    # Licences et droits (legal_status_v1, licences_droits.ps1) : sur sa propre ligne, celle des touches est pleine.
+    Write-Host '  [ K] ' -ForegroundColor Cyan -NoNewline; Write-Host 'Licences et droits  ' -ForegroundColor White -NoNewline
+    Write-Host 'autorisations, conditions acceptées ou à accepter, restrictions' -ForegroundColor DarkGray
     Write-Host '  ' -NoNewline
     Write-Host '[ADMIN]' -ForegroundColor Yellow -NoNewline; Write-Host ' ouvrira une fenêtre administrateur   ' -ForegroundColor DarkGray -NoNewline
     if ($script:ConnexionExigee -and $script:SocleConnexion) {
@@ -962,9 +973,9 @@ if ($Choix) {
 
 # Le menu fait une soixantaine de lignes : on agrandit la fenêtre quand la console le permet
 # (console Windows classique ; sous Windows Terminal l'appel est sans effet et on continue).
-# Les deux nombres ci-dessous suivent le menu réel : 69 = lignes de -Apercu dans le cas le plus long (25 entrées,
-# erreurs + mise à jour + état périmé, six lignes du tableau de bord, sans alerte) ; 77 = ce compte, l'invite, et la
-# place de quelques alertes.
+# Les deux nombres ci-dessous suivent le menu réel : 70 = lignes de -Apercu dans le cas le plus long (25 entrées,
+# erreurs + mise à jour + état périmé, six lignes du tableau de bord, ligne K des licences, sans alerte) ; 77 = ce
+# compte, l'invite, et la place de quelques alertes.
 try {
     $ui = $Host.UI.RawUI
     $tampon = $ui.BufferSize
@@ -978,7 +989,7 @@ try {
     }
 } catch { }
 # Fenêtre restée basse (Windows Terminal, petite console) : le menu se resserre et redit l'état près de l'invite.
-try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 69) { $script:Compact = $true } } catch { }
+try { if ([int]$Host.UI.RawUI.WindowSize.Height -gt 0 -and [int]$Host.UI.RawUI.WindowSize.Height -lt 70) { $script:Compact = $true } } catch { }
 
 # Connexion du propriétaire avant tout menu, comme worker.exe : Worker associé (config.json porte un worker_id),
 # menu interactif hors worker.exe. Fermeture ou abandon = sortie (code 3, comme worker.exe).
@@ -1017,7 +1028,7 @@ while ($true) {
         try { $saisie = Read-Host '  Ton choix' } catch { Exit-MenuConnecte 0 }   # pas de clavier (console fermée, entrée redirigée)
         if ($null -eq $saisie) { Exit-MenuConnecte 0 }
         $saisie = $saisie.Trim().ToUpper()
-        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, J, R, Q, puis Entrée.'); continue }
+        if ($saisie -eq '') { Write-Info ('Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, J, K, R, Q, puis Entrée.'); continue }
         if ($saisie -eq 'Q') { Write-Host ''; Write-Info 'À bientôt.'; Exit-MenuConnecte 0 }
         if ($saisie -eq 'R') { $redessiner = $true; continue }
         if ($saisie -eq 'A') { Show-Aide; continue }
@@ -1033,10 +1044,32 @@ while ($true) {
             else { Write-Alerte 'Le journal des jobs demande des outils plus récents : mets le Worker à jour.' }
             continue
         }
+        if ($script:ConnexionExigee -and $script:SocleConnexion -and $saisie -eq 'O' -and
+            (Get-Command -Name 'Invoke-OublierCePc' -CommandType Function -ErrorAction SilentlyContinue)) {
+            # « Oublier ce PC » : jetons d'appareil de confiance du compte connecté effacés ici (menu et worker.exe).
+            $qui = ''
+            if ($global:AlpineSessionWorker) { $qui = [string]$global:AlpineSessionWorker.Utilisateur }
+            [void](Invoke-OublierCePc -Racine $Racine -Utilisateur $qui)
+            continue
+        }
+        if ($saisie -eq 'K') {
+            # Licences et droits (legal_status_v1) : lus sur le site par l'agent avec la session de ce menu, lecture seule.
+            $outilLicences = Join-Path $PSScriptRoot 'licences_droits.ps1'
+            if (-not (Test-Path -LiteralPath $outilLicences -PathType Leaf)) { Write-Alerte 'licences_droits.ps1 est absent de ce Worker : mets le Worker à jour (23).' }
+            elseif ($script:ConnexionExigee -and $script:SocleConnexion -and -not $global:AlpineSessionWorker) { Write-Alerte 'Licences et droits : connexion du compte requise (C pour te connecter).' }
+            else {
+                try { & $outilLicences -Racine $Racine -SansPause | Out-Host } catch { Write-Alerte ('Licences et droits : ' + $_.Exception.Message) }
+                try { Initialize-ConsoleWorker -Titre 'Alpine Makers - Menu du Worker' } catch { }
+            }
+            continue
+        }
         if ($script:ConnexionExigee -and $script:SocleConnexion -and ($saisie -eq 'C' -or $saisie -eq 'L')) {
             if ($saisie -eq 'L' -and $global:AlpineSessionWorker) {
+                $qui = [string]$global:AlpineSessionWorker.Utilisateur
                 [void](Close-SessionWorker -Racine $Racine)
                 Write-Ok 'Déconnecté : la session est fermée sur le site.'
+                # Ce PC est de confiance pour ce compte : l'oublier est proposé (Entrée = non).
+                if (Get-Command -Name 'Invoke-OublierCePc' -CommandType Function -ErrorAction SilentlyContinue) { [void](Invoke-OublierCePc -Racine $Racine -Utilisateur $qui -Proposer) }
             }
             elseif ($saisie -eq 'C' -and $global:AlpineSessionWorker) { Write-Info ('Déjà connecté : ' + (Get-ResumeSessionWorker) + '.'); continue }
             elseif ($saisie -eq 'L') { Write-Info 'Aucune session ouverte : C pour te connecter.'; continue }
@@ -1044,7 +1077,7 @@ while ($true) {
             $redessiner = $true; continue
         }
         $numero = 0
-        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, J, R, Q.'); continue }
+        if (-not [int]::TryParse($saisie, [ref]$numero)) { Write-Alerte ('« ' + $saisie + ' » n''est pas un choix du menu. Tape un numéro (1 à ' + $script:NumeroMax + '), ou A, D, T, J, K, R, Q.'); continue }
         $entree = $script:Entrees | Where-Object { $_.Numero -eq $numero } | Select-Object -First 1
         if (-not $entree) { Write-Alerte ('Il n''y a pas d''entrée ' + $numero + '. Les numéros vont de 1 à ' + $script:NumeroMax + '.'); continue }
         if (-not (Test-EntreeVisible $entree)) {

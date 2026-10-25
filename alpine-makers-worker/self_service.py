@@ -13,6 +13,8 @@ lancés depuis worker.exe (convertisseur, préparation CNC…), puis coupe l'arb
 """
 import importlib
 import json
+import math
+import re
 import secrets
 import threading
 import time
@@ -39,6 +41,16 @@ LOGIN_RIGHTS_MAX = 32
 USERNAME_MAX, PASSWORD_MAX, TOTP_MAX = 120, 512, 16
 # Menu console du Worker (capacité worker_menu_session_v1) : même connexion que worker.exe, champ « client » = « menu ».
 LOGIN_CLIENTS = ("exe", "menu")
+# Appareil de confiance (capacité worker_login_trust_v1) : « Ne plus demander le code 2FA sur ce PC pendant 7 jours ».
+# worker.exe et le menu joignent au fichier d'arguments « remember_device » (case cochée avec le code) et
+# « device_trust » (« <id 32 hex>.<secret> », mémorisé lors d'une connexion précédente et gardé chiffré par DPAPI chez
+# eux, jamais ici). L'agent les relaie à self/login, rend trusted_device, device_trust (+ échéance),
+# device_trust_rejected et device_trust_unsupported, ne garde rien et ne journalise rien.
+TRUST_FIELDS = ("remember_device", "device_trust")
+DEVICE_TRUST_MAX = 200
+_DEVICE_TRUST = re.compile(r"[0-9A-Fa-f]{32}\.[A-Za-z0-9_-]{16,167}")
+TRUST_EPOCH_MIN, TRUST_EPOCH_MAX = 946684800, 4102444800   # échéance plausible : du 01.01.2000 au 01.01.2100
+SITE_FLAGS_MAX = 16
 # Session du propriétaire jointe aux relais qui modifient (site-update, site-repair, jobs-stop, sharing-set) et contrôlée
 # par « session-check » / close par « logout ». Le jeton ne passe JAMAIS par la ligne de commande : fichier d'arguments
 # runtime/local-control/<32 hex>.args.json {"session_token": "…"}, lu puis effacé ici, comme le mot de passe.
@@ -284,15 +296,23 @@ def start(agent):
 
 # --- Relais : une demande au site, suivie par « relay-status » ----------------------------------------------------
 
-def _call(agent, path, payload):
-    """Un appel au site, rendu sous la forme des champs de « relay-status ». Ne lève jamais."""
+def _call(agent, path, payload, flags=False):
+    """Un appel au site, rendu sous la forme des champs de « relay-status ». Ne lève jamais.
+
+    ``flags`` : un refus porte en plus ``site_flags``, les drapeaux booléens vrais de son corps relevés par
+    ``Agent.request`` (« device_trust_rejected »…) ; jamais une chaîne, donc jamais un secret."""
     try:
         return {"state": "done", "response": _answer(agent.request(path, "POST", payload))}
     except Exception as error:
         verdict = classify(error)
-        return {"state": "failed", "http": verdict["http"], "site_code": verdict["site_code"],
-                "site_missing": verdict["site_missing"], "unreachable": verdict["unreachable"],
-                "error": verdict["message"]}
+        outcome = {"state": "failed", "http": verdict["http"], "site_code": verdict["site_code"],
+                   "site_missing": verdict["site_missing"], "unreachable": verdict["unreachable"],
+                   "error": verdict["message"]}
+        if flags:
+            raw = getattr(error, "site_flags", ())
+            raw = raw if isinstance(raw, (tuple, list, set, frozenset)) else ()
+            outcome["site_flags"] = tuple(item[:60] for item in raw if isinstance(item, str))[:SITE_FLAGS_MAX]
+        return outcome
 
 
 def _relay_worker(agent, runtime, operation, work):
@@ -578,11 +598,26 @@ def jobs_stop(agent, params):
 
 # --- Connexion du compte depuis worker.exe (agent 1.50.12) --------------------------------------------------------
 
+def valid_device_trust(value):
+    """Forme d'un jeton d'appareil de confiance : « <id 32 hex>.<secret base64url> », 200 caractères au plus."""
+    return isinstance(value, str) and len(value) <= DEVICE_TRUST_MAX and _DEVICE_TRUST.fullmatch(value) is not None
+
+
+def _trust_epoch(value):
+    """Échéance en secondes Unix (nombre plausible, jamais un booléen) rendue entière ; 0 sinon."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    if not math.isfinite(value) or not TRUST_EPOCH_MIN <= value <= TRUST_EPOCH_MAX:
+        return 0
+    return int(value)
+
+
 def _check_login_args(value):
-    """Contenu du fichier d'arguments : {"username", "password", "totp_code"?}, chaînes bornées, rien d'autre."""
+    """Contenu du fichier d'arguments : {"username", "password", "totp_code"?, "client"?, "remember_device"?,
+    "device_trust"?}, valeurs bornées, rien d'autre."""
     if not isinstance(value, dict):
         raise ValueError("Fichier d'arguments illisible : un objet est attendu.")
-    unknown = sorted(str(key)[:40] for key in set(value) - {"username", "password", "totp_code", "client"})
+    unknown = sorted(str(key)[:40] for key in set(value) - {"username", "password", "totp_code", "client", *TRUST_FIELDS})
     if unknown:
         raise ValueError("Argument de connexion non autorisé : " + unknown[0])
     client = value.get("client", "exe")
@@ -597,9 +632,23 @@ def _check_login_args(value):
         totp = ""
     if not isinstance(totp, str) or len(totp) > TOTP_MAX:
         raise ValueError("Code de validation illisible.")
+    remember = value.get("remember_device", False)
+    if type(remember) is not bool:
+        raise ValueError("Choix « Ne plus demander le code » illisible : un booléen est attendu.")
+    trust = value.get("device_trust", "")
+    if trust is None:
+        trust = ""
+    if not isinstance(trust, str) or (trust and not valid_device_trust(trust)):
+        # Le message ne recopie jamais la valeur reçue.
+        raise ValueError("Jeton d'appareil de confiance illisible : oublie ce PC, puis reconnecte-toi avec le code.")
     cleaned = {"username": username.strip(), "password": password, "totp_code": totp.strip()}
     if client != "exe":
         cleaned["client"] = client  # worker.exe n'envoie rien de plus qu'avant : le site d'avant le menu l'accepte
+    # Champs facultatifs : absents du corps quand ils ne demandent rien (site d'avant l'appareil de confiance inchangé).
+    if remember:
+        cleaned["remember_device"] = True
+    if trust:
+        cleaned["device_trust"] = trust
     return cleaned
 
 
@@ -628,14 +677,50 @@ def _login_outcome(outcome):
     return result
 
 
+def _trust_outcome(outcome):
+    """Champs de l'appareil de confiance rendus à worker.exe / au menu, lus dans la réponse du site ou dans son refus.
+
+    - ``trusted_device`` : le jeton joint a dispensé du code ;
+    - ``device_trust`` + ``device_trust_expires_at`` : jeton créé par une 2FA réussie avec ``remember_device``
+      (rendus ensemble ou pas du tout) ; l'appelant le garde chiffré ;
+    - ``device_trust_rejected`` : jeton échu, invalide ou retiré depuis le site, à effacer (401 TOTP_REQUIRED) ;
+    - ``device_trust_unsupported`` : site d'avant cette fonction, demande refaite sans ces champs."""
+    trust = {"trusted_device": False, "device_trust": "", "device_trust_expires_at": 0, "device_trust_rejected": False,
+             "device_trust_unsupported": outcome.get("trust_unsupported") is True}
+    if outcome.get("state") == "done":
+        answer = outcome.get("response") if isinstance(outcome.get("response"), dict) else {}
+        accepted = answer.get("ok") is True
+        trust["trusted_device"] = accepted and answer.get("trusted_device") is True
+        token, expires = answer.get("device_trust"), _trust_epoch(answer.get("device_trust_expires_at"))
+        if accepted and valid_device_trust(token) and expires:
+            trust["device_trust"], trust["device_trust_expires_at"] = token, expires
+        trust["device_trust_rejected"] = answer.get("device_trust_rejected") is True
+    else:
+        trust["device_trust_rejected"] = "device_trust_rejected" in (outcome.get("site_flags") or ())
+    return trust
+
+
+def _unknown_field(outcome):
+    """400 SELF_SERVICE_FIELD : le site refuse un champ qu'il ne connaît pas, AVANT toute vérification du compte (ni échec
+    compté, ni code consommé) ; la même demande sans ce champ peut donc repartir."""
+    return outcome["state"] == "failed" and outcome.get("http") == 400 and outcome.get("site_code") == "SELF_SERVICE_FIELD"
+
+
 def _login_worker(agent, body, holder, done):
     try:
-        outcome = _call(agent, LOGIN_PATH, body)
-        if (outcome["state"] == "failed" and outcome.get("http") == 400 and outcome.get("site_code") == "SELF_SERVICE_FIELD"
-                and "client" in body):
+        outcome = _call(agent, LOGIN_PATH, body, flags=True)
+        unsupported = False
+        if _unknown_field(outcome) and any(name in body for name in TRUST_FIELDS):
+            # Site d'avant l'appareil de confiance : il ne connaît ni « remember_device » ni « device_trust ». Même
+            # demande sans eux ; le code 2FA sera demandé comme avant (device_trust_unsupported le dit à l'appelant).
+            body = {key: value for key, value in body.items() if key not in TRUST_FIELDS}
+            unsupported = True
+            outcome = _call(agent, LOGIN_PATH, body, flags=True)
+        if _unknown_field(outcome) and "client" in body:
             # Site d'avant le menu du Worker : il ne connaît pas « client ». Même demande sans lui (rien d'autre ne change).
             body = {key: value for key, value in body.items() if key != "client"}
-            outcome = _call(agent, LOGIN_PATH, body)
+            outcome = _call(agent, LOGIN_PATH, body, flags=True)
+        outcome["trust_unsupported"] = unsupported
         holder["outcome"] = outcome
     except Exception as error:  # filet : aucune exception (ni son texte) ne sort du fil
         holder["outcome"] = {"state": "failed", "http": None, "site_code": "", "site_missing": False,
@@ -650,9 +735,10 @@ def _login_worker(agent, body, holder, done):
 def login(agent, params):
     """Connecte le compte par la route signée self/login, de façon synchrone (au plus LOGIN_TIMEOUT secondes).
 
-    Le fichier d'arguments est lu puis effacé avant tout appel ; le mot de passe ne va que dans le corps de la
-    requête signée. Rien n'est inscrit dans ``self_ops`` ni dans l'état du site : la réponse est rendue à l'appelant
-    et oubliée. Une demande déjà en cours est attendue un court instant avant d'être refusée."""
+    Le fichier d'arguments est lu puis effacé avant tout appel ; le mot de passe (et le jeton d'appareil de confiance)
+    ne va que dans le corps de la requête signée. Rien n'est inscrit dans ``self_ops`` ni dans l'état du site : la
+    réponse est rendue à l'appelant et oubliée. Une demande déjà en cours est attendue un court instant avant d'être
+    refusée. La réponse porte toujours les champs de ``_trust_outcome`` (capacité worker_login_trust_v1)."""
     params = _clean("login", params)
     if "args_file" not in params:
         raise ValueError("Fichier d'arguments manquant : écris runtime/local-control/<32 hex>.args.json.")
@@ -677,9 +763,10 @@ def login(agent, params):
         body = None
     if not done.wait(LOGIN_TIMEOUT):
         # L'appel continue dans son fil (il rendra le verrou tout seul) ; sa réponse tardive est oubliée.
-        return _login_failure("Le site n'a pas répondu à temps : réessaie dans un instant.", "LOGIN_TIMEOUT",
-                              unreachable=True)
-    result = _login_outcome(holder["outcome"])
+        return {**_login_failure("Le site n'a pas répondu à temps : réessaie dans un instant.", "LOGIN_TIMEOUT",
+                                 unreachable=True), **_trust_outcome({"state": "failed"})}
+    outcome = holder["outcome"]
+    result = {**_login_outcome(outcome), **_trust_outcome(outcome)}
     if not agent.stop_requested.is_set():
         try:
             site_state(agent, {"refresh": True})  # l'état (verrou, compteur d'échecs) est relu en arrière-plan

@@ -97,7 +97,7 @@ else:
     import comfyui_assets
     from checkpoint_baseline import checkpoint_architecture
 
-AGENT_VERSION = "1.50.38"
+AGENT_VERSION = "1.50.40"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -206,6 +206,14 @@ AGENT_CAPABILITIES += ("installed_versions_v1",)  # littéral : le site lit ces 
 # Journal local des jobs (job_journal.py) : chaque job terminé ici (site, worker.exe, gravure GRBL) ajoute une ligne à
 # data/journal-des-jobs.jsonl ; worker.exe le lit, le filtre et le vide par les actions locales job-journal*.
 AGENT_CAPABILITIES += ("job_journal_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Appareil de confiance de worker.exe et du menu (« Ne plus demander le code 2FA sur ce PC pendant 7 jours ») : l'action
+# locale « login » relaie remember_device et device_trust du fichier d'arguments vers self/login et rend trusted_device,
+# device_trust (+ échéance), device_trust_rejected ; le jeton est gardé chiffré (DPAPI de l'utilisateur Windows) par
+# worker.exe et le menu, jamais par l'agent ni dans un journal.
+AGENT_CAPABILITIES += ("worker_login_trust_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Licences et droits de ce Worker (legal_status.py) : worker.exe et le menu les lisent sur le site par l'action locale
+# « legal-status » (route signée self/legal-status, session du compte connecté par fichier d'arguments), lecture seule.
+AGENT_CAPABILITIES += ("legal_status_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -919,16 +927,21 @@ class Agent:
                 return json.loads(content.decode("utf-8"))
         except urllib.error.HTTPError as error:
             site_code = ""
+            site_flags = ()
             try:
                 body = json.loads(error.read().decode())
                 message = body.get("error")
                 # Code d'erreur du site (« WORKER_BUSY »…) : absent d'une réponse d'intermédiaire (page HTML de Cloudflare).
                 if isinstance(body.get("code"), str):
                     site_code = body["code"][:80]
+                # Drapeaux booléens vrais du refus (« device_trust_rejected » de self/login…) : jamais une chaîne, donc
+                # jamais un secret ; lus par self_service (worker_login_trust_v1).
+                site_flags = tuple(sorted(key[:60] for key, value in body.items() if isinstance(key, str) and value is True))[:16]
             except Exception: message = str(error)
             failure = AgentError(message or str(error))
             failure.code = error.code
             failure.site_code = site_code
+            failure.site_flags = site_flags
             raise failure from error
 
     def download_agent_update(self):

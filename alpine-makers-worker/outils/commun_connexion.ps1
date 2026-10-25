@@ -16,7 +16,10 @@
          (déblocage par le lien reçu par e-mail ou Mes Workers), notifications au propriétaire et aux administrateurs ;
       5. le jeton de session rendu ne vit qu'en mémoire de CE processus ($global:AlpineSessionWorker). Chaque action
          qui modifie quelque chose sur le site le joint par un fichier d'arguments du même type ; le site refuse
-         l'action sans lui (agent qui annonce worker_menu_session_v1) et relit les droits du co-propriétaire.
+         l'action sans lui (agent qui annonce worker_menu_session_v1) et relit les droits du co-propriétaire ;
+      6. appareil de confiance (worker_login_trust_v1) : après un code réussi et « O » à « Ne plus demander le code sur
+         ce PC pendant 7 jours ? », le jeton rendu par le site est gardé chiffré (DPAPI, ce compte Windows) et part
+         ensuite à la place du code, par le même fichier d'arguments (section « Appareil de confiance » ci-dessous).
 
     Ce fichier ne contient aucune adresse, aucune clé, aucun identifiant du site ni de base de données : tout ce qui
     touche au site est demandé à l'agent.
@@ -291,6 +294,236 @@ function New-FichierSessionWorker {
 }
 
 # ---------------------------------------------------------------------------
+# Appareil de confiance : « Ne plus demander le code sur ce PC pendant 7 jours » (capacité worker_login_trust_v1)
+# ---------------------------------------------------------------------------
+# Après une connexion réussie AVEC le code et « O » à la question, le site rend « <id 32 hex>.<secret> » et son
+# échéance. Le jeton est gardé chiffré par DPAPI pour l'utilisateur Windows qui lance le menu (ProtectedData,
+# CurrentUser, entropie propre au client et au compte) dans runtime\local-control\trust-menu-<empreinte>.bin : créé
+# d'un coup, ACL fermée sans héritage (ce compte, SYSTEM, Administrateurs ; ni le service du Worker, ni « Utilisateurs »),
+# jamais écrit ni lu à travers un lien, nom sans le pseudo (SHA-256 du SID Windows et du pseudo : MÊME calcul que
+# LoginTrust de worker.exe, qui garde trust-exe-<empreinte>.bin). Il ne part que dans le fichier d'arguments de « login »,
+# jamais en ligne de commande ni dans un journal. Effacé quand le site le refuse (device_trust_rejected), à son échéance,
+# s'il est illisible, ou par « Oublier ce PC » (touche O du menu, proposé aussi à la déconnexion L).
+
+$script:ClientConfiance = 'menu'
+$script:ClientsConfiance = @('exe', 'menu')
+$script:DomaineConfiance = 'alpine-worker-trust-v1'
+$script:OctetsConfianceMax = 4096
+
+function Test-JetonConfianceValide {
+    <# Forme d'un jeton d'appareil de confiance : « <id 32 hex>.<secret base64url> », 200 caractères au plus. #>
+    param([string]$Jeton)
+    return (([string]$Jeton).Length -le 200 -and ([string]$Jeton -cmatch '\A[0-9A-Fa-f]{32}\.[A-Za-z0-9_-]{16,167}\z'))
+}
+
+function Test-DpapiConfiance {
+    <# DPAPI (ProtectedData, System.Security.dll) disponible ? Sans lui, rien n'est lu, écrit ni effacé. #>
+    try { Add-Type -AssemblyName System.Security -ErrorAction Stop; return $true } catch { return $false }
+}
+
+function Get-EmpreinteConfiance {
+    <# 32 hexadécimaux : SHA-256 du domaine, du SID Windows de ce compte et du pseudo en minuscules (le nom du fichier ne révèle pas le pseudo). #>
+    param([string]$Utilisateur)
+    $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $texte = $script:DomaineConfiance + "`n" + $sid + "`n" + ([string]$Utilisateur).Trim().ToLowerInvariant()
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $empreinte = $sha.ComputeHash((New-Object System.Text.UTF8Encoding($false)).GetBytes($texte)) } finally { $sha.Dispose() }
+    return (-join ($empreinte[0..15] | ForEach-Object { $_.ToString('x2') }))
+}
+
+function Get-CheminConfianceWorker {
+    <# runtime\local-control\trust-<client>-<empreinte>.bin ; -Client 'menu' (ce menu) ou 'exe' (worker.exe). #>
+    param([string]$Racine, [string]$Utilisateur, [string]$Client = $script:ClientConfiance)
+    if ($script:ClientsConfiance -cnotcontains $Client) { throw 'Client de connexion inconnu.' }
+    return (Join-Path (Join-Path $Racine 'runtime\local-control') ('trust-' + $Client + '-' + (Get-EmpreinteConfiance -Utilisateur $Utilisateur) + '.bin'))
+}
+
+function Get-EntropieConfiance {
+    param([string]$Utilisateur, [string]$Client = $script:ClientConfiance)
+    return ,((New-Object System.Text.UTF8Encoding($false)).GetBytes($script:DomaineConfiance + '|' + $Client + '|' + (Get-EmpreinteConfiance -Utilisateur $Utilisateur)))
+}
+
+function Test-LienConfiance {
+    <# Vrai pour un lien ou une jonction (jamais suivis) ; faux pour un chemin absent. #>
+    param([string]$Chemin)
+    try { return ((([IO.File]::GetAttributes($Chemin)) -band [IO.FileAttributes]::ReparsePoint) -ne 0) } catch { return $false }
+}
+
+function Test-DossierConfianceLie {
+    param([string]$Racine)
+    return ((Test-LienConfiance (Join-Path $Racine 'runtime')) -or (Test-LienConfiance (Join-Path $Racine 'runtime\local-control')))
+}
+
+function Format-DateConfiance {
+    <# « 01.11.2026 à 14:02 », heure du PC. #>
+    param([datetime]$Date)
+    return $Date.ToString("dd'.'MM'.'yyyy' à 'HH':'mm", [Globalization.CultureInfo]::InvariantCulture)
+}
+
+function Remove-ConfianceWorker {
+    <#
+        Efface le jeton de ce compte : celui du menu (refus du site, jeton échu ou illisible) ou, avec -TousClients,
+        aussi celui de worker.exe (« Oublier ce PC »). Rend $true si un fichier a été effacé. Ne lève jamais.
+    #>
+    param([string]$Racine, [string]$Utilisateur, [switch]$TousClients)
+    if (-not ([string]$Utilisateur).Trim()) { return $false }
+    $efface = $false
+    $clients = @($script:ClientConfiance)
+    if ($TousClients) { $clients = $script:ClientsConfiance }
+    foreach ($c in $clients) {
+        try {
+            $chemin = Get-CheminConfianceWorker -Racine $Racine -Utilisateur $Utilisateur -Client $c
+            if ([IO.File]::Exists($chemin) -or (Test-LienConfiance $chemin)) { [IO.File]::Delete($chemin); $efface = $true }   # un lien est retiré, jamais suivi
+        } catch { }
+    }
+    return $efface
+}
+
+function Test-ConfianceWorker {
+    <# Un jeton est-il gardé pour ce compte sur ce PC (menu ou worker.exe) ? Seul le nom du fichier est regardé. #>
+    param([string]$Racine, [string]$Utilisateur)
+    if (-not ([string]$Utilisateur).Trim()) { return $false }
+    foreach ($c in $script:ClientsConfiance) {
+        try { if ([IO.File]::Exists((Get-CheminConfianceWorker -Racine $Racine -Utilisateur $Utilisateur -Client $c))) { return $true } } catch { }
+    }
+    return $false
+}
+
+function Read-ConfianceWorker {
+    <#
+        Jeton mémorisé par le menu pour ce compte : [pscustomobject]@{ Jeton ; Expire (date locale) }, ou $null.
+        Échu, illisible (DPAPI d'un autre compte, contenu abîmé) ou d'un autre compte : effacé. Jamais à travers un lien.
+    #>
+    param([string]$Racine, [string]$Utilisateur)
+    if (-not ([string]$Utilisateur).Trim()) { return $null }
+    $chemin = ''
+    try { $chemin = Get-CheminConfianceWorker -Racine $Racine -Utilisateur $Utilisateur } catch { return $null }
+    if (-not [IO.File]::Exists($chemin) -or (Test-DossierConfianceLie -Racine $Racine) -or (Test-LienConfiance $chemin)) { return $null }
+    if (-not (Test-DpapiConfiance)) { return $null }
+    $clair = $null
+    try {
+        $taille = (New-Object IO.FileInfo($chemin)).Length
+        if ($taille -le 0 -or $taille -gt $script:OctetsConfianceMax) { [void](Remove-ConfianceWorker -Racine $Racine -Utilisateur $Utilisateur); return $null }
+        $clair = [Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes($chemin), (Get-EntropieConfiance -Utilisateur $Utilisateur), [Security.Cryptography.DataProtectionScope]::CurrentUser)
+        $valeur = (New-Object System.Text.UTF8Encoding($false)).GetString($clair) | ConvertFrom-Json
+        $jeton = [string](Get-ChampGestion $valeur 'device_trust' '')
+        $expire = ConvertTo-DateLocale (Get-ChampGestion $valeur 'expires_at')
+        $proprietaire = [string](Get-ChampGestion $valeur 'username' '')
+        if ([string](Get-ChampGestion $valeur 'client' '') -cne $script:ClientConfiance -or $proprietaire -cne ([string]$Utilisateur).Trim().ToLowerInvariant() -or
+            -not (Test-JetonConfianceValide $jeton) -or $null -eq $expire -or $expire -le (Get-Date)) {
+            [void](Remove-ConfianceWorker -Racine $Racine -Utilisateur $Utilisateur)
+            return $null
+        }
+        return [pscustomobject]@{ Jeton = $jeton; Expire = $expire }
+    }
+    catch [System.IO.IOException] { return $null }                 # fichier tenu par un autre programme : gardé
+    catch [System.UnauthorizedAccessException] { return $null }
+    catch { [void](Remove-ConfianceWorker -Racine $Racine -Utilisateur $Utilisateur); return $null }
+    finally { if ($clair) { [Array]::Clear($clair, 0, $clair.Length) } }
+}
+
+function Save-ConfianceWorker {
+    <# Mémorise le jeton rendu par le site après un code réussi et « O » à la question. Lève une exception si rien n'est écrit. #>
+    param([string]$Racine, [string]$Utilisateur, [string]$Jeton, $Expire)
+    if (-not ([string]$Utilisateur).Trim() -or -not (Test-JetonConfianceValide $Jeton)) { throw 'jeton illisible' }
+    $date = ConvertTo-DateLocale $Expire
+    if ($null -eq $date -or $date -le (Get-Date)) { throw 'échéance illisible' }
+    if (-not (Test-DpapiConfiance)) { throw 'DPAPI indisponible' }
+    if (Test-DossierConfianceLie -Racine $Racine) { throw 'lien ou jonction sur le dossier des demandes locales' }
+    $dossier = Join-Path $Racine 'runtime\local-control'
+    if (-not (Test-Path -LiteralPath $dossier -PathType Container)) { New-Item -ItemType Directory -Path $dossier -Force | Out-Null }
+    $chemin = Get-CheminConfianceWorker -Racine $Racine -Utilisateur $Utilisateur
+    $temporaire = $chemin + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+    $securite = New-Object Security.AccessControl.FileSecurity
+    $securite.SetAccessRuleProtection($true, $false)
+    $proprietaires = @([Security.Principal.WindowsIdentity]::GetCurrent().User,
+        [Security.Principal.SecurityIdentifier]::new([Security.Principal.WellKnownSidType]::LocalSystemSid, $null),
+        [Security.Principal.SecurityIdentifier]::new([Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null))
+    foreach ($sid in $proprietaires) {
+        $securite.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, [Security.AccessControl.FileSystemRights]::FullControl, [Security.AccessControl.AccessControlType]::Allow))
+    }
+    $epoque = New-Object DateTime 1970, 1, 1, 0, 0, 0, ([DateTimeKind]::Utc)
+    $contenu = [ordered]@{ v = 1; client = $script:ClientConfiance; username = ([string]$Utilisateur).Trim().ToLowerInvariant(); device_trust = $Jeton
+                           expires_at = [long][Math]::Floor([double]$Expire); saved_at = [long][Math]::Floor(([DateTime]::UtcNow - $epoque).TotalSeconds) }
+    $clair = $null; $flux = $null
+    try {
+        $clair = (New-Object System.Text.UTF8Encoding($false)).GetBytes([string](ConvertTo-Json -InputObject $contenu -Compress))
+        $scelle = [Security.Cryptography.ProtectedData]::Protect($clair, (Get-EntropieConfiance -Utilisateur $Utilisateur), [Security.Cryptography.DataProtectionScope]::CurrentUser)
+        $flux = [IO.FileStream]::new($temporaire, [IO.FileMode]::CreateNew, [Security.AccessControl.FileSystemRights]::FullControl, [IO.FileShare]::None, 4096, [IO.FileOptions]::WriteThrough, $securite)
+        $flux.Write($scelle, 0, $scelle.Length)
+        $flux.Flush()
+        $flux.Dispose(); $flux = $null
+        if ([IO.File]::Exists($chemin) -or (Test-LienConfiance $chemin)) { [IO.File]::Delete($chemin) }   # un lien est retiré, jamais suivi
+        [IO.File]::Move($temporaire, $chemin)   # même volume : l'ACL fermée du fichier temporaire le suit
+    } finally {
+        if ($flux) { try { $flux.Dispose() } catch { } }
+        if ($clair) { [Array]::Clear($clair, 0, $clair.Length) }
+        foreach ($cle in @($contenu.Keys)) { $contenu[$cle] = $null }
+        try { if ([IO.File]::Exists($temporaire)) { [IO.File]::Delete($temporaire) } } catch { }
+    }
+}
+
+function Invoke-OublierCePc {
+    <#
+        « Oublier ce PC » (touche O du menu ; proposé à la déconnexion L avec -Proposer) : jetons d'appareil de confiance
+        du compte effacés ici (menu et worker.exe) après confirmation ; le code 2FA sera de nouveau demandé. Le site garde
+        l'appareil jusqu'à son échéance (ou son retrait dans le compte) mais ne reçoit plus jamais ce jeton.
+        -Confirmer : lecteur remplaçable (essais), Confirm-Action par défaut. Rend 'oublie', 'garde', 'aucun' ou 'non_connecte'.
+    #>
+    param([string]$Racine, [string]$Utilisateur, [switch]$Proposer, [scriptblock]$Confirmer = $null)
+    if (-not ([string]$Utilisateur).Trim()) {
+        if (-not $Proposer) { Write-Info 'Connecte-toi d''abord (C) : O oublie ce PC pour le compte connecté.' }
+        return 'non_connecte'
+    }
+    if (-not (Test-ConfianceWorker -Racine $Racine -Utilisateur $Utilisateur)) {
+        if (-not $Proposer) { Write-Info 'Ce PC n''est pas mémorisé pour ce compte : le code 2FA est déjà demandé à chaque connexion.' }
+        return 'aucun'
+    }
+    if (-not $Confirmer) { $Confirmer = { param($Question) Confirm-Action $Question } }
+    $question = 'Oublier ce PC ? Le code 2FA sera redemandé à la prochaine connexion (menu et worker.exe).'
+    if ($Proposer) { $question = 'Oublier aussi ce PC ? Le code 2FA sera redemandé à la prochaine connexion (menu et worker.exe).' }
+    $oui = $false
+    try { $oui = [bool](& $Confirmer $question) } catch { $oui = $false }   # pas de clavier : rien n'est effacé
+    if (-not $oui) {
+        if (-not $Proposer) { Write-Info 'Rien n''a été changé : ce PC reste de confiance pour ce compte.' }
+        return 'garde'
+    }
+    if (Remove-ConfianceWorker -Racine $Racine -Utilisateur $Utilisateur -TousClients) {
+        Write-Ok 'Ce PC est oublié pour ce compte : le code 2FA sera de nouveau demandé.'
+        return 'oublie'
+    }
+    Write-Alerte 'Rien n''a pu être effacé : vérifie les droits du dossier runtime\local-control.'
+    return 'garde'
+}
+
+function Read-ChoixMemoriserPc {
+    <# Après le code : « O » = demander au site de mémoriser ce PC ; Entrée, N, toute autre réponse ou pas de clavier = non. #>
+    param([scriptblock]$Lire)
+    $saisie = ''
+    try { $saisie = [string](& $Lire 'Ne plus demander le code sur ce PC pendant 7 jours ? [O/N, Entrée = non]') } catch { $saisie = '' }
+    return ($saisie.Trim() -match '^(?i:o|oui)$')
+}
+
+function Write-ResultatConfiance {
+    <# Après une connexion réussie : code non demandé (jeton accepté), PC mémorisé (jeton reçu), ou pourquoi il ne l'est pas. #>
+    param([string]$Racine, [string]$Utilisateur, $Reponse, $Confiance, [bool]$Memoriser)
+    if ($Reponse.PcDeConfiance) {
+        if ($Confiance) { Write-Ok ('Code non demandé : ce PC est de confiance jusqu''au ' + (Format-DateConfiance $Confiance.Expire) + '. O dans le menu pour l''oublier.') }
+        else { Write-Ok 'Code non demandé : ce PC est de confiance. O dans le menu pour l''oublier.' }
+        return
+    }
+    if (-not $Memoriser) { return }
+    if ($Reponse.JetonConfiance) {
+        try {
+            Save-ConfianceWorker -Racine $Racine -Utilisateur $Utilisateur -Jeton $Reponse.JetonConfiance -Expire $Reponse.ExpireConfiance
+            Write-Ok ('Ce PC est de confiance jusqu''au ' + (Format-DateConfiance (ConvertTo-DateLocale $Reponse.ExpireConfiance)) + ' : le code 2FA ne sera plus demandé ici. O dans le menu pour l''oublier.')
+        } catch { Write-Alerte ('Ce PC n''a pas pu être mémorisé (' + $_.Exception.GetType().Name + ') : le code 2FA sera redemandé.') }
+    }
+    elseif ($Reponse.ConfianceNonSupportee) { Write-Alerte 'Le site ne propose pas encore « Ne plus demander le code » : le code 2FA sera redemandé à la prochaine connexion.' }
+    else { Write-Alerte 'Le site n''a pas mémorisé ce PC (vérifie l''option dans les paramètres 2FA de ton compte) : le code 2FA sera redemandé.' }
+}
+
+# ---------------------------------------------------------------------------
 # Dialogue avec l'agent : verrou, connexion, contrôle, déconnexion
 # ---------------------------------------------------------------------------
 
@@ -323,12 +556,24 @@ function Get-EtatVerrouConnexion {
 }
 
 function Invoke-ConnexionCompte {
-    <# Une tentative : fichier d'arguments {username, password, totp_code, client=menu} puis action locale « login ». #>
-    param([string]$Racine, [string]$Utilisateur, [Security.SecureString]$MotDePasse, [Security.SecureString]$Code = $null)
+    <#
+        Une tentative : fichier d'arguments {username, password, totp_code, client=menu[, device_trust][, remember_device]}
+        puis action locale « login ». -JetonConfiance : jeton mémorisé de ce PC, envoyé à la place du code (jamais avec
+        lui) ; -Memoriser : « Ne plus demander le code sur ce PC pendant 7 jours », envoyé avec le code seulement.
+    #>
+    param([string]$Racine, [string]$Utilisateur, [Security.SecureString]$MotDePasse, [Security.SecureString]$Code = $null,
+          [string]$JetonConfiance = '', [switch]$Memoriser)
     $secrets = @{ password = $MotDePasse }
-    if ($null -ne $Code -and $Code.Length -gt 0) { $secrets['totp_code'] = $Code }
-    $reponse = Invoke-ActionSecreteWorker -Racine $Racine -Action 'login' -Contenu @{ username = $Utilisateur; client = 'menu' } -Secrets $secrets -DelaiSecondes 45
-    $r = [pscustomobject]@{ Ok = $false; Code = ''; Erreur = ''; Injoignable = $false; AgentMuet = $false; SiteSansFonction = $false; Resultat = $null }
+    $contenu = @{ username = $Utilisateur; client = 'menu' }
+    if ($null -ne $Code -and $Code.Length -gt 0) {
+        $secrets['totp_code'] = $Code
+        if ($Memoriser) { $contenu['remember_device'] = $true }
+    }
+    elseif ($JetonConfiance -and (Test-JetonConfianceValide $JetonConfiance)) { $contenu['device_trust'] = $JetonConfiance }
+    $reponse = Invoke-ActionSecreteWorker -Racine $Racine -Action 'login' -Contenu $contenu -Secrets $secrets -DelaiSecondes 45
+    $contenu.Clear()
+    $r = [pscustomobject]@{ Ok = $false; Code = ''; Erreur = ''; Injoignable = $false; AgentMuet = $false; SiteSansFonction = $false; Resultat = $null
+                            PcDeConfiance = $false; JetonConfiance = ''; ExpireConfiance = $null; ConfianceRefusee = $false; ConfianceNonSupportee = $false }
     if (-not $reponse -or -not $reponse.Ok -or -not $reponse.Resultat) {
         $classe = Get-ClasseEchecLocal $reponse
         if ($classe -ne 'refus') { $r.AgentMuet = $true }
@@ -343,6 +588,15 @@ function Invoke-ConnexionCompte {
     $r.Erreur = [string](Get-ChampGestion $resultat 'error' '')
     $r.Injoignable = [bool](Get-ChampGestion $resultat 'unreachable' $false)
     $r.SiteSansFonction = [bool](Get-ChampGestion $resultat 'site_missing' $false)
+    # Appareil de confiance (agent qui annonce worker_login_trust_v1 ; absents d'un agent plus ancien = valeurs neutres).
+    $r.PcDeConfiance = [bool](Get-ChampGestion $resultat 'trusted_device' $false)
+    $r.ConfianceRefusee = [bool](Get-ChampGestion $resultat 'device_trust_rejected' $false)
+    $r.ConfianceNonSupportee = [bool](Get-ChampGestion $resultat 'device_trust_unsupported' $false)
+    $jeton = [string](Get-ChampGestion $resultat 'device_trust' '')
+    if (Test-JetonConfianceValide $jeton) {
+        $r.JetonConfiance = $jeton
+        $r.ExpireConfiance = Get-ChampGestion $resultat 'device_trust_expires_at'
+    }
     return $r
 }
 
@@ -539,22 +793,43 @@ function Invoke-ConnexionProprietaire {
         $motDePasse = & $LireSecret 'Mot de passe (saisie masquée)'
         if ($null -eq $motDePasse -or $motDePasse.Length -eq 0) { Write-Alerte 'Indique le mot de passe.'; continue }
         $code = $null
+        $memoriser = $false
+        # Appareil de confiance : jeton gardé (chiffré DPAPI) pour ce compte sur ce PC, envoyé à la place du code.
+        $confiance = Read-ConfianceWorker -Racine $Racine -Utilisateur $utilisateur
         $rejouer = $true
         while ($rejouer) {
             $rejouer = $false
             Write-Info 'Connexion en cours...'
-            $r = Invoke-ConnexionCompte -Racine $Racine -Utilisateur $utilisateur -MotDePasse $motDePasse -Code $code
+            $jeton = ''
+            if ($confiance -and $null -eq $code) { $jeton = [string]$confiance.Jeton }
+            $r = Invoke-ConnexionCompte -Racine $Racine -Utilisateur $utilisateur -MotDePasse $motDePasse -Code $code -JetonConfiance $jeton -Memoriser:$memoriser
+            $jetonEnvoye = [bool]$jeton
+            $jeton = ''
+            if ($r.ConfianceRefusee -or ($jetonEnvoye -and $r.Code -eq $script:CodeTotpRequis)) {
+                # Jeton échu, invalide ou retiré depuis le site, ou qui n'a pas dispensé du code : effacé de ce PC.
+                [void](Remove-ConfianceWorker -Racine $Racine -Utilisateur $utilisateur)
+                $confiance = $null
+            }
             if ($r.Ok) {
                 $motDePasse.Dispose(); if ($code) { $code.Dispose() }
                 Set-SessionDepuisReponse -Resultat $r.Resultat -Source 'menu'
                 Write-Ok ('Connecté : ' + (Get-ResumeSessionWorker) + '.')
+                Write-ResultatConfiance -Racine $Racine -Utilisateur $utilisateur -Reponse $r -Confiance $confiance -Memoriser $memoriser
+                $r.JetonConfiance = ''; $confiance = $null
                 return 'connecte'
             }
             if ($r.Code -eq $script:CodeTotpRequis) {
-                Write-Alerte 'Ce compte a la double authentification : saisis le code de ton application (ou un code de secours).'
+                if ($r.ConfianceRefusee) { Write-Alerte 'Ce PC n''est plus de confiance (jeton échu ou retiré depuis le site) : saisis le code 2FA.' }
+                elseif ($jetonEnvoye -and $r.ConfianceNonSupportee) { Write-Alerte 'Le site ne propose pas encore « Ne plus demander le code » : saisis le code 2FA.' }
+                elseif ($jetonEnvoye) { Write-Alerte 'Le site demande le code 2FA pour ce PC : saisis-le (O à la question suivante pour le mémoriser de nouveau).' }
+                else { Write-Alerte 'Ce compte a la double authentification : saisis le code de ton application (ou un code de secours).' }
                 if ($code) { $code.Dispose() }
                 $code = & $LireSecret 'Code 2FA (saisie masquée)'
-                if ($null -ne $code -and $code.Length -gt 0 -and $code.Length -le 16) { $rejouer = $true } else { Write-Alerte 'Indique le code 2FA.' }
+                if ($null -ne $code -and $code.Length -gt 0 -and $code.Length -le 16) {
+                    # Question posée après chaque code saisi : le site ne mémorise ce PC qu'avec un code réussi ET « O ».
+                    $memoriser = Read-ChoixMemoriserPc -Lire $LireTexte
+                    $rejouer = $true
+                } else { Write-Alerte 'Indique le code 2FA.' }
                 continue
             }
             $motDePasse.Dispose(); if ($code) { $code.Dispose() }
