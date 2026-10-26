@@ -53,6 +53,7 @@ STOP_SETTLE_WAIT = 3.0
 # la carte (décalage volatil G92/G43.1 effacé, ou position machine remise à zéro par un redémarrage de la carte).
 ORIGIN_TOLERANCE_MM = 0.005
 MAX_LINE_LENGTH = 79      # LINE_BUFFER_SIZE 80 : error:11 au-delà.
+SPINDLE_CAP_RECHECK_WAIT = 0.3   # s entre deux lectures FS avant de conclure que la carte plafonne S (agent 1.50.44)
 SETTINGS_TOLERANCE = 0.0015   # relecture $$ (3 décimales) comparée à la valeur écrite par lot
 MACHINE_KINDS = ("laser", "cnc")
 STATES = ("Idle", "Run", "Hold", "Jog", "Alarm", "Door", "Check", "Home", "Sleep")
@@ -364,6 +365,33 @@ def gcode_emits(line):
         if letter.upper() == "S" and number > 0:
             return True
     return False
+
+
+# Mot S (vitesse de broche / puissance) d'une ligne déjà nettoyée : « S8000 », « S 8000 », « M3S500 ».
+_S_WORD = re.compile(r"(?<![A-Za-z])S\s*([-+]?(?:\d*\.\d+|\d+\.?))", re.I)
+
+
+def spindle_word(line):
+    """Valeur du dernier mot S d'une ligne (None sans mot S)."""
+    values = _S_WORD.findall(str(line or ""))
+    return float(values[-1]) if values else None
+
+
+def scale_spindle_words(line, ratio):
+    """Mots S d'une ligne convertis des tr/min de la fiche vers l'échelle S de la carte (agent 1.50.44).
+
+    ``ratio`` = S maximal de la carte / tr/min maximaux de la fiche ; 1 (ou None) = ligne inchangée. Une valeur
+    positive ne descend jamais sous S1 (une broche demandée ne doit pas s'arrêter par arrondi).
+    """
+    if not ratio or ratio == 1:
+        return line
+
+    def convert(match):
+        value = float(match.group(1))
+        if value <= 0:
+            return match.group(0)
+        return "S" + str(max(1, int(round(value * ratio))))
+    return _S_WORD.sub(convert, str(line))
 
 
 # Retours vers une position prédéfinie et décalages : G28/G30 (et G28.1/G30.1), G53, G92 (G92.x), G10.
@@ -689,6 +717,15 @@ class GrblController:
         # au déblocage ($X), abandonnée par un homing (qui redéfinit les coordonnées machine).
         self._pending_origin = None
         self.origin_restored = None
+        # Broche d'une CNC (agent 1.50.44) : échelle des mots S. spindle_rpm_max = tr/min atteints à S maximal
+        # (« Broche max » de la fiche), spindle_s_max = S maximal accepté par la carte (« S maximal de la carte »,
+        # None = $30 relu), spindle_s_cap = plafond S observé sur la carte (FS plus bas que le S envoyé, override
+        # 100 %) : certaines cartes « laser » plafonnent S à 1000 quel que soit leur $30.
+        self.spindle_rpm_max = None
+        self.spindle_s_max = None
+        self.spindle_s_cap = None
+        self.spindle_notice = ""
+        self.last_mdi_sent = None
         self._cancel = threading.Event()
         # Arrêt incendie : blocage d'écriture (jusqu'à l'acquittement), arrêts en série, compteur d'arrêts.
         # Pas de verrou persistant ici : un nouveau contrôleur (reconnexion) repart débloqué pour sa poignée
@@ -1527,6 +1564,80 @@ class GrblController:
             raise GrblError("Contrôleur GRBL non connecté.")
         self._realtime(ACCESSORIES[name][2])
 
+    def configure_spindle(self, rpm_max=None, s_max=None, s_cap=None):
+        """Fiche de la broche d'une CNC : tr/min à S maximal (« Broche max »), S maximal accepté par la carte
+        (« S maximal de la carte », 0/None = le $30 relu) et plafond S déjà observé (conservé à la reconnexion)."""
+        def positive(value):
+            if isinstance(value, bool):
+                return None
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                return None
+            return number if math.isfinite(number) and number > 0 else None
+        self.spindle_rpm_max = positive(rpm_max)
+        self.spindle_s_max = positive(s_max)
+        self.spindle_s_cap = positive(s_cap)
+
+    def spindle_ratio(self):
+        """Mots S envoyés = tr/min × ratio. 1 pour un laser, sans fiche broche, ou si la carte accepte autant de S
+        que de tr/min (jamais > 1 : une carte à l'échelle plus large que la fiche n'est pas poussée au-delà)."""
+        if self.machine_kind != "cnc" or not self.spindle_rpm_max:
+            return 1.0
+        limits = [value for value in (self.spindle_s_cap, self.spindle_s_max or self.settings.get(30)) if value and value > 0]
+        if not limits:
+            return 1.0
+        s_max = float(min(limits))
+        return 1.0 if s_max >= self.spindle_rpm_max else s_max / self.spindle_rpm_max
+
+    def spindle_rpm(self, s_value):
+        """Valeur S rapportée par la carte → tr/min de la fiche (None sans valeur)."""
+        if s_value is None:
+            return None
+        ratio = self.spindle_ratio()
+        return int(round(float(s_value) / ratio)) if ratio != 1 else s_value
+
+    def spindle_scale_info(self):
+        return {"ratio": self.spindle_ratio(), "rpm_max": self.spindle_rpm_max, "s_max": self.spindle_s_max,
+                "s_cap": self.spindle_s_cap, "board_s30": self.settings.get(30)}
+
+    def _scale_line(self, text):
+        return scale_spindle_words(text, self.spindle_ratio())
+
+    def _scale_lines(self, lines):
+        ratio = self.spindle_ratio()
+        if ratio == 1:
+            return lines
+        return [(number, scale_spindle_words(text, ratio)) for number, text in lines]
+
+    def _check_spindle_cap(self, requested):
+        """Après une ligne M3/M4 S d'une CNC : si la carte rapporte (FS, override 100 %) moins que le S envoyé, elle
+        plafonne S à cette valeur quel que soit son $30 (cartes « laser » : S 0–1000). Le plafond est retenu et les
+        tr/min suivants sont convertis sur cette échelle. Trois lectures espacées confirment avant de conclure ;
+        broche coupée (FS 0, Hold, S sans M3) : rien n'est conclu. Sous verrou. Rend le plafond ou None."""
+        reported = None
+        for attempt in range(3):
+            if attempt:
+                time.sleep(SPINDLE_CAP_RECHECK_WAIT)
+            try:
+                status = self._status_sync(2.0)
+            except GrblError:
+                return None
+            overrides = status.get("overrides") or {}
+            if status.get("state") not in ("Idle", "Run", "Jog") or overrides.get("spindle") not in (None, 100):
+                return None
+            reported = status.get("spindle")
+            if reported is None or reported >= requested - 0.5:
+                return None
+        cap = float(reported)
+        if cap <= 0:
+            return None
+        if self.spindle_s_cap != cap:
+            self.spindle_s_cap = cap
+            self._log(f"La carte plafonne S à {cap:g} (demandé S{requested:g}, $30={self.settings.get(30)}) : les tr/min de la fiche "
+                      f"sont convertis sur l'échelle 0–{cap:g} de la carte ({self.spindle_rpm_max:g} tr/min → S{cap:g}).")
+        return cap
+
     def mdi(self, line, timeout=30.0):
         """Une ligne G-code saisie à la main : nettoyée comme un fichier, jamais une commande ``$`` ; sur un laser,
         aucune émission (M3/M4, S > 0 : le test laser est le seul chemin). Renvoie les lignes de retour de GRBL.
@@ -1543,7 +1654,18 @@ class GrblController:
             raise GrblError("Émission laser (M3/M4 ou S > 0) refusée en console : utilise le test laser.")
         with self._lock:
             self._require_ready()
-            return list(self._expect_ok(text, timeout))
+            sent = self._scale_line(text)
+            self.last_mdi_sent = sent
+            self.spindle_notice = ""
+            feedback = list(self._expect_ok(sent, timeout))
+            requested = spindle_word(sent)
+            if self.machine_kind == "cnc" and requested and requested > 0:
+                cap = self._check_spindle_cap(requested)
+                if cap is not None:
+                    self.spindle_notice = (f"La carte plafonne S à {cap:g} malgré $30={self.settings.get(30)} : conversion activée, "
+                                           f"{self.spindle_rpm_max:g} tr/min = S{cap:g}. Renseigne « S maximal de la carte » = {cap:g} "
+                                           "dans Configurer (Mes équipements) pour la conserver après une reconnexion.")
+            return feedback
 
     def probe_z(self, feed, max_travel, timeout=None):
         """Palpage Z descendant (``G38.3`` : sans contact, rapport ``[PRB:…:0]`` et pas d'alarme) ; renvoie la position de contact.
@@ -1617,7 +1739,7 @@ class GrblController:
         finir celles déjà parties et rendre ``reason="stopped"`` (fin propre, sans reset).
         ``max_pending`` borne les lignes en vol pour qu'un arrêt reste réactif.
         """
-        lines = prepare_gcode(gcode_text)
+        lines = self._scale_lines(prepare_gcode(gcode_text))   # tr/min de la fiche → échelle S de la carte (CNC)
         if not lines:
             raise GrblError("Aucune ligne de G-code à envoyer.")
         provider = self.interlocks if interlocks is None else interlocks
@@ -2094,6 +2216,8 @@ class GrblController:
         return {"connected": self.connected, "machine_kind": self.machine_kind, "version": self.version,
                 "state": status.get("state"), "substate": status.get("substate"), "mpos": status.get("mpos"), "wpos": status.get("wpos"),
                 "feed": status.get("feed"), "spindle": status.get("spindle"),
+                # Broche en tr/min de la fiche et échelle S de la carte (agent 1.50.44).
+                "spindle_rpm": self.spindle_rpm(status.get("spindle")), "spindle_scale": self.spindle_scale_info(),
                 # Rapport étendu (agent 1.33.0) : overrides, broches, accessoires, tampon, ligne, réglages, $I, messages.
                 "overrides": dict(status["overrides"]) if status.get("overrides") else None,
                 "pins": list(status.get("pins") or []), "accessories": list(status.get("accessories") or []),

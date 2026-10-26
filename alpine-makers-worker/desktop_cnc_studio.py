@@ -66,7 +66,7 @@ _FILE_NAME = re.compile(r"[^\\/:*?\"<>|\x00-\x1f]{1,200}")
 # Réglages de fiche utiles au studio (jamais l'hôte, le port série ni une adresse).
 SETTING_KEYS = ("work_area_mm", "max_feed_mm_min", "spindle_max_rpm", "spindle_min_rpm", "spindle_control", "safe_z_mm",
                 "jog_feed_mm_min", "rapid_feed_mm_min", "controller", "interlocks", "homing", "origin", "coolant_flood",
-                "coolant_mist", "tool_change", "probe_plate_mm", "spindle_warmup_s", "model")
+                "coolant_mist", "tool_change", "probe_plate_mm", "spindle_warmup_s", "spindle_s_max", "model")
 # Commandes qui ne bougent rien ou qui arrêtent : pas de confirmation exigée (ARRÊT doit rester immédiat).
 UNCONFIRMED = ("stop", "hold", "status", "info", "jog_cancel")
 

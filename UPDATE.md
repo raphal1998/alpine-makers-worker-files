@@ -1,5 +1,21 @@
 # Historique des mises à jour
 
+## Version 1.50.44 — 2026-10-26
+
+**Broche d’une CNC : tr/min convertis sur l’échelle S de la carte, plafond S détecté**
+
+### Ajouté
+- Réglage « S maximal de la carte » dans Configurer (Mes équipements, CNC) : 0 = le $30 relu. Le Worker convertit les tr/min de la fiche (console, boutons M3/M4, programmes envoyés) sur cette échelle : Broche max 8000 tr/min et carte à S1000 → « M3 S8000 » part en « M3 S1000 ».
+
+### Modifié
+- Rapport GRBL : spindle_rpm (tr/min de la fiche) et spindle_scale (ratio, S maximal, plafond observé, $30) en plus de la valeur S brute ; CNC Studio et Mes machines affichent les tr/min et le S réel envoyé à la carte.
+
+### Corrigé
+- Broche bridée à 1000 tr/min malgré $30=8000 : certaines cartes (TwoTrees / LaserBox_E, GRBL 1.1h) plafonnent S à 1000 quel que soit $30. Après un M3/M4 S, le Worker compare la vitesse rapportée (FS, override 100 %) au S envoyé ; un plafond confirmé par trois lectures active la conversion et le signale avec le réglage à enregistrer.
+
+### Technique
+- Empreinte du paquet publié : `3a36f9f2bd2af2bc…` (dossier du paquet).
+
 ## Version 1.50.43 — 2026-10-26
 
 **ARRÊT d’une CNC : origine de travail restaurée, Z compris**

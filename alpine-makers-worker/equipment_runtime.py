@@ -841,6 +841,7 @@ class Device:
         self.grbl_checklist = False
         self.grbl_loop_stop = threading.Event()   # « Arrêter le cadrage » : fin propre du cadrage en continu
         self.grbl_message = ""
+        self.spindle_s_cap = None   # plafond S observé sur la carte (agent 1.50.44), gardé d'une reconnexion à l'autre
 
     def frame_value(self):
         with self.lock:
@@ -1450,6 +1451,7 @@ class Device:
             try:
                 transport = grbl_transport(connector, cfg)
                 controller = grbl.GrblController(transport, self.spec["kind"], on_status=self._grbl_status, on_log=self._grbl_log, interlocks=self.grbl_interlocks)
+                controller.configure_spindle(rpm_max=cfg.get("spindle_max_rpm"), s_max=cfg.get("spindle_s_max"), s_cap=self.spindle_s_cap)
                 controller.connect(timeout=5.0)
             except grbl.GrblError as error:
                 message = str(error)
@@ -1554,6 +1556,7 @@ class Device:
         return {"state": snapshot.get("state"), "mpos": list(snapshot["mpos"]) if snapshot.get("mpos") else None,
                 "wpos": list(snapshot["wpos"]) if snapshot.get("wpos") else None,
                 "feed": snapshot.get("feed"), "spindle": snapshot.get("spindle"),
+                "spindle_rpm": snapshot.get("spindle_rpm"), "spindle_scale": snapshot.get("spindle_scale"),
                 "alarm": f"ALARM:{snapshot['alarm']} — {snapshot.get('alarm_label')}" if snapshot.get("alarm") else None,
                 "version": snapshot.get("version"), "laser_mode": snapshot.get("laser_mode") if controller is not None else None,
                 # Rapport étendu (agent 1.33.0) : le site filtre et borne ces champs de son côté.
@@ -2886,7 +2889,14 @@ class EquipmentRelay:
                 self._grbl_require_operator_checks(cfg, request.get("checklist_confirmed") is True)
             self._grbl_ready_to_move(controller)
             feedback = controller.mdi(text)
-            return result(f"« {text} » acceptée par GRBL.", feedback=feedback)
+            sent = getattr(controller, "last_mdi_sent", None) or text
+            message = (f"« {text} » acceptée par GRBL." if sent == text
+                       else f"« {text} » acceptée par GRBL (envoyé « {sent} » : échelle S de la carte).")
+            notice = getattr(controller, "spindle_notice", "")
+            if notice:
+                device.spindle_s_cap = controller.spindle_s_cap
+                message += " " + notice
+            return result(message, feedback=feedback)
         if command == "probe_z":
             if device.spec["kind"] != "cnc":
                 raise ValueError("Palpage Z réservé aux CNC.")
