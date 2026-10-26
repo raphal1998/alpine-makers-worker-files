@@ -48,6 +48,10 @@ STOP_LOCK_WAIT = 15.0   # s : ARRÊT hors job, attente de la liaison tenue par u
 # mouvement donne ALARM:3 (« lost steps are likely, re-home ») : la position machine, donc l'origine de travail posée dessus,
 # n'est plus fiable. Une décélération GRBL dure une fraction de seconde ; au-delà de ce délai, le reset part quand même.
 STOP_SETTLE_WAIT = 3.0
+# mm : écart de position travail entre avant et après le reset d'un ARRÊT à partir duquel l'origine de travail est
+# restaurée (G10 L20 P1 aux valeurs d'avant). La machine n'a pas bougé entre Hold:0 et le reset : tout écart vient de
+# la carte (décalage volatil G92/G43.1 effacé, ou position machine remise à zéro par un redémarrage de la carte).
+ORIGIN_TOLERANCE_MM = 0.005
 MAX_LINE_LENGTH = 79      # LINE_BUFFER_SIZE 80 : error:11 au-delà.
 SETTINGS_TOLERANCE = 0.0015   # relecture $$ (3 décimales) comparée à la valeur écrite par lot
 MACHINE_KINDS = ("laser", "cnc")
@@ -681,6 +685,10 @@ class GrblController:
         self._streaming = threading.Event()
         # Cycle long qui tient la liaison jusqu'au reset (homing, palpage) : l'ARRÊT d'une CNC reset alors tout de suite.
         self._long_cycle = threading.Event()
+        # Origine de travail à restaurer après un ARRÊT dont le reset a laissé la carte verrouillée (Alarm) : appliquée
+        # au déblocage ($X), abandonnée par un homing (qui redéfinit les coordonnées machine).
+        self._pending_origin = None
+        self.origin_restored = None
         self._cancel = threading.Event()
         # Arrêt incendie : blocage d'écriture (jusqu'à l'acquittement), arrêts en série, compteur d'arrêts.
         # Pas de verrou persistant ici : un nouveau contrôleur (reconnexion) repart débloqué pour sa poignée
@@ -868,6 +876,7 @@ class GrblController:
         self._realtime("hold")
         self._realtime("spindle_stop")
         self._wait_motion_stopped(5.0)
+        before = self._origin_snapshot()
         self._realtime("reset")
         try:
             self._wait_banner(5.0)
@@ -876,6 +885,7 @@ class GrblController:
             return
         try:
             self._status_sync(2.0)
+            self._restore_work_origin(before, "l'arrêt du job")
         except GrblError:
             pass
 
@@ -988,6 +998,7 @@ class GrblController:
     def home(self, timeout=120.0):
         with self._lock, self._long():
             self._require_ready()
+            self._pending_origin = None   # le homing redéfinit les coordonnées machine : l'origine G54 s'y rapporte
             self._expect_ok("$H", timeout)
             self.alarm = None
             return self._status_sync(2.0)
@@ -1001,12 +1012,64 @@ class GrblController:
         finally:
             self._long_cycle.clear()
 
+    @staticmethod
+    def _work_position(status):
+        """Position travail (x, y, z) d'un rapport d'état : WPos, sinon MPos − WCO ; None si l'un manque."""
+        if not isinstance(status, dict):
+            return None
+        wpos = status.get("wpos")
+        if wpos is None and status.get("mpos") is not None and status.get("wco") is not None:
+            wpos = tuple(m - w for m, w in zip(status["mpos"], status["wco"]))
+        if wpos is None or len(wpos) < 3:
+            return None
+        return tuple(float(v) for v in wpos[:3])
+
+    def _origin_snapshot(self):
+        """Position travail courante (machine arrêtée), à comparer après le reset ; None si inconnue."""
+        return self._work_position(self.last_status)
+
+    def _restore_work_origin(self, before, where="l'ARRÊT"):
+        """CNC : si la position travail rapportée après le reset diffère de celle d'avant (machine immobile entre les
+        deux), l'origine de travail est reposée par ``G10 L20 P1`` aux valeurs d'avant. Carte verrouillée : restauration
+        remise au déblocage. Sous verrou. Rend les mots G-code envoyés, ou None."""
+        if self.machine_kind == "laser" or before is None:
+            return None
+        after = self._work_position(self.last_status)
+        if after is None:
+            return None
+        if max(abs(a - b) for a, b in zip(after, before)) <= ORIGIN_TOLERANCE_MM:
+            return None
+        state = (self.last_status or {}).get("state")
+        if state != "Idle":
+            self._pending_origin = tuple(before)
+            self._log(f"Origine de travail à restaurer après {where} (carte en {state or 'état inconnu'}) : appliquée au déblocage.")
+            return None
+        return self._apply_origin(before, where)
+
+    def _apply_origin(self, before, where):
+        words = " ".join(f"{axis}{_format(value)}" for axis, value in zip("XYZ", before))
+        self._expect_ok("G10 L20 P1 " + words, 5.0)
+        self._pending_origin = None
+        self.origin_restored = {"at": self.now(), "wpos": tuple(before), "where": where}
+        self._log(f"Origine de travail restaurée après {where} : position travail {words} comme avant le reset.")
+        try:
+            self._status_sync(2.0)
+        except GrblError:
+            pass
+        return words
+
     def unlock(self):
         with self._lock:
             self._require_ready()
             self._expect_ok("$X", 5.0)
             self.alarm = None
-            return self._status_sync(2.0)
+            status = self._status_sync(2.0)
+            pending = self._pending_origin
+            if pending is not None and status.get("state") == "Idle":
+                # ARRÊT dont le reset avait verrouillé la carte : la machine n'a pas bougé depuis, l'origine est reposée.
+                self._apply_origin(pending, "l'ARRÊT (au déblocage)")
+                status = self.last_status or status
+            return status
 
     def reset(self, timeout=5.0):
         with self._lock:
@@ -1072,14 +1135,19 @@ class GrblController:
             self._log("ARRÊT envoyé (pause, broche coupée, reset) ; liaison encore occupée : confirmation au prochain rapport d'état.")
             return None
         try:
+            before = None
             if not reset_sent:
                 if not self._wait_motion_stopped(settle_timeout):
                     self._log(f"ARRÊT : arrêt du mouvement non confirmé en {settle_timeout:g} s ; reset envoyé quand même.")
+                before = self._origin_snapshot()
                 self._realtime("spindle_stop")
                 self._realtime("reset")
             if self.banner_seq == banners:
                 self._wait_banner(banner_timeout)
-            return self._status_sync(2.0)
+            status = self._status_sync(2.0)
+            if self._restore_work_origin(before):
+                status = self.last_status or status
+            return status
         finally:
             self._lock.release()
 

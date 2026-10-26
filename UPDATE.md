@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.43 — 2026-10-26
+
+**ARRÊT d’une CNC : origine de travail restaurée, Z compris**
+
+### Corrigé
+- ARRÊT d’une CNC : si la carte rapporte une autre position travail après le reset alors que la machine n’a pas bougé (carte qui redémarre et remet sa position machine à zéro, décalage volatil effacé), le Worker repose l’origine de travail par G10 L20 P1 aux valeurs d’avant, X, Y et Z compris,. Carte verrouillée après le reset : restauration au déblocage ($X) ; un homing l’annule.
+
+### Technique
+- Empreinte du paquet publié : `b237d6e7c384e653…` (dossier du paquet).
+
 ## Version 1.50.42 — 2026-10-26
 
 **ARRÊT d’une CNC : l’usinage s’arrête, la position et l’origine de travail restent**
