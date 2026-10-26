@@ -148,6 +148,68 @@
         "retrieved_at": "2026-10-03T16:33:37.620Z"
       }
     },
+    "opencamlib": {
+      "id": "opencamlib",
+      "evidence_status": "official_release_and_license_collected",
+      "evidence_files": [
+        {
+          "name": "OpenCAMLib-2022.12.18-COPYING",
+          "kind": "installed_package_license",
+          "url": "https://github.com/aewallin/opencamlib/blob/master/COPYING",
+          "local_path": "legal_sources/OpenCAMLib-2022.12.18-COPYING.txt",
+          "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+          "bytes": 26530,
+          "revision": "2022.12.18",
+          "retrieved_at": "2026-10-26T23:27:54.000Z"
+        }
+      ],
+      "attribution": "Anders Wallin et contributeurs OpenCAMLib",
+      "publisher": "Anders Wallin et contributeurs OpenCAMLib",
+      "license": "LGPL-2.1-or-later (fichier COPYING du paquet opencamlib 2022.12.18 installé avec FreeCAD 1.1.3 Windows)",
+      "official_url": "https://github.com/aewallin/opencamlib",
+      "license_url": "https://github.com/aewallin/opencamlib/blob/master/COPYING",
+      "source_url": "https://github.com/aewallin/opencamlib/releases",
+      "revision": "2022.12.18",
+      "redistribution_obligations": [
+        "Conserver la licence LGPL-2.1 et les mentions de copyright d'OpenCAMLib (COPYING joint) ; FreeCAD l'importe comme module Python (ocl / opencamlib).",
+        "Alpine Makers ne redistribue pas OpenCAMLib : le Worker le trouve déjà dans le Python de FreeCAD 1.1.3, ou l'installe avec le pip de FreeCAD depuis PyPI (version épinglée 2022.12.18), ou depuis une roue déposée par l'utilisateur.",
+        "Si un jour l'installateur du Worker devait livrer ou télécharger lui-même les binaires (roue), fournir le texte de licence et l'accès aux sources correspondantes de la version exacte ; qualification juridique à faire avant."
+      ],
+      "source_delivery_status": "Texte de licence du paquet installé joint ; sources correspondantes du binaire (ocl.pyd) non incluses, projet officiel référencé.",
+      "review_status": "Dossier documentaire, pas certification juridique ni permission supplémentaire.",
+      "distribution_mode": "see_component_installer",
+      "installed_version_verified": false,
+      "catalog_source": "component_installer.CATALOG",
+      "dependencies_evidence": [
+        {
+          "name": "FreeCAD 1.1.3",
+          "license": "LGPL-2.0-or-later",
+          "role": "hôte : atelier CAM qui importe ocl",
+          "see": "converter"
+        },
+        {
+          "name": "Boost.Python 1.86.0 (boost_python311.dll)",
+          "license": "Boost Software License 1.0",
+          "role": "liaison Python d'ocl.pyd (bibliothèque de FreeCAD)"
+        }
+      ],
+      "remaining_actions": [
+        "Conserver et présenter la licence LGPL-2.1 et l'attribution OpenCAMLib.",
+        "Vérifier avant toute redistribution d'une roue opencamlib par Alpine Makers : sources correspondantes, version exacte, texte de licence.",
+        "Relire COPYING et la version installée après chaque nouvelle version de FreeCAD (la 1.1.3 fournit 2022.12.18)."
+      ],
+      "required_attribution": [],
+      "notice_file": {
+        "name": "NOTICE--opencamlib",
+        "kind": "generated_attribution_notice",
+        "url": "alpine-makers:generated-notice",
+        "local_path": "legal_sources/NOTICE--opencamlib.txt",
+        "sha256": "d1350a786fb251a994e114171b26394cf443d845aedd02797a8f96f6e583a789",
+        "bytes": 2558,
+        "revision": null,
+        "retrieved_at": "2026-10-26T23:27:54.000Z"
+      }
+    },
     "printguard": {
       "id": "printguard",
       "evidence_status": "official_release_and_source_identified",
@@ -21032,5 +21094,5 @@
       "collection_mode": "offline"
     }
   ],
-  "total_text_bytes": 2126505
+  "total_text_bytes": 2155593
 }

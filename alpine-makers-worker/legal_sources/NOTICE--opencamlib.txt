@@ -1,0 +1,30 @@
+Alpine Makers — notice documentaire : opencamlib
+Composant : OpenCAMLib (module Python ocl / opencamlib) pour les opérations Surface et Waterline de l'atelier CAM de FreeCAD
+Auteur/éditeur : Anders Wallin et contributeurs OpenCAMLib
+Attribution : Anders Wallin et contributeurs OpenCAMLib
+Licence : GNU Lesser General Public License v2.1 or later (COPYING du paquet opencamlib 2022.12.18)
+Source officielle : https://github.com/aewallin/opencamlib
+Version épinglée : 2022.12.18 (celle que FreeCAD 1.1.3 Windows fournit dans bin/Lib/site-packages)
+État : official_release_and_license_collected
+
+Mode d'obtention sur le Worker : déjà fourni par FreeCAD 1.1 complet ; sinon « pip install opencamlib==2022.12.18 » lancé par le Python
+embarqué de FreeCAD (jamais celui du Worker), roue publiée seulement ; ou roue déposée par l'utilisateur (hors ligne).
+Alpine Makers ne redistribue ni n'héberge OpenCAMLib ; aucune modification du code n'est faite.
+
+Conserver la licence LGPL-2.1 et les mentions de copyright d'OpenCAMLib (COPYING joint) ; FreeCAD l'importe comme module Python (ocl / opencamlib).
+Alpine Makers ne redistribue pas OpenCAMLib : le Worker le trouve déjà dans le Python de FreeCAD 1.1.3, ou l'installe avec le pip de FreeCAD depuis PyPI (version épinglée 2022.12.18), ou depuis une roue déposée par l'utilisateur.
+Si un jour l'installateur du Worker devait livrer ou télécharger lui-même les binaires (roue), fournir le texte de licence et l'accès aux sources correspondantes de la version exacte ; qualification juridique à faire avant.
+
+Texte de licence du paquet installé joint ; sources correspondantes du binaire (ocl.pyd) non incluses, projet officiel référencé.
+Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Autres fichiers lus par le Worker dans FreeCAD pour cette fonction (voir docs/LICENCES_TIERCES_CAM.md) : post-processeurs
+Mod/CAM/Path/Post/scripts/*_post.py (LGPL-2.0-or-later, FreeCAD), formes d'outils Mod/CAM/Tools/Shape/*.fcstd (FreeCAD),
+module area (libarea, BSD-3-Clause) pour l'opération adaptative. Three.js (MIT) est vendoré côté site pour l'aperçu 3D.
+
+OpenCAMLib-2022.12.18-COPYING
+https://github.com/aewallin/opencamlib/blob/master/COPYING
+SHA-256 dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551
+Copie : legal_sources/OpenCAMLib-2022.12.18-COPYING.txt
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

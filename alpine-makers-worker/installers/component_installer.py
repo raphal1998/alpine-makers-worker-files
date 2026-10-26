@@ -22,9 +22,11 @@ from pathlib import Path
 if __package__:
     from .transfer_progress import progress, TransferProgress
     from .python_runtime import ensure_engine_python
+    from . import freecad_python
 else:
     from transfer_progress import progress, TransferProgress
     from python_runtime import ensure_engine_python
+    import freecad_python
 
 if __package__ and "." in __package__:
     from .. import worker_legal as legal_compliance, local_sandbox
@@ -59,6 +61,11 @@ CATALOG = {
     "orca-bridge": {"kind": "dashboard-file"},
     "cuda-toolkit": {"kind": "cuda-toolkit"},
     "freecad": {"kind": "system-freecad"},
+    # OpenCAMLib (ocl) pour les opérations Surface et Waterline de l'atelier CAM : installé par pip DANS le Python
+    # embarqué de FreeCAD (jamais dans le venv du Worker), version épinglée = celle que FreeCAD 1.1.3 Windows fournit
+    # déjà. Uniquement sur demande explicite (Installations) ; licence LGPL-2.1-or-later, notice via worker_legal.
+    "opencamlib": {"kind": "freecad-python-package", "package": freecad_python.OPENCAMLIB_PACKAGE,
+                   "version": freecad_python.OPENCAMLIB_VERSION, "license": freecad_python.OPENCAMLIB_LICENSE},
     # Version plancher embarquée. Le site contrôle régulièrement les publications officielles (upstream_versions.py)
     # et joint à la commande la dernière version validée (``upstream_target``) : même dépôt, même nom d'archive,
     # taille et SHA-256 publiés par l'éditeur ; jamais une adresse libre (voir upstream_spec).
@@ -375,6 +382,9 @@ def installed_version(component, root, *, hardware=None, executable=None):
         text = (_read_small_text(root / "cuda-path.txt", 4096) or "").strip()
         match = _CUDA_FOLDER.fullmatch(Path(text).name) if text else None
         return {"version": match[1], "source": "path"} if match else None
+    if kind == "freecad-python-package":
+        version = _marker_version(_read_json_marker(root / ".raphal-ready"))
+        return {"version": version, "source": "marker"} if version else None
     return None
 
 
@@ -633,7 +643,7 @@ CUDA_TORCH_PROBE = (
 
 def selected_profile(component):
     tool = {"comfyui": "image_generation", "hunyuan3d": "ai3d", "cuda-toolkit": "ai3d", "hunyuan3d-21": "ai3d", "open3d-lab": "ai3d",
-            "orca": "model-studio", "orca-bridge": "model-studio", "freecad": "converter",
+            "orca": "model-studio", "orca-bridge": "model-studio", "freecad": "converter", "opencamlib": "converter",
             "laser-engine": "laser-studio", "fire-watch": "laser-studio", "cnc-engine": "cnc-studio"}.get(component, component)
     profile = runtime_profile(detect_hardware(), tool)
     if component == "cnc-engine" and profile["status"] == "unsupported" and "profil matériel" in profile["reason"]:
@@ -1207,6 +1217,137 @@ def install_freecad(worker_root, root):
     (root / ".disabled").unlink(missing_ok=True)
     (root / "freecad-path.txt").write_text(str(executable), encoding="utf-8")
     return f"FreeCAD associé au Worker : {executable}"
+
+
+# ---------------------------------------------------------------- OpenCAMLib dans le Python de FreeCAD (opencamlib)
+# Composant components/opencamlib/ : seulement un marqueur .raphal-ready (Python de FreeCAD utilisé, version, origine)
+# et, pour le hors ligne, un dossier wheels/ où l'utilisateur dépose la roue. Le paquet lui-même vit dans le
+# site-packages de FreeCAD : c'est l'atelier CAM (FreeCADCmd) qui l'importe, pas le Worker.
+OPENCAMLIB_MARKER = ".raphal-ready"
+
+
+def _opencamlib_marker(root):
+    marker = _read_json_marker(Path(root) / OPENCAMLIB_MARKER)
+    return marker if isinstance(marker, dict) and marker.get("component") == "opencamlib" else None
+
+
+def opencamlib_status(root):
+    """« installed » (marqueur valide et Python de FreeCAD toujours présent), « missing », ou « incomplete »
+    (marqueur sans son Python : FreeCAD déplacé ou désinstallé → Réparer)."""
+    root = Path(root)
+    if (root / ".disabled").exists():
+        return "missing"
+    marker = _opencamlib_marker(root)
+    if not marker:
+        return "missing"
+    python = str(marker.get("python") or "")
+    return "installed" if python and Path(python).is_file() else "incomplete"
+
+
+def _write_opencamlib_marker(root, python, report, *, origin, version, freecadcmd):
+    ready = Path(root) / OPENCAMLIB_MARKER
+    if is_link(ready):
+        raise RuntimeError("Marqueur OpenCAMLib sous forme de lien ; écriture refusée.")
+    summary = freecad_python.report_summary(report, freecadcmd)
+    ready.write_text(json.dumps({"component": "opencamlib", "version": str(version), "origin": origin,
+                                 "python": str(python), "python_version": summary["python_version"],
+                                 "python_tag": summary["python_tag"], "ocl_module": summary["ocl"]["module"],
+                                 "license": freecad_python.OPENCAMLIB_LICENSE, "checked_at": time.time()}),
+                     encoding="utf-8")
+
+
+def install_opencamlib(worker_root, root, spec):
+    """OpenCAMLib dans le Python embarqué de FreeCAD, sur demande explicite.
+
+    1. FreeCAD associé au Worker (sinon : installer d'abord le Convertisseur 3D) et son Python à côté de FreeCADCmd ;
+    2. sonde ``import ocl`` / ``import opencamlib`` dans CE Python : déjà présent → marqueur « fourni par FreeCAD », rien téléchargé ;
+    3. sinon pip de FreeCAD, roue publiée seulement, version épinglée ; roue locale (components/opencamlib/wheels) si déposée ;
+       un échec est traduit (réseau, droits, roue absente) avec la marche hors ligne, et rien n'est laissé à moitié ;
+    4. nouvelle sonde : le module doit s'importer, sinon erreur explicite.
+    Progression réelle de pip quand il la donne, sinon état indéterminé daté (_PipProgress.heartbeat)."""
+    root = Path(root)
+    version = str(spec.get("version") or freecad_python.OPENCAMLIB_VERSION)
+    progress(4, "Recherche de FreeCAD associé à ce Worker…")
+    freecadcmd = find_freecad(worker_root)
+    if not freecadcmd:
+        raise RuntimeError("FreeCAD n’est pas associé à ce Worker : installe d’abord le Convertisseur 3D (Installations → "
+                           "Convertisseur 3D → Installer), puis relance OpenCAMLib.")
+    hint = freecad_python.freecad_version_from_path(freecadcmd)
+    if hint and not freecad_python.freecad_supported(hint):
+        raise RuntimeError(f"FreeCAD {hint} détecté : OpenCAMLib pour l’atelier CAM demande FreeCAD 1.0 ou plus récent. "
+                           "Installe FreeCAD 1.1 complet (freecad.org) puis Réparer le Convertisseur 3D.")
+    python = freecad_python.freecad_python(freecadcmd)
+    if python is None:
+        raise RuntimeError("Le Python embarqué de FreeCAD est introuvable à côté de FreeCADCmd (bin/python.exe) : "
+                           "cette installation de FreeCAD est incomplète ou portable allégée. Réinstalle FreeCAD 1.1 complet "
+                           "(freecad.org), puis Réparer le Convertisseur 3D. Rien n’a été modifié.")
+    progress(10, f"Vérification du Python de FreeCAD ({python.name}) : OpenCAMLib, pip…", phase="probing")
+    report = freecad_python.probe(python)
+    if not report.get("ok"):
+        raise RuntimeError("Le Python de FreeCAD ne répond pas : " + str(report.get("error") or "sans détail")[:500]
+                           + " Réinstalle FreeCAD 1.1 complet puis Réparer le Convertisseur 3D.")
+    ocl = freecad_python.ocl_state(report)
+    root.mkdir(parents=True, exist_ok=True)
+    (root / ".disabled").unlink(missing_ok=True)
+    if ocl["present"]:
+        found = ocl["version"] or "version non lisible"
+        _write_opencamlib_marker(root, python, report, origin="freecad", version=ocl["version"] or version, freecadcmd=freecadcmd)
+        progress(99, f"OpenCAMLib {found} déjà présent dans le Python de FreeCAD (module {ocl['module']}).")
+        return (f"OpenCAMLib {found} est déjà fourni par cette installation de FreeCAD (module « {ocl['module']} », "
+                f"Python {report.get('python_version')}) : rien n’a été téléchargé ni modifié. Opérations Surface et Waterline utilisables.")
+    pip = report.get("pip") if isinstance(report.get("pip"), dict) else {}
+    if not pip.get("available"):
+        raise RuntimeError(freecad_python.explain_pip_failure("No module named pip", report, root, version))
+    wheel = freecad_python.local_wheel(root, version)
+    if wheel is not None:
+        progress(30, f"Roue locale trouvée ({wheel.name}) : installation hors ligne dans le Python de FreeCAD…")
+    else:
+        if shutil.disk_usage(root.parent).free < 256 * 1024 ** 2:
+            raise RuntimeError("Au moins 256 Mio libres sont nécessaires sur le disque du Worker pour télécharger OpenCAMLib.")
+        progress(30, f"Téléchargement d’OpenCAMLib {version} (licence {freecad_python.OPENCAMLIB_LICENSE}) pour le Python de FreeCAD…")
+    try:
+        call(freecad_python.pip_install_arguments(python, version=version, wheel=wheel), cwd=root, timeout=1800,
+             progress_value=35, progress_label=f"Installation d’OpenCAMLib {version} dans le Python de FreeCAD")
+    except RuntimeError as error:
+        raise RuntimeError(freecad_python.explain_pip_failure(str(error), report, root, version)) from error
+    progress(88, "Vérification : import d’OpenCAMLib dans le Python de FreeCAD…", phase="probing")
+    verified = freecad_python.probe(python)
+    ocl = freecad_python.ocl_state(verified)
+    if not ocl["present"]:
+        raise RuntimeError("OpenCAMLib installé par pip mais impossible à importer dans le Python de FreeCAD"
+                           + (f" : {ocl['error']}" if ocl["error"] else "") + ". La roue ne correspond sans doute pas à cette "
+                           "version de FreeCAD ; désinstalle le module (Installations → OpenCAMLib → Désinstaller) et signale "
+                           "la version de FreeCAD. " + freecad_python.offline_instructions(verified, root, version))
+    _write_opencamlib_marker(root, python, verified, origin="wheel" if wheel is not None else "pip", version=ocl["version"] or version,
+                             freecadcmd=freecadcmd)
+    progress(99, f"OpenCAMLib {ocl['version'] or version} prêt dans le Python de FreeCAD.")
+    return (f"OpenCAMLib {ocl['version'] or version} installé dans le Python de FreeCAD ({report.get('python_version')}, "
+            f"{'roue locale' if wheel is not None else 'PyPI'}, licence {freecad_python.OPENCAMLIB_LICENSE}) : opérations Surface et "
+            "Waterline utilisables après relecture des capacités du Worker.")
+
+
+def uninstall_opencamlib(root):
+    """Retire OpenCAMLib seulement si c'est le Worker qui l'a installé ; un paquet fourni par FreeCAD est conservé."""
+    root = Path(root)
+    marker = _opencamlib_marker(root)
+    root.mkdir(parents=True, exist_ok=True)
+    if marker and marker.get("origin") in {"pip", "wheel"}:
+        python = Path(str(marker.get("python") or ""))
+        if python.is_file():
+            try:
+                call(freecad_python.pip_uninstall_arguments(python), cwd=root, timeout=600)
+            except RuntimeError as error:
+                raise RuntimeError("Désinstallation d’OpenCAMLib refusée par le Python de FreeCAD : " + str(error)[-600:]) from error
+            message = "OpenCAMLib retiré du Python de FreeCAD ; FreeCAD lui-même est conservé."
+        else:
+            message = "Python de FreeCAD introuvable : marqueur OpenCAMLib retiré, FreeCAD n’a pas été touché."
+    elif marker:
+        message = "OpenCAMLib est fourni par FreeCAD lui-même : il est conservé, le module est seulement dissocié du Worker."
+    else:
+        message = "Aucune installation OpenCAMLib enregistrée par le Worker : rien à retirer."
+    remove_worker_file(root / OPENCAMLIB_MARKER, root)
+    (root / ".disabled").write_text("disabled", encoding="utf-8")
+    return message
 
 
 # Sonde exécutée dans le .venv du composant : Pillow importable et le moteur livré (laser_engine/)
@@ -2011,6 +2152,8 @@ def component_ready(component, root):
     if component == "freecad":
         marker = root / "freecad-path.txt"
         return marker.is_file() and Path(marker.read_text(encoding="utf-8").strip()).is_file() and not (root / ".disabled").exists()
+    if component == "opencamlib":
+        return opencamlib_status(root) == "installed"
     if component == "orca":
         return (root / "orca-slicer.exe").is_file() and (root / "resources" / "profiles" / "BBL").is_dir()
     if component == "printguard":
@@ -2087,6 +2230,8 @@ def _manage(component, action):
             remove_worker_file(root / "freecad-path.txt", root)
             (root / ".disabled").write_text("disabled", encoding="utf-8")
             return "FreeCAD dissocié du Worker (l’application reste installée sur Windows)."
+        if component == "opencamlib":
+            return uninstall_opencamlib(root)
         if root.is_dir():
             # Models are independent components. Never cascade-delete weights or user data.
             # .alpine-ecartes contient des fichiers écartés d'un checkout : ils peuvent
@@ -2164,6 +2309,8 @@ def _manage(component, action):
         return install_cuda_toolkit(worker_root, root)
     if spec["kind"] == "system-freecad":
         return install_freecad(worker_root, root)
+    if spec["kind"] == "freecad-python-package":
+        return install_opencamlib(worker_root, root, spec)
     if spec["kind"] == "python-venv":
         if component == "cnc-engine":
             return install_cnc_engine(worker_root, root, spec)

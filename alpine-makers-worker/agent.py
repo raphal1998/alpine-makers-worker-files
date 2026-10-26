@@ -1896,7 +1896,7 @@ class Agent:
             modules = {}
             module_sizes = {}
             for module in ({"ai3d": ("cuda-toolkit", "hunyuan3d-21", "open3d-lab"), "model-studio": ("orca-bridge",),
-                            "laser-studio": ("fire-watch",)}.get(tool_id, ())):
+                            "laser-studio": ("fire-watch",), "converter": ("opencamlib",)}.get(tool_id, ())):
                 module_root = self.root / "components" / module
                 if module == "fire-watch":
                     # Surveillance IA (agent 1.34.0) : une installation commencée ou interrompue se voit.

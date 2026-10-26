@@ -5429,6 +5429,26 @@
       "bytes": 2735,
       "revision": null,
       "retrieved_at": "2026-10-06T18:00:00.000Z"
+    },
+    {
+      "name": "OpenCAMLib-2022.12.18-COPYING",
+      "kind": "installed_package_license",
+      "url": "https://github.com/aewallin/opencamlib/blob/master/COPYING",
+      "local_path": "legal_sources/OpenCAMLib-2022.12.18-COPYING.txt",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "bytes": 26530,
+      "revision": "2022.12.18",
+      "retrieved_at": "2026-10-26T23:27:54.000Z"
+    },
+    {
+      "name": "NOTICE--opencamlib",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--opencamlib.txt",
+      "sha256": "d1350a786fb251a994e114171b26394cf443d845aedd02797a8f96f6e583a789",
+      "bytes": 2558,
+      "revision": null,
+      "retrieved_at": "2026-10-26T23:27:54.000Z"
     }
   ]
 }
