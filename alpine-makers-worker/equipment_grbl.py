@@ -10,9 +10,11 @@ exige des sécurités (« interlocks ») satisfaites avant et pendant l'envoi ; 
 s'arrête sur ALARM, sur ``error:N`` (exception avec le numéro de ligne), sur
 annulation, sur sécurité ouverte et sur inactivité. L'arrêt de protection enchaîne
 feed hold (``!``), arrêt broche/laser en pause (0x9E, l'équivalent immédiat de M5 :
-un ``M5`` envoyé en ligne resterait bloqué derrière la pause), puis reset (0x18) qui
-vide le tampon de planification. Le protocole d'envoi compte les caractères :
-jamais plus de 127 octets en vol vers GRBL.
+un ``M5`` envoyé en ligne resterait bloqué derrière la pause), l'attente de l'arrêt
+confirmé du mouvement (Hold:0), puis reset (0x18) qui vide le tampon de planification
+sans ALARM:3 : la position machine et l'origine de travail d'une CNC sont conservées
+(agent 1.50.42 ; l'ARRÊT d'un laser garde son reset immédiat, faisceau d'abord). Le
+protocole d'envoi compte les caractères : jamais plus de 127 octets en vol vers GRBL.
 
 Arrêt incendie (agent 1.34.0, surveillance IA flamme/fumée) : ``fire_stop`` envoie le soft
 reset 0x18 seul, tout de suite (pas de ``!`` avant : en M3 le laser resterait allumé pendant
@@ -22,6 +24,7 @@ pas acquitté (``release_halt``) ; seuls les octets temps réel passent encore. 
 ``$X``, ``$H``, ``~`` ni ``!`` automatiques.
 """
 import math
+from contextlib import contextmanager
 import re
 import socket
 import threading
@@ -41,6 +44,10 @@ SETTLE_QUIET = 0.2      # s : silence attendu après la bannière avant la premi
 SETTLE_LIMIT = 1.0      # s : au plus, pour une carte qui parle encore après son démarrage
 RESYNC_GRACE = 0.25     # s : délai après le dernier « ok » avant de conclure que des accusés sont perdus
 STOP_LOCK_WAIT = 15.0   # s : ARRÊT hors job, attente de la liaison tenue par un homing ou un palpage (libérée par le reset)
+# s : ARRÊT d'une CNC hors job, attente de la fin de la décélération (Hold:0) après « ! » avant le reset. Un reset pendant un
+# mouvement donne ALARM:3 (« lost steps are likely, re-home ») : la position machine, donc l'origine de travail posée dessus,
+# n'est plus fiable. Une décélération GRBL dure une fraction de seconde ; au-delà de ce délai, le reset part quand même.
+STOP_SETTLE_WAIT = 3.0
 MAX_LINE_LENGTH = 79      # LINE_BUFFER_SIZE 80 : error:11 au-delà.
 SETTINGS_TOLERANCE = 0.0015   # relecture $$ (3 décimales) comparée à la valeur écrite par lot
 MACHINE_KINDS = ("laser", "cnc")
@@ -672,6 +679,8 @@ class GrblController:
         self._lock = threading.RLock()
         self._write_lock = threading.Lock()
         self._streaming = threading.Event()
+        # Cycle long qui tient la liaison jusqu'au reset (homing, palpage) : l'ARRÊT d'une CNC reset alors tout de suite.
+        self._long_cycle = threading.Event()
         self._cancel = threading.Event()
         # Arrêt incendie : blocage d'écriture (jusqu'à l'acquittement), arrêts en série, compteur d'arrêts.
         # Pas de verrou persistant ici : un nouveau contrôleur (reconnexion) repart débloqué pour sa poignée
@@ -852,7 +861,10 @@ class GrblController:
         return False
 
     def _protective_stop(self):
-        """Pause immédiate, laser/broche coupés en pause (0x9E), puis reset qui vide le tampon."""
+        """Pause immédiate, laser/broche coupés en pause (0x9E), puis reset qui vide le tampon.
+
+        Le reset attend l'arrêt confirmé du mouvement (Hold:0) : la position machine et l'origine de travail restent
+        valables (pas d'ALARM:3) ; c'est lui qui coupe la broche quoi qu'il arrive."""
         self._realtime("hold")
         self._realtime("spindle_stop")
         self._wait_motion_stopped(5.0)
@@ -974,11 +986,20 @@ class GrblController:
             return self._status_sync(timeout)
 
     def home(self, timeout=120.0):
-        with self._lock:
+        with self._lock, self._long():
             self._require_ready()
             self._expect_ok("$H", timeout)
             self.alarm = None
             return self._status_sync(2.0)
+
+    @contextmanager
+    def _long(self):
+        """Cycle long sous verrou (homing, palpage) : signalé à l'ARRÊT, qui reset sans attendre la liaison."""
+        self._long_cycle.set()
+        try:
+            yield
+        finally:
+            self._long_cycle.clear()
 
     def unlock(self):
         with self._lock:
@@ -1007,7 +1028,7 @@ class GrblController:
     def cancel_jog(self):
         self._realtime("jog_cancel")
 
-    def emergency_stop(self, lock_wait=STOP_LOCK_WAIT, banner_timeout=5.0):
+    def emergency_stop(self, lock_wait=STOP_LOCK_WAIT, banner_timeout=5.0, settle_timeout=STOP_SETTLE_WAIT):
         """ARRÊT, utilisable à tout moment : flux coupé, pause (``!``), broche/laser coupés (0x9E), reset (0x18).
 
         Aucune commande de mouvement n'est envoyée ; c'est le reset qui coupe la broche et vide les tampons. Pendant un
@@ -1016,22 +1037,46 @@ class GrblController:
         envoi) s'annule à sa première vérification. Hors job, la bannière du reset est attendue ; si un autre fil (homing,
         palpage) tient la liaison, il la libère en recevant le reset, et une bannière qu'il aurait déjà lue compte.
         Rend le rapport d'état relu après le reset, ou None (job en cours, ou liaison encore tenue après ``lock_wait``).
+
+        Laser : pause, faisceau coupé et reset d'un seul tenant (le faisceau ne doit pas rester allumé un instant de plus).
+        CNC : seul l'usinage doit s'arrêter, la machine doit garder sa position et son origine de travail. Le reset n'est
+        donc envoyé qu'une fois le mouvement arrêté (Hold:0) : un reset pendant la décélération donne ALARM:3 et une position
+        machine déclarée perdue. Pendant un job, c'est le fil du job qui enchaîne pause → arrêt confirmé → reset
+        (``_protective_stop``) ; ici, seule la pause part tout de suite.
         """
         self.stop_seq += 1
         streaming = self._streaming.is_set()
         if streaming:
             self._cancel.set()
         banners = self.banner_seq
+        laser = self.machine_kind == "laser"
         self._realtime("hold")
-        self._realtime("spindle_stop")
-        self._realtime("reset")
+        reset_sent = False
+        if laser:
+            self._realtime("spindle_stop")
+            self._realtime("reset")
+            reset_sent = True
         if streaming or self._streaming.is_set():
             self._cancel.set()
             return None
-        if not self._lock.acquire(timeout=max(0.0, float(lock_wait))):
+        # CNC : un jog ou une ligne MDI rendent la liaison dès leur accusé (le mouvement continue, la pause l'arrête) ;
+        # un homing ou un palpage (``_long``) la gardent jusqu'au reset : reset tout de suite, comme avant — ces cycles ne
+        # portent aucune origine de travail à préserver, et c'est le reset qui les libère.
+        acquired = False
+        if not laser and self._long_cycle.is_set():
+            self._realtime("spindle_stop")
+            self._realtime("reset")
+            reset_sent = True
+        acquired = self._lock.acquire(timeout=max(0.0, float(lock_wait)))
+        if not acquired:
             self._log("ARRÊT envoyé (pause, broche coupée, reset) ; liaison encore occupée : confirmation au prochain rapport d'état.")
             return None
         try:
+            if not reset_sent:
+                if not self._wait_motion_stopped(settle_timeout):
+                    self._log(f"ARRÊT : arrêt du mouvement non confirmé en {settle_timeout:g} s ; reset envoyé quand même.")
+                self._realtime("spindle_stop")
+                self._realtime("reset")
             if self.banner_seq == banners:
                 self._wait_banner(banner_timeout)
             return self._status_sync(2.0)
@@ -1441,7 +1486,7 @@ class GrblController:
         rate = _number(feed, "Vitesse de palpage", positive=True)
         travel = _number(max_travel, "Course de palpage", positive=True, limit=500)
         delay = timeout if timeout else travel / rate * 60 + 10
-        with self._lock:
+        with self._lock, self._long():
             self._require_ready()
             try:
                 feedback = self._expect_ok(f"G91 G38.3 Z-{_format(travel)} F{_format(rate)}", delay)

@@ -1,5 +1,15 @@
 # Historique des mises à jour
 
+## Version 1.50.42 — 2026-10-26
+
+**ARRÊT d’une CNC : l’usinage s’arrête, la position et l’origine de travail restent**
+
+### Corrigé
+- ARRÊT sur une CNC : la pause part tout de suite, puis le reset GRBL n’est émis qu’une fois l’arrêt du mouvement confirmé (Hold:0). Avant, le reset partait pendant la décélération : ALARM:3 (position perdue) et origine de travail à refaire. Seul l’usinage lancé s’arrête ; position machine et origine (G54) sont conservées. Homing, palpage et laser gardent le reset immédiat.
+
+### Technique
+- Empreinte du paquet publié : `585cc48e1b565c48…` (dossier du paquet).
+
 ## Version 1.50.41 — 2026-10-25
 
 **Jobs et ressources, et un PC hôte qui ne se fige plus**
