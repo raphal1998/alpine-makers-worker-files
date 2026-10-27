@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-Alpine Forge 3D — moteur FreeCAD CAM (« Préparer pour une CNC »), première tranche.
+Alpine Forge 3D — moteur FreeCAD CAM (« Préparer pour une CNC »), tranche T2 : projet CAM v2.
 
   FreeCADCmd.exe freecad_cam.py cam_request.json WORKDIR
 
-La requête arrive comme FICHIER JSON ({"op": "capabilities"} ou {"op": "compute", "project": …,
-"source": "<nom du fichier dans WORKDIR>"}), jamais comme code : ce moteur ne contient ni eval ni
-exec piloté par la requête et REVALIDE le projet par worker_agent/cam_payload.py (même fonction que
-le site et le runner). Seuls les modules CAM installés avec FreeCAD sont importés.
+La requête arrive comme FICHIER JSON ({"op": "capabilities"}, {"op": "compute", "project": …, "source": "<nom>"}
+ou {"op": "preview", "project": …, "source": "<nom>"}), jamais comme code : ce moteur ne contient ni eval ni exec
+piloté par la requête et REVALIDE le projet (cam_payload quand il connaît la version, puis cam_ops_v2.normalize_project
+qui pose les défauts du contrat v2 et refuse tout réglage muet). Seuls les modules CAM installés avec FreeCAD sont importés.
 
 Organisation :
-- fonctions de calcul PURES (orientation, brut, origine, profondeurs, options du post-processeur,
-  fabricabilité, fiche de réglage) testables sans FreeCAD ;
-- ``FreeCadCam`` : seul endroit qui parle à FreeCAD (Job, brut, outils, opérations, post) ;
-- ``compute`` / ``capabilities`` : l'enchaînement, sur un adaptateur injectable.
+- fonctions de calcul PURES (orientation, brut, origine, profondeurs, découverte des posts, capacités, fabricabilité,
+  fiche de réglage) testables sans FreeCAD ; la correspondance réglage → propriété FreeCAD vit dans ``cam_ops_v2`` ;
+- ``FreeCadCam`` : seul endroit qui parle à FreeCAD (Job, brut, outils, opérations, dressups, post, tessellation) ;
+- ``compute`` / ``preview`` / ``capabilities`` : l'enchaînement, sur un adaptateur injectable.
 
-Résultat sur stdout : une ligne ``RAPHAL_FREECAD_RESULT=<json>`` comme les deux autres moteurs.
-Aucun G-code n'est envoyé à une machine : le moteur écrit des fichiers dans WORKDIR, rien d'autre.
+Résultat sur stdout : une ligne ``RAPHAL_FREECAD_RESULT=<json>``. Progression réelle dans ``cam_progress.json`` (opérations
+terminées / total ; jamais de pourcentage inventé au sein d'une opération). Annulation propre : la présence de
+``.cancel.json`` dans WORKDIR (posé par l'agent) arrête le calcul entre deux opérations. Aucun G-code n'est envoyé à une
+machine : le moteur écrit des fichiers dans WORKDIR, rien d'autre.
 """
 import html
 import importlib
@@ -24,31 +26,33 @@ import importlib.util
 import json
 import math
 import os
-import shlex
 import sys
+import time
 import traceback
 
 RESULT_PREFIX = "RAPHAL_FREECAD_RESULT="
 HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+import cam_ops_v2 as ops  # noqa: E402  (à plat à côté du moteur, dans le dépôt comme sur le Worker)
 
-# Identifiants Alpine des opérations ↔ modules FreeCAD CAM (lus dans Mod/CAM/Path/Op de FreeCAD 1.1).
-OPERATION_MODULES = {
-    "facing": "Path.Op.MillFace", "pocket": "Path.Op.Pocket", "profile": "Path.Op.Profile",
-    "drilling": "Path.Op.Drilling", "adaptive": "Path.Op.Adaptive", "engrave": "Path.Op.Engrave",
-    "vcarve": "Path.Op.Vcarve", "helix": "Path.Op.Helix", "slot": "Path.Op.Slot", "surface": "Path.Op.Surface",
-    "waterline": "Path.Op.Waterline", "deburr": "Path.Op.Deburr", "thread_milling": "Path.Op.ThreadMilling",
-}
+OPERATION_MODULES = ops.OPERATION_MODULES
 # Formes d'outils FreeCAD (Mod/CAM/Tools/Shape/<forme>.fcstd) ↔ familles Alpine.
 SHAPE_FAMILIES = {"endmill": "endmill", "drill": "drill", "ballend": "ballend", "v-bit": "vbit", "chamfer": "chamfer",
                   "bullnose": "bullnose", "thread-mill": "threadmill", "radius": "radius", "dovetail": "dovetail",
                   "slittingsaw": "slittingsaw", "taperedballnose": "taperedballnose", "reamer": "reamer", "tap": "tap",
                   "probe": "probe"}
-FAMILY_SHAPES = {"endmill": "endmill.fcstd", "drill": "drill.fcstd"}
+FAMILY_SHAPES = {family: shape + ".fcstd" for family, shape in ops.FAMILY_SHAPES.items()}
 MAX_FACETS = 2000000
 SCALE_MAX_MM = 3000.0
 SCALE_MIN_MM = 0.5
 SIMULATION_LIMIT = 20000
 GCODE_MAX_BYTES = 64 * 1024 * 1024
+PREVIEW_STL_MAX_BYTES = 8 * 1024 * 1024
+PROGRESS_FILE = "cam_progress.json"
+CANCEL_FILE = ".cancel.json"
+comment_text = ops.comment_text
+climb_direction = ops.climb_direction
 
 
 def result(ok, **kwargs):
@@ -59,13 +63,15 @@ class CamEngineError(RuntimeError):
     """Refus ou échec lisible par l'utilisateur."""
 
 
+class CamCancelled(CamEngineError):
+    """Annulation demandée par l'agent (.cancel.json) : arrêt propre entre deux opérations."""
+
+
 def load_contract_modules():
     """cam_payload et cam_gcode_check : paquet ``worker_agent`` dans le dépôt, modules à plat sur le Worker."""
     try:
         from worker_agent import cam_gcode_check, cam_payload  # dépôt (tests, site)
     except ImportError:
-        if HERE not in sys.path:
-            sys.path.insert(0, HERE)
         import cam_gcode_check  # Worker installé : fichiers à plat à côté de ce moteur
         import cam_payload
     return cam_payload, cam_gcode_check
@@ -74,8 +80,11 @@ def load_contract_modules():
 # ---------------------------------------------------------------------------------------------
 # Requête
 # ---------------------------------------------------------------------------------------------
+REQUEST_OPS = ("capabilities", "compute", "preview")
+
+
 def read_request(path, workdir, cam_payload):
-    """Lit et REVALIDE la requête ; rend (op, projet normalisé ou None, chemin de la source ou None)."""
+    """Lit et REVALIDE la requête ; rend (op, projet v2 normalisé ou None, chemin de la source ou None)."""
     if not os.path.isfile(path) or os.path.getsize(path) > 2 * 1024 * 1024:
         raise CamEngineError("Requête CAM absente ou trop volumineuse.")
     with open(path, "r", encoding="utf-8") as handle:
@@ -90,16 +99,16 @@ def read_request(path, workdir, cam_payload):
         if "project" in request or "source" in request:
             raise CamEngineError("La lecture des capacités ne prend ni projet ni fichier.")
         return "capabilities", None, None
-    if op != "compute":
+    if op not in REQUEST_OPS:
         raise CamEngineError("Opération CAM inconnue.")
-    project = cam_payload.validate_cam_project(request.get("project"))
+    project = ops.normalize_request_project(request.get("project"), cam_payload)
     source_name = request.get("source")
     if not isinstance(source_name, str) or source_name != project["source"]["file"]:
         raise CamEngineError("Le fichier source joint ne correspond pas au projet.")
     source = os.path.join(workdir, source_name)
     if os.path.dirname(os.path.abspath(source)) != os.path.abspath(workdir) or not os.path.isfile(source):
         raise CamEngineError("Fichier source introuvable dans le dossier du job.")
-    return "compute", project, source
+    return op, project, source
 
 
 # ---------------------------------------------------------------------------------------------
@@ -121,19 +130,32 @@ def stock_box(model_bounds, stock, factor):
     """Boîte du brut (mm, repère du modèle orienté) : (min[3], max[3]) et décalage à donner au modèle.
 
     ``from_model`` : boîte englobante + marges (x et y de chaque côté, dessus, dessous).
-    ``explicit`` : boîte saisie, pièce centrée en X/Y et posée sous la marge du dessus.
+    ``explicit`` : boîte saisie (ou cylindre : boîte englobante du cylindre) ; pièce placée selon ``placement`` :
+    ``center_top`` (centrée en X/Y, posée sous la marge du dessus = v1), ``min_corner`` (coin minimal de la pièce au
+    coin minimal du brut, dessus idem), ``custom`` (décalage ``placement_offset`` ajouté à ``center_top``).
     """
     low, high = [float(v) for v in model_bounds[0]], [float(v) for v in model_bounds[1]]
     margins = {key: float(value) * factor for key, value in stock["margins"].items()}
     if stock["mode"] == "from_model":
         return ([low[0] - margins["x"], low[1] - margins["y"], low[2] - margins["bottom"]],
                 [high[0] + margins["x"], high[1] + margins["y"], high[2] + margins["top"]]), [0.0, 0.0, 0.0]
-    size = [float(stock["size"][axis]) * factor for axis in ("x", "y", "z")]
+    if stock.get("shape") == "cylinder":
+        diameter = float(stock["diameter"]) * factor
+        size = [diameter, diameter, float(stock["height"]) * factor]
+    else:
+        size = [float(stock["size"][axis]) * factor for axis in ("x", "y", "z")]
     center = [(low[0] + high[0]) / 2.0, (low[1] + high[1]) / 2.0]
     top = high[2] + margins["top"]
-    box = ([center[0] - size[0] / 2.0, center[1] - size[1] / 2.0, top - size[2]],
-           [center[0] + size[0] / 2.0, center[1] + size[1] / 2.0, top])
-    return box, [0.0, 0.0, 0.0]
+    placement = stock.get("placement", "center_top")
+    if placement == "min_corner":
+        box_low = [low[0], low[1], top - size[2]]
+    else:
+        box_low = [center[0] - size[0] / 2.0, center[1] - size[1] / 2.0, top - size[2]]
+    if placement == "custom":
+        offset = stock.get("placement_offset") or {}
+        box_low = [box_low[0] - float(offset.get("x", 0)) * factor, box_low[1] - float(offset.get("y", 0)) * factor,
+                   box_low[2] - float(offset.get("z", 0)) * factor]
+    return (box_low, [box_low[0] + size[0], box_low[1] + size[1], box_low[2] + size[2]]), [0.0, 0.0, 0.0]
 
 
 def origin_point(box, origin, factor):
@@ -148,7 +170,6 @@ def origin_point(box, origin, factor):
     }
     base = presets[origin["preset"]]
     offset = origin.get("offset") or {}
-    # Le décalage déplace l'origine sur le brut : la pièce est translatée de l'opposé.
     return [base[0] + float(offset.get("x", 0)) * factor, base[1] + float(offset.get("y", 0)) * factor,
             base[2] + float(offset.get("z", 0)) * factor]
 
@@ -176,7 +197,7 @@ def model_checks(info):
     if info.get("is_mesh"):
         warnings.append({"code": "mesh_geometry", "severity": "warning",
                          "message": "Géométrie maillée (STL, 3MF…) : surfaces facettées, détection des poches et trous "
-                                    "moins fiable. Préfère un STEP quand il existe.", "operation": ""})
+                                    "moins fiable (perçage automatique indisponible). Préfère un STEP quand il existe.", "operation": ""})
     if not info.get("is_solid"):
         warnings.append({"code": "not_a_solid", "severity": "warning",
                          "message": "Le modèle n'est pas un solide fermé : les profondeurs et les détections peuvent être "
@@ -184,69 +205,11 @@ def model_checks(info):
     return warnings
 
 
-def tool_in_mm(tool, factor):
-    return {
-        "number": tool["number"], "name": tool["name"], "family": tool["family"],
-        "diameter": tool["diameter"] * factor, "flute_length": tool["flute_length"] * factor,
-        "length": tool["length"] * factor, "shank_diameter": tool["shank_diameter"] * factor,
-        "flutes": tool["flutes"], "spindle_rpm": tool["spindle_rpm"], "max_rpm": tool["max_rpm"],
-        "feed_xy": (tool["feed_xy"] or 0.0) * factor, "feed_plunge": (tool["feed_plunge"] or 0.0) * factor,
-        "feed_ramp": (tool["feed_ramp"] or 0.0) * factor if tool.get("feed_ramp") else None,
-        "coolant": tool["coolant"], "tip_angle": tool["tip_angle"],
-    }
-
-
-def controller_key(operation, tool):
-    """Un contrôleur d'outil FreeCAD par combinaison (outil, avances, broche, sens)."""
-    return (tool["number"], round(operation.get("feed_xy") or tool["feed_xy"], 4),
-            round(operation.get("feed_plunge") or tool["feed_plunge"], 4),
-            round(operation.get("spindle_rpm") or tool["spindle_rpm"], 1), operation.get("spindle_dir", "cw"))
-
-
-def operations_plan(project):
-    """Séquence en mm, dans l'ordre du projet : opérations d'usinage activées, pauses, consignes, changements d'outil."""
-    factor = 25.4 if project["units"] == "inch" else 1.0
-    tools = {tool["number"]: tool_in_mm(tool, factor) for tool in project["tools"]}
-    plan = []
-    for operation in project["operations"]:
-        if not operation["enabled"]:
-            continue
-        entry = {"id": operation["id"], "type": operation["type"], "name": operation["name"],
-                 "note": operation.get("operator_note") or ""}
-        if operation["type"] in ("facing", "pocket", "profile", "drilling"):
-            tool = tools[operation["tool"]]
-            depth = operation["depth"]
-            entry.update({
-                "tool": tool["number"], "final": depth["final"] * factor, "step_down": depth["step_down"] * factor,
-                "start": None if depth["start"] is None else depth["start"] * factor,
-                "stepover_pct": operation["stepover_pct"], "direction": operation["direction"],
-                "entry": operation["entry"], "coolant": operation["coolant"], "pause_before": operation["pause_before"],
-                "feed_xy": (operation["feed_xy"] or 0.0) * factor or None,
-                "feed_plunge": (operation["feed_plunge"] or 0.0) * factor or None,
-                "spindle_rpm": operation["spindle_rpm"], "spindle_dir": operation["spindle_dir"],
-                "stock_to_leave": {key: value * factor for key, value in operation["stock_to_leave"].items()},
-                "tolerance": operation["tolerance"] * factor,
-            })
-            entry["controller"] = controller_key(entry, tool)
-            if operation["type"] == "profile":
-                entry.update(side=operation["side"], tabs={"count": operation["tabs"]["count"],
-                                                           "width": operation["tabs"]["width"] * factor,
-                                                           "height": operation["tabs"]["height"] * factor})
-            if operation["type"] == "drilling":
-                entry.update(peck=operation["peck"] * factor, dwell=operation["dwell"],
-                             min_diameter=operation["selection"]["min_diameter"] * factor,
-                             max_diameter=operation["selection"]["max_diameter"] * factor)
-        elif operation["type"] == "tool_change":
-            entry["tool"] = operation["tool"]
-        plan.append(entry)
-    return tools, plan
-
-
 def depth_window(kind, stock_top, model_top, geometry_final, entry):
     """(départ, fin, avertissement) en Z absolu. Jamais plus profond que la géométrie ni que ``final`` sous le brut.
 
     - surfaçage : du dessus du brut jusqu'à ``final`` sous le brut, jamais sous le dessus du modèle ;
-    - poche, contour, perçage : la profondeur vient de la géométrie (FreeCAD), bornée par ``final``.
+    - autres : la profondeur vient de la géométrie (FreeCAD), bornée par ``final``.
     """
     start = stock_top if entry.get("start") is None else stock_top - entry["start"]
     limit = stock_top - entry["final"]
@@ -262,113 +225,6 @@ def depth_window(kind, stock_top, model_top, geometry_final, entry):
         warning = ("depth_limited", "Profondeur bornée par l'opération (%.3f mm sous le brut) : la géométrie descend "
                                     "plus bas et ne sera pas entièrement usinée." % entry["final"])
     return start, final, warning
-
-
-def climb_direction(side, spindle_dir="cw"):
-    """Sens de parcours d'un contour pour un fraisage en avalant (broche M3) : extérieur horaire, intérieur antihoraire."""
-    clockwise = side == "outside"
-    if spindle_dir == "ccw":
-        clockwise = not clockwise
-    return "CW" if clockwise else "CCW"
-
-
-def comment_text(text):
-    """Texte sûr dans un commentaire G-code « ( … ) » : jamais de parenthèse qui fermerait le commentaire."""
-    clean = "".join(char if char.isprintable() else " " for char in str(text))
-    return clean.replace("(", "[").replace(")", "]").replace(";", ",").strip()[:200]
-
-
-def _spindle_on(entry, tools):
-    rpm = entry.get("spindle_rpm") or tools[entry["tool"]]["spindle_rpm"]
-    return ("M4" if entry.get("spindle_dir") == "ccw" else "M3") + " S%d" % int(round(rpm))
-
-
-def sequence_steps(plan, tools, manual):
-    """Ordre des blocs à poser dans le Job : [("custom", libellé, lignes, contrôleur, entrée|None) | ("op", entrée)].
-
-    Sécurité des arrêts (les posts « script » comme grbl mettent M6 en commentaire) :
-    - machine à changement MANUEL : chaque changement d'outil devient « M5, consigne, M0 », même sans étape
-      « changement d'outil » dans la séquence ; le bloc du nouvel outil (posé par FreeCAD) relance la broche ;
-    - une pause arrête la broche (M5) avant M0 et la relance ensuite quand l'outil ne change pas ;
-    - un bloc personnalisé prend le contrôleur de l'usinage PRÉCÉDENT (aucun changement parasite) ; sans
-      usinage avant lui, celui du suivant, dont FreeCAD pose le démarrage juste avant : on l'arrête puis relance.
-    """
-    steps, previous, explicit_change = [], None, False
-    for position, entry in enumerate(plan):
-        following = next((item for item in plan[position + 1:] if "controller" in item), None)
-        kind = entry["type"]
-        if kind in ("note", "pause", "tool_change"):
-            text = comment_text(entry["note"] or entry["name"])
-            anchor = previous or following
-            key = anchor["controller"] if anchor else None
-            if kind == "note":
-                lines = ["(%s)" % text]
-            elif kind == "pause":
-                lines = ["M5", "(%s)" % text, "M0", _spindle_on(anchor, tools)] if anchor else ["(%s)" % text, "M0"]
-            else:
-                tool = tools.get(entry["tool"], {"name": ""})
-                label = "Changement d'outil : monter T%d %s" % (entry["tool"], comment_text(tool["name"]))
-                if manual:
-                    lines = ["M5", "(%s)" % label, "M0"] if anchor else ["(%s)" % label, "M0"]
-                    restart = following if (previous is None or (following and following["tool"] == previous["tool"])) else None
-                    if anchor and restart:
-                        lines.append(_spindle_on(restart, tools))
-                else:
-                    lines = ["(%s)" % label]
-                explicit_change = True
-            steps.append(("custom", entry["name"], lines, key, entry))
-            continue
-        changing = previous is not None and previous["tool"] != entry["tool"]
-        automatic = manual and changing and not explicit_change
-        if automatic or entry["pause_before"]:
-            lines = ["M5"]
-            if automatic:
-                tool = tools[entry["tool"]]
-                lines.append("(Changement d'outil : monter T%d %s)" % (tool["number"], comment_text(tool["name"])))
-            if entry["pause_before"]:
-                lines.append("(Pause avant %s)" % comment_text(entry["name"]))
-            lines.append("M0")
-            if previous is None or not changing:
-                lines.append(_spindle_on(entry, tools))
-            key = previous["controller"] if previous else entry["controller"]
-            steps.append(("custom", "Arrêt avant " + entry["name"], lines, key, None))
-        steps.append(("op", entry))
-        previous, explicit_change = entry, False
-    return steps
-
-
-def post_arguments(post_name, known_arguments, project):
-    """Ligne d'options du post-processeur. Seules les options que le post déclare sont transmises.
-
-    ``known_arguments`` : noms « --xxx » lus dans son ``parser``. Un préambule ou postambule non vide est refusé si le
-    post ne prend pas ``--preamble`` / ``--postamble`` (jamais de texte collé à la main dans le fichier).
-    """
-    known = set(known_arguments or ())
-    tokens = []
-    if "--no-show-editor" in known:
-        tokens.append("--no-show-editor")
-    for key, value in sorted(project["post"]["options"].items()):
-        flag = "--" + key
-        if flag not in known:
-            raise CamEngineError("Option « %s » inconnue du post-processeur « %s » installé." % (key, post_name))
-        if isinstance(value, bool):
-            if value:
-                tokens.append(flag)
-        else:
-            tokens.append("%s=%s" % (flag, value))
-    if project["machine"]["units"] == "inch":
-        if "--inches" not in known:
-            raise CamEngineError("Le post-processeur « %s » ne sait pas produire un programme en pouces." % post_name)
-        tokens.append("--inches")
-    for block in ("preamble", "postamble"):
-        lines = project["post"][block]
-        if not lines:
-            continue
-        if "--" + block not in known:
-            raise CamEngineError("Le post-processeur « %s » ne prend pas de %s personnalisé." % (
-                post_name, "préambule" if block == "preamble" else "postambule"))
-        tokens.append("--%s=%s" % (block, "\\n".join(lines)))
-    return " ".join(shlex.quote(token) for token in tokens)
 
 
 def _segment_hits_box(a, b, low, high):
@@ -393,8 +249,8 @@ def manufacturability(project, tools, stock, segments, faces, op_reports):
     """Contrôles de fabricabilité (mm, repère pièce). ``faces`` : [{normal_z, zmin, cyl_radius}] du modèle placé."""
     issues = []
     radius_max = max((tool["diameter"] / 2.0 for tool in tools.values()), default=0.0)
+    factor = 25.4 if project["units"] == "inch" else 1.0
     for fixture in project["fixtures"]:
-        factor = 25.4 if project["units"] == "inch" else 1.0
         low = [fixture["min"][axis] * factor - radius_max for axis in ("x", "y", "z")]
         high = [fixture["max"][axis] * factor + radius_max for axis in ("x", "y", "z")]
         hit = next((segment for segment in segments if segment["k"] != "tool"
@@ -412,6 +268,20 @@ def manufacturability(project, tools, stock, segments, faces, op_reports):
         if outside:
             issues.append({"code": "path_outside_stock", "severity": "warning", "operation": "",
                            "message": "Une coupe sort du brut de plus d'un diamètre d'outil : vérifie le brut et l'origine."})
+        travel = project["machine"]["travel"]
+        extent = [0.0, 0.0, 0.0]
+        for segment in segments:
+            if segment["k"] == "tool":
+                continue
+            for point in (segment["a"], segment["b"]):
+                for axis in range(3):
+                    extent[axis] = max(extent[axis], abs(point[axis] - (low[axis] if axis < 2 else high[2])))
+        for axis, key in enumerate("xyz"):
+            if extent[axis] > float(travel[key]) + radius_max + 0.01:
+                issues.append({"code": "path_outside_travel", "severity": "error", "operation": "",
+                               "message": "Le parcours s'éloigne de %.1f mm du brut sur %s : course machine %g mm dépassée."
+                                          % (extent[axis], key.upper(), float(travel[key]))})
+                break
     model_bottom = min((face["zmin"] for face in faces), default=None)
     if any(face["normal_z"] < -0.01 and model_bottom is not None and face["zmin"] > model_bottom + 1e-3 for face in faces):
         issues.append({"code": "undercut", "severity": "warning", "operation": "",
@@ -424,40 +294,55 @@ def manufacturability(project, tools, stock, segments, faces, op_reports):
                        "message": "Un rayon intérieur du modèle est plus petit que la plus petite fraise (%.2f mm) : "
                                   "il restera de la matière dans ce coin." % endmill_radius})
     for report in op_reports:
-        if report["machining"] and not report["segments"]:
+        if report.get("machining") and report["state"] == "empty":
             issues.append({"code": "operation_empty", "severity": "warning", "operation": report["id"],
-                           "message": "L'opération « %s » n'a produit aucun parcours (aucune géométrie détectée)." % report["name"]})
-        for code, message in report.get("warnings", []):
-            issues.append({"code": code, "severity": "warning", "operation": report["id"], "message": message})
+                           "message": "L'opération « %s » n'a produit aucun parcours (%s)." % (report["name"], report.get("error") or "aucune géométrie détectée")})
+        if report.get("machining") and report["state"] == "error":
+            issues.append({"code": "operation_error", "severity": "error", "operation": report["id"],
+                           "message": "L'opération « %s » est en erreur : %s" % (report["name"], report.get("error") or "cause inconnue")})
+        for code, severity, message in report.get("issues", []):
+            issues.append({"code": code, "severity": severity, "operation": report["id"], "message": message})
     return issues
 
 
-def setup_sheet_html(project, summary, stock, issues, validation, freecad_version):
+def setup_sheet_html(project, summary, stock, issues, validation, freecad_version, manual=(), files=()):
     """Fiche de réglage : HTML simple, sans script, chaque valeur échappée."""
     e = lambda value: html.escape(str(value), quote=True)
     machine = project["machine"]
     rows = []
     rows.append("<h1>Fiche de réglage — %s</h1>" % e(project["name"]))
-    rows.append("<p>Machine : %s · contrôleur %s · post-processeur %s · FreeCAD %s</p>"
-                % (e(machine["label"]), e(machine["controller"]), e(machine["post_processor"]), e(freecad_version)))
+    rows.append("<p>Machine : %s · contrôleur %s · post-processeur %s · FreeCAD %s · moteur CAM %s</p>"
+                % (e(machine["label"]), e(machine["controller"]), e(machine["post_processor"]), e(freecad_version), e(ops.ENGINE_VERSION)))
     if stock:
         size = [stock[1][i] - stock[0][i] for i in range(3)]
         rows.append("<p>Brut : %.2f × %.2f × %.2f mm · origine %s (%s)</p>"
                     % (size[0], size[1], size[2], e(project["origin"]["preset"]), e(project["origin"]["wcs"])))
-    rows.append("<h2>Outils</h2><table><tr><th>N°</th><th>Nom</th><th>Ø</th><th>Taillée</th><th>Broche</th></tr>")
+    rows.append("<h2>Outils</h2><table><tr><th>N°</th><th>Nom</th><th>Famille</th><th>Ø</th><th>Taillée</th><th>Broche</th><th>Lu par FreeCAD comme</th></tr>")
+    shapes = summary.get("tool_shapes") or {}
     for tool in project["tools"]:
-        rows.append("<tr><td>T%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s tr/min</td></tr>"
-                    % (e(tool["number"]), e(tool["name"]), e(tool["diameter"]), e(tool["flute_length"]), e(tool["spindle_rpm"])))
-    rows.append("</table><h2>Séquence</h2><ol>")
-    for operation in project["operations"]:
-        if operation["enabled"]:
-            rows.append("<li>%s (%s)%s</li>" % (e(operation["name"]), e(operation["type"]),
-                                                 " — " + e(operation["operator_note"]) if operation.get("operator_note") else ""))
+        rows.append("<tr><td>T%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s tr/min</td><td>%s</td></tr>"
+                    % (e(tool["number"]), e(tool["name"]), e(tool["family"]), e(tool["diameter"]), e(tool["flute_length"]),
+                       e(tool["spindle_rpm"]), e(", ".join(shapes.get(str(tool["number"]), [])) or "—")))
+    rows.append("</table><h2>Programmes</h2><ol>")
+    for item in files:
+        rows.append("<li>%s — outils %s — %s lignes — sha256 %s…</li>" % (e(item["name"]), e(", ".join("T%d" % t for t in item["tool_numbers"])),
+                                                                          e(item["lines"]), e(item["sha256"][:12])))
+    rows.append("</ol><h2>Séquence</h2><ol>")
+    for operation in summary.get("operations", []):
+        rows.append("<li>%s (%s) — %s%s</li>" % (e(operation["name"]), e(operation["type"]), e(operation["state"]),
+                                                   " — durée estimée %s s" % e(operation["estimated_s"]) if operation.get("estimated_s") is not None else ""))
+    rows.append("</ol><h2>Étapes manuelles</h2><ol>")
+    for step in manual:
+        rows.append("<li>%s : %s%s</li>" % (e(step["kind"]), e(step["message"]), " (fichier %s)" % e(step["file"]) if step.get("file") else ""))
     rows.append("</ol><h2>Contrôles</h2><ul>")
     for entry in list(validation.get("errors", [])) + list(validation.get("warnings", [])) + list(issues):
         rows.append("<li>%s : %s</li>" % (e(entry["code"]), e(entry["message"])))
-    rows.append("</ul><p>Durée indicative : %s s (sans accélérations). Les vitesses et avances sont des points de départ, "
-                "à vérifier par l'opérateur.</p>" % e(summary.get("time_estimate_s", 0)))
+    rows.append("</ul><h2>Non simulé</h2><ul>")
+    for text in summary.get("not_simulated", []):
+        rows.append("<li>%s</li>" % e(text))
+    rows.append("</ul><p>Durée indicative : %s s (estimation d'après les longueurs et les avances%s). Les vitesses et avances sont "
+                "des points de départ, à vérifier par l'opérateur.</p>"
+                % (e(summary.get("time_estimate_s", 0)), ", trapèze d'accélération" if machine.get("max_accel") else ", sans accélérations"))
     return ("<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"><title>Fiche de réglage</title>"
             "<style>body{font-family:sans-serif;margin:24px}table{border-collapse:collapse}td,th{border:1px solid #999;"
             "padding:4px 8px}</style></head><body>" + "".join(rows) + "</body></html>")
@@ -502,7 +387,8 @@ def discover_posts(scripts_dir, load_module=None):
                 arguments = []
         names = {argument["name"] for argument in arguments}
         posts.append({"name": name, "file": file_name, "refactored": refactored, "arguments": arguments,
-                      "units_argument": "--inches" in names})
+                      "units_argument": "--inches" in names, "translate_drill": "--translate_drill" in names,
+                      "wait_for_spindle": "--wait-for-spindle" in names, "tool_change": "--tool-change" in names or "--tool_change" in names})
     return posts
 
 
@@ -522,7 +408,7 @@ def _importable(module_name):
 
 
 def capabilities(app):
-    """Capacités CAM réelles de cette installation de FreeCAD (contrat §3)."""
+    """Capacités CAM réelles de cette installation de FreeCAD (contrat v2 : détail par opération, forme, dressup, post)."""
     cam_available = _importable("Path.Main.Job")
     scripts_dir = ""
     try:
@@ -531,23 +417,82 @@ def capabilities(app):
     except Exception:
         scripts_dir = os.path.join(app.getHomePath(), "Mod", "CAM", "Path", "Post", "scripts")
     shapes_dir = os.path.join(app.getHomePath(), "Mod", "CAM", "Tools", "Shape")
-    families = []
+    present_shapes = set()
     if os.path.isdir(shapes_dir):
-        for file_name in sorted(os.listdir(shapes_dir)):
+        for file_name in os.listdir(shapes_dir):
             stem, extension = os.path.splitext(file_name)
-            if extension.lower() == ".fcstd" and stem.lower() in SHAPE_FAMILIES:
-                families.append(SHAPE_FAMILIES[stem.lower()])
+            if extension.lower() == ".fcstd":
+                present_shapes.add(stem.lower())
     find = importlib.util.find_spec
+    ocl_version = None
+    ocl_present = find("opencamlib") is not None
+    if ocl_present:
+        try:
+            import opencamlib
+            ocl_version = str(opencamlib.version()) if hasattr(opencamlib, "version") else None
+        except Exception:
+            ocl_version = None
+    dependencies = {"opencamlib": ocl_present, "ocl": find("ocl") is not None, "area": find("area") is not None,
+                    "opencamlib_version": ocl_version}
+    satisfied_dependency = {"ocl": ocl_present or dependencies["ocl"], "area": dependencies["area"]}
+    operations_detail = []
+    for alpine, module in OPERATION_MODULES.items():
+        requires = list(ops.OPERATION_REQUIREMENTS.get(alpine, ()))
+        importable = cam_available and _importable(module)
+        operations_detail.append({"id": alpine, "module": module, "importable": importable, "requires": requires,
+                                  "satisfied": importable and all(satisfied_dependency.get(name, False) for name in requires),
+                                  "tool_families": list(ops.OPERATION_TOOL_FAMILIES.get(alpine, ops.TOOL_FAMILIES))})
+    tool_shapes = [{"family": family, "shape_file": shape + ".fcstd", "present": shape in present_shapes}
+                   for family, shape in ops.FAMILY_SHAPES.items()]
+    dressups = [{"id": name, "module": module, "importable": cam_available and _importable(module)} for name, module in ops.DRESSUP_MODULES.items()]
+    controller_props = []
+    if cam_available:
+        try:
+            import Path.Tool.Controller as PathToolController
+            controller_props = sorted(name for name in ("HorizFeed", "VertFeed", "RampFeed", "HorizRapid", "VertRapid", "SpindleSpeed", "SpindleDir")
+                                      if name in str(getattr(PathToolController, "__doc__", "")) or True)
+            controller_props = _controller_property_names(PathToolController) or controller_props
+        except Exception:
+            controller_props = []
+    restrictions = ["CAMSimulator / PathSimulator plantent sous freecadcmd : aucune simulation d'enlèvement de matière.",
+                    "Pas de rampe ni d'entrée/sortie (RampEntry, LeadInOut : classes GUI sans Create en 1.1.3).",
+                    "Pocket/Profile/Adaptive/MillFace/Slot/Helix/Drilling lisent seulement le diamètre de l'outil (forme plate).",
+                    "M6 réel seulement en atc_m6 (hors GRBL) ; G43/G49 jamais émis ; cycles G81-G83 traduits en G0/G1 par grbl_post."]
     return {
         "freecad_version": ".".join(str(part) for part in app.Version()[:3]),
+        "engine_version": ops.ENGINE_VERSION, "contract_version": ops.CONTRACT_VERSION,
         "cam_available": cam_available,
-        "operations": [alpine for alpine, module in OPERATION_MODULES.items() if cam_available and _importable(module)],
+        "operations": [item["id"] for item in operations_detail if item["satisfied"]],
+        "operations_detail": operations_detail,
+        "operations_refused": dict(ops.OPERATIONS_REFUSED),
         "post_processors": discover_posts(scripts_dir, _load_module) if cam_available else [],
-        "simulation": cam_available and find("CAMSimulator") is not None,
-        "dependencies": {"opencamlib": find("opencamlib") is not None, "ocl": find("ocl") is not None,
-                         "area": find("area") is not None},
-        "tool_families": families,
+        "simulation": False,
+        "dependencies": dependencies,
+        "tool_families": [item["family"] for item in tool_shapes if item["present"]],
+        "tool_shapes": tool_shapes,
+        "tool_families_refused": dict(ops.TOOL_FAMILIES_REFUSED),
+        "dressups": dressups,
+        "dressups_refused": dict(ops.DRESSUP_REFUSED),
+        "tool_change_policies": list(ops.TOOL_CHANGE_POLICIES),
+        "tool_controller_props": controller_props,
+        "restrictions": restrictions,
     }
+
+
+def _controller_property_names(module):
+    """Propriétés d'un contrôleur d'outil FreeCAD (lues sur un document temporaire, sans Job)."""
+    try:
+        import FreeCAD as App
+        document = App.newDocument("AlpineCamProbe")
+        try:
+            controller = module.Create("Probe", assignViewProvider=False)
+            names = [name for name in controller.PropertiesList
+                     if name in ("HorizFeed", "VertFeed", "RampFeed", "HorizRapid", "VertRapid", "SpindleSpeed", "SpindleDir", "ToolNumber")]
+        finally:
+            App.closeDocument(document.Name)
+        return sorted(names)
+    except Exception:
+        return []
 
 
 # ---------------------------------------------------------------------------------------------
@@ -564,6 +509,8 @@ class FreeCadCam:
         self.job = None
         self.mesh = False
         self.facets = 0
+        self._shape_cache = {}
+        self._controller_notes = {}
 
     # -- géométrie ---------------------------------------------------------------------------
     def import_model(self, path, kind):
@@ -575,10 +522,7 @@ class FreeCadCam:
             shape = Part.makeCompound([shape for shape in shapes]) if len(shapes) > 1 else (shapes[0] if shapes else Part.Shape())
             shape = shape.copy()
             App.closeDocument(source.Name)
-        elif kind in ("step", "stp", "iges", "igs"):
-            shape = Part.Shape()
-            shape.read(path)
-        elif kind in ("brep", "brp"):
+        elif kind in ("step", "stp", "iges", "igs", "brep", "brp"):
             shape = Part.Shape()
             shape.read(path)
         else:
@@ -664,18 +608,34 @@ class FreeCadCam:
             surface = face.Surface
             if type(surface).__name__ == "Cylinder" and abs(abs(surface.Axis.z) - 1.0) < 1e-6:
                 entry["cyl_radius"] = float(surface.Radius)
-                # Concave (paroi d'un creux) : la normale extérieure de la face pointe vers l'axe.
                 center = surface.Center
                 point = face.valueAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
                 radial = self.App.Vector(point.x - center.x, point.y - center.y, 0)
                 entry["concave"] = radial.Length > 1e-9 and (radial.x * normal.x + radial.y * normal.y) < 0
-                # Un trou rond complet se perce : seul un congé (cylindre partiel) limite la fraise.
                 entry["partial"] = (u1 - u0) < 2.0 * math.pi - 1e-3
             out.append(entry)
         return out
 
+    def tessellate(self, shape, path, max_bytes=PREVIEW_STL_MAX_BYTES):
+        """STL binaire du modèle placé pour l'aperçu 3D, borné en taille (déflexion grossie si besoin)."""
+        import Mesh
+        for deflection in (0.1, 0.3, 1.0, 3.0):
+            try:
+                mesh = Mesh.Mesh(shape.tessellate(deflection))
+                mesh.write(path)
+            except Exception:
+                return None
+            size = os.path.getsize(path)
+            if size <= max_bytes:
+                return {"facets": int(mesh.CountFacets), "bytes": int(size), "deflection_mm": deflection}
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        return None
+
     # -- Job CAM -------------------------------------------------------------------------------
-    def create_job(self, shape, stock, wcs="G54"):
+    def create_job(self, shape, stock, wcs="G54", cylinder=None):
         App = self.App
         self.doc = App.newDocument("AlpineCam")
         App.setActiveDocument(self.doc.Name)
@@ -685,20 +645,20 @@ class FreeCadCam:
         import Path.Main.Job as PathJob
         import Path.Main.Stock as PathStock
         self.job = PathJob.Create("Job", [self.model], None)
-        # Les opérations désignent les faces du modèle CLONÉ par le Job (Job.Model), jamais l'objet d'origine.
         self.base = self.job.Model.Group[0]
-        # Repère de travail du projet (G54 à G59) : le post l'émet en tête de programme.
         if "Fixtures" in self.job.PropertiesList:
             self.job.Fixtures = [wcs]
-        # Le brut créé par défaut est remplacé par la boîte du projet (repère pièce).
         old = self.job.Stock
         low, high = stock
-        extent = App.Vector(high[0] - low[0], high[1] - low[1], high[2] - low[2])
-        placement = App.Placement(App.Vector(low[0], low[1], low[2]), App.Rotation())
-        self.job.Stock = PathStock.CreateBox(self.job, extent, placement)
+        if cylinder:
+            placement = App.Placement(App.Vector(cylinder["center"][0], cylinder["center"][1], low[2]), App.Rotation())
+            self.job.Stock = PathStock.CreateCylinder(self.job, float(cylinder["radius"]), float(high[2] - low[2]), placement)
+        else:
+            extent = App.Vector(high[0] - low[0], high[1] - low[1], high[2] - low[2])
+            placement = App.Placement(App.Vector(low[0], low[1], low[2]), App.Rotation())
+            self.job.Stock = PathStock.CreateBox(self.job, extent, placement)
         if old is not None and old.Name != self.job.Stock.Name:
             self.doc.removeObject(old.Name)
-        # Les outils viennent du projet : le contrôleur « 5mm Endmill » posé par défaut est retiré.
         for controller in list(self.job.Tools.Group):
             tool = getattr(controller, "Tool", None)
             self.job.Tools.removeObject(controller)
@@ -720,24 +680,25 @@ class FreeCadCam:
 
         self._chooser = _Chooser
         PathUtils.UserInput = _Chooser()
+        self._shape_cache = {}
 
     def add_controller(self, tool, key, label):
-        App = self.App
+        """Contrôleur + ToolBit : les propriétés de forme sont posées APRÈS l'attache (audit §4), puis relues."""
         from Path.Tool.toolbit import ToolBit
         import Path.Tool.Controller as PathToolController
         bit = ToolBit.from_shape_id(FAMILY_SHAPES[tool["family"]], label=comment_text(tool["name"]))
-        values = {"Diameter": tool["diameter"], "CuttingEdgeHeight": tool["flute_length"], "Length": tool["length"],
-                  "ShankDiameter": tool["shank_diameter"]}
-        for name, value in values.items():
-            try:
-                bit.set_property(name, App.Units.Quantity("%r mm" % float(value)))
-            except Exception:
-                pass
-        try:
-            bit.set_property("Flutes", int(tool["flutes"]))
-        except Exception:
-            pass
         tool_object = bit.attach_to_doc(doc=self.doc)
+        applied, skipped = {}, []
+        for name, value in ops.tool_properties(tool):
+            if name in tool_object.PropertiesList:
+                try:
+                    setattr(tool_object, name, value)
+                    got = getattr(tool_object, name)
+                    applied[name] = float(got.Value) if hasattr(got, "Value") else got
+                except Exception as error:
+                    skipped.append("%s (%s)" % (name, type(error).__name__))
+            else:
+                skipped.append(name)
         number, feed_xy, feed_plunge, rpm, direction = key
         controller = PathToolController.Create(label, tool=tool_object, toolNumber=int(number), assignViewProvider=False)
         controller.HorizFeed = "%r mm/min" % float(feed_xy)
@@ -751,7 +712,16 @@ class FreeCadCam:
         if hasattr(controller, "SpindleDir"):
             controller.SpindleDir = "Forward" if direction == "cw" else "Reverse"
         self.job.Proxy.addToolController(controller)
+        self.doc.recompute()
+        real = float(controller.Tool.Diameter.Value)
+        if abs(real - float(tool["diameter"])) > 1e-6:
+            raise CamEngineError("Outil T%d : FreeCAD a gardé un diamètre de %.3f mm au lieu de %.3f mm." % (int(number), real, tool["diameter"]))
+        # Un FeaturePython n'accepte aucun attribut libre : les propriétés posées / ignorées sont gardées à part.
+        self._controller_notes[controller.Name] = {"applied": applied, "skipped": skipped}
         return controller
+
+    def controller_notes(self, controller):
+        return self._controller_notes.get(getattr(controller, "Name", ""), {})
 
     @staticmethod
     def _set(obj, name, value):
@@ -764,78 +734,100 @@ class FreeCadCam:
             return True
         return False
 
-    def add_operation(self, entry, controller, heights, stock_top):
+    # -- sélection géométrique ---------------------------------------------------------------
+    def _face_entries(self):
+        if "faces" not in self._shape_cache:
+            shape = self.base.Shape
+            top, bottom = shape.BoundBox.ZMax, shape.BoundBox.ZMin
+            entries = []
+            for index, face in enumerate(shape.Faces):
+                name = "Face%d" % (index + 1)
+                kind = type(face.Surface).__name__
+                normal_z = None
+                try:
+                    u0, u1, v0, v1 = face.ParameterRange
+                    normal_z = float(face.normalAt((u0 + u1) / 2.0, (v0 + v1) / 2.0).z)
+                except Exception:
+                    pass
+                box = face.BoundBox
+                entries.append({"name": name, "kind": kind, "normal_z": normal_z, "zmin": box.ZMin, "zmax": box.ZMax,
+                                "xlen": box.XLength, "ylen": box.YLength, "area": float(face.Area),
+                                "radius": float(face.Surface.Radius) if kind == "Cylinder" and abs(abs(face.Surface.Axis.z) - 1.0) < 1e-6 else None,
+                                "is_top": abs(box.ZMax - top) < 1e-6 and abs(box.ZMin - top) < 1e-6,
+                                "is_floor": kind == "Plane" and normal_z is not None and abs(normal_z - 1.0) < 1e-6
+                                and box.ZMax < top - 1e-6 and box.ZMin > bottom + 1e-6})
+            self._shape_cache["faces"] = entries
+        return self._shape_cache["faces"]
+
+    def _top_edges(self):
+        shape = self.base.Shape
+        top = shape.BoundBox.ZMax
+        return ["Edge%d" % (index + 1) for index, edge in enumerate(shape.Edges)
+                if abs(edge.BoundBox.ZMin - top) < 1e-6 and abs(edge.BoundBox.ZMax - top) < 1e-6]
+
+    def select_targets(self, entry):
+        """(sous-éléments FaceN/EdgeN ou None, zones [{name, width}], note) selon le type et ``selection``."""
+        kind, selection = entry["type"], entry["selection"]
+        faces = self._face_entries()
+        if selection.get("mode") == "faces":
+            names = {face["name"] for face in faces}
+            missing = [name for name in selection["faces"] if name not in names]
+            if missing:
+                raise CamEngineError("Opération « %s » : face %s absente du modèle calculé." % (entry["name"], missing[0]))
+            chosen = [face for face in faces if face["name"] in selection["faces"]]
+            return list(selection["faces"]), [{"name": face["name"], "width": min(face["xlen"], face["ylen"])} for face in chosen if face["is_floor"]], ""
+        if kind == "facing" or kind == "vcarve":
+            return [face["name"] for face in faces if face["is_top"]] or None, [], ""
+        if kind in ("pocket", "adaptive"):
+            floors = [face for face in faces if face["is_floor"]]
+            return [face["name"] for face in floors] or None, [{"name": face["name"], "width": min(face["xlen"], face["ylen"])} for face in floors], ""
+        if kind == "slot":
+            floors = [face for face in faces if face["is_floor"] and min(face["xlen"], face["ylen"]) < 0.5 * max(face["xlen"], face["ylen"])]
+            if not floors:
+                return None, [], "aucune rainure rectangulaire détectée (fond plan allongé)"
+            note = "" if len(floors) == 1 else "%d rainures détectées : seule la première est traitée (une opération Rainure par rainure)" % len(floors)
+            return [floors[0]["name"]], [{"name": floors[0]["name"], "width": min(floors[0]["xlen"], floors[0]["ylen"])}], note
+        if kind in ("drilling", "helix", "thread_milling"):
+            low, high = selection.get("min_diameter", 0.0), selection.get("max_diameter", 1e9)
+            if kind == "drilling":
+                import Path.Base.Drillable as Drillable
+                candidates = [sub for _obj, sub in Drillable.getDrillableTargets(self.base)]
+                by_name = {face["name"]: face for face in faces}
+                targets = [sub for sub in candidates if by_name.get(sub, {}).get("radius") is not None
+                           and low - 1e-6 <= 2.0 * by_name[sub]["radius"] <= high + 1e-6]
+            else:
+                targets = [face["name"] for face in faces if face["radius"] is not None and low - 1e-6 <= 2.0 * face["radius"] <= high + 1e-6
+                           and face["normal_z"] is not None and self._is_concave(face["name"])]
+            return targets or None, [], "" if targets else "aucun trou cylindrique entre Ø %.2f et Ø %.2f mm" % (low, high)
+        if kind in ("engrave", "deburr"):
+            edges = self._top_edges()
+            return edges or None, [], "" if edges else "aucune arête sur la face du dessus"
+        return None, [], ""
+
+    def _is_concave(self, face_name):
+        face = self.base.Shape.getElement(face_name)
+        try:
+            u0, u1, v0, v1 = face.ParameterRange
+            normal = face.normalAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
+            point = face.valueAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
+            center = face.Surface.Center
+            return (point.x - center.x) * normal.x + (point.y - center.y) * normal.y < 0
+        except Exception:
+            return False
+
+    # -- opérations ----------------------------------------------------------------------------
+    def add_operation(self, entry, controller, properties, targets):
         kind = entry["type"]
         module = importlib.import_module(OPERATION_MODULES[kind])
         self._chooser.current = controller
         op = module.Create(OPERATION_MODULES[kind].rsplit(".", 1)[-1], parentJob=self.job)
         op.Label = comment_text(entry["name"])
         op.ToolController = controller
-        self._set(op, "ClearanceHeight", stock_top + heights["clearance"])
-        self._set(op, "SafeHeight", stock_top + heights["safe"])
-        if kind == "facing":
-            # Sans face de base, MillFace ne produit aucun parcours sous FreeCADCmd (essai FreeCAD 1.1.3) : on lui donne
-            # la ou les faces du dessus du modèle et on surface tout le brut (frontière « Stock », bords dégagés).
-            shape = self.base.Shape
-            top = shape.BoundBox.ZMax
-            faces = ["Face%d" % (index + 1) for index, face in enumerate(shape.Faces)
-                     if abs(face.BoundBox.ZMax - top) < 1e-6 and abs(face.BoundBox.ZMin - top) < 1e-6]
-            if faces:
-                op.Base = [(self.base, faces)]
-            self._set(op, "BoundaryShape", "Stock")
-            self._set(op, "ClearEdges", True)
-        if kind in ("facing", "pocket"):
-            self._set(op, "StepOver", int(round(entry["stepover_pct"])))
-            if "CutMode" in op.PropertiesList:
-                op.CutMode = "Climb" if entry["direction"] == "climb" else "Conventional"
-        if kind == "pocket":
-            bottoms = [("Face%d" % (index + 1)) for index, face in enumerate(self.base.Shape.Faces)
-                       if self._is_pocket_floor(face)]
-            if bottoms:
-                op.Base = [(self.base, bottoms)]
-        if kind == "profile":
-            self._set(op, "Side", "Outside" if entry["side"] == "outside" else "Inside")
-            self._set(op, "processPerimeter", entry["side"] == "outside")
-            self._set(op, "processHoles", entry["side"] == "inside")
-            self._set(op, "processCircles", False)   # les trous ronds restent au perçage
-            self._set(op, "UseComp", True)
-            direction = climb_direction(entry["side"], entry["spindle_dir"])
-            if entry["direction"] == "conventional":
-                direction = "CCW" if direction == "CW" else "CW"
-            self._set(op, "Direction", direction)
-            if entry["stock_to_leave"]["radial"]:
-                self._set(op, "OffsetExtra", entry["stock_to_leave"]["radial"])
-        if kind == "drilling":
-            import Path.Base.Drillable as Drillable
-            targets = []
-            for obj, sub in Drillable.getDrillableTargets(self.base):
-                face = self.base.Shape.getElement(sub)
-                diameter = 2.0 * float(getattr(face.Surface, "Radius", 0.0))
-                if entry["min_diameter"] - 1e-6 <= diameter <= entry["max_diameter"] + 1e-6:
-                    targets.append(sub)
-            if targets:
-                op.Base = [(self.base, targets)]
-            self._set(op, "PeckEnabled", bool(entry["peck"]))
-            if entry["peck"]:
-                self._set(op, "PeckDepth", entry["peck"])
-            self._set(op, "DwellEnabled", bool(entry["dwell"]))
-            if entry["dwell"]:
-                self._set(op, "DwellTime", float(entry["dwell"]))
-            self._set(op, "RetractHeight", stock_top + heights["retract"])
-        if "CoolantMode" in op.PropertiesList:
-            op.CoolantMode = {"flood": "Flood", "mist": "Mist"}.get(entry["coolant"], "None")
+        if targets:
+            op.Base = [(self.base, list(targets))]
+        for name, value in properties:
+            self._set(op, name, value)
         return op
-
-    def _is_pocket_floor(self, face):
-        """Fond de poche : face plane horizontale tournée vers le haut, sous le dessus du modèle."""
-        try:
-            u0, u1, v0, v1 = face.ParameterRange
-            normal = face.normalAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
-        except Exception:
-            return False
-        box = self.base.Shape.BoundBox
-        return (type(face.Surface).__name__ == "Plane" and abs(normal.z - 1.0) < 1e-6
-                and face.BoundBox.ZMax < box.ZMax - 1e-6 and face.BoundBox.ZMin > box.ZMin + 1e-6)
 
     def set_depths(self, op, start, final, step_down):
         self._set(op, "StartDepth", start)
@@ -844,33 +836,43 @@ class FreeCadCam:
 
     def geometry_final(self, op):
         try:
-            return float(op.FinalDepth.Value)
+            return float(op.FinalDepth.Value) if "FinalDepth" in op.PropertiesList else None
         except Exception:
             return None
 
-    def add_tabs(self, op, tabs):
-        if not tabs["count"]:
-            return None
-        import Path.Dressup.Tags as Tags
-        dressup = Tags.Create(op)
-        if dressup is None:
-            raise CamEngineError("FreeCAD a refusé les ponts sur ce contour.")
-        dressup.Width = tabs["width"]
-        dressup.Height = tabs["height"]
-        dressup.Proxy.generateTags(dressup, int(tabs["count"]))
-        # Tags.Create (FreeCAD 1.1) insère le dressup AVANT le contour sans retirer ce dernier du Job : le post
-        # couperait le contour deux fois, la seconde sans ponts. Comme Boundary et Array (removeBefore=True), le
-        # contour de base ne reste que la source du dressup.
+    def apply_dressup(self, op, dressup):
+        """Dressup FreeCAD sur ``op`` ; la base est retirée du groupe (sinon le post la couperait deux fois)."""
+        module_name, properties, count = ops.dressup_properties(dressup)
+        module = importlib.import_module(module_name)
+        wrapper = module.Create(op)
+        if wrapper is None:
+            raise CamEngineError("FreeCAD a refusé le dressup « %s »." % dressup["type"])
+        for name, value in properties:
+            self._set(wrapper, name, value)
+        if count:
+            wrapper.Proxy.generateTags(wrapper, int(count))
+            if "Positions" in wrapper.PropertiesList and not list(wrapper.Positions):
+                raise CamEngineError("aucun pont n'a pu être placé sur ce parcours")
         group = list(self.job.Operations.Group)
         if op in group:
             group.remove(op)
             self.job.Operations.Group = group
-        return dressup
+        if wrapper not in self.job.Operations.Group:
+            self.job.Operations.Group = list(self.job.Operations.Group) + [wrapper]
+        return wrapper
+
+    def remove_operation(self, op):
+        group = list(self.job.Operations.Group)
+        if op in group:
+            group.remove(op)
+            self.job.Operations.Group = group
+        try:
+            self.doc.removeObject(op.Name)
+        except Exception:
+            pass
 
     def add_custom(self, label, lines, controller):
         import Path.Op.Custom as Custom
-        # Une opération FreeCAD prend toujours un contrôleur : celui de l'usinage voisin, pour ne provoquer aucun
-        # changement d'outil parasite (pour un changement d'outil : celui de l'outil suivant).
         self._chooser.current = controller
         op = Custom.Create("Custom", parentJob=self.job)
         op.Label = comment_text(label)
@@ -884,22 +886,33 @@ class FreeCadCam:
     def recompute(self):
         self.doc.recompute()
 
-    def path_count(self, op):
-        try:
-            return sum(1 for command in op.Path.Commands if command.Name in ("G1", "G01", "G2", "G02", "G3", "G03",
-                                                                               "G81", "G82", "G83", "G73"))
-        except Exception:
-            return 0
+    def op_state(self, op):
+        state = list(op.State)
+        return {"valid": "Invalid" not in state, "state": state}
 
-    def post(self, name, arguments):
+    def path_commands(self, op):
+        try:
+            return [(command.Name, dict(command.Parameters)) for command in op.Path.Commands]
+        except Exception:
+            return []
+
+    def post(self, name, arguments, operations=None):
+        """Export du Job ; ``operations`` : sous-ensemble ordonné d'objets (un programme par outil), tout le Job sinon."""
         from Path.Post.Processor import PostProcessorFactory
         processor = PostProcessorFactory.get_post_processor(self.job, name)
         if processor is None:
             raise CamEngineError("Post-processeur « %s » introuvable dans cette installation de FreeCAD." % name)
         self.job.PostProcessorArgs = arguments
-        sections = processor.export() or []
-        text = "".join(code or "" for _name, code in sections)
-        return text
+        saved = list(self.job.Operations.Group)
+        try:
+            if operations is not None:
+                self.job.Operations.Group = list(operations)
+            sections = processor.export() or []
+        except SystemExit as error:
+            raise CamEngineError("Le post-processeur « %s » a refusé ses arguments (code %s)." % (name, error.code))
+        finally:
+            self.job.Operations.Group = saved
+        return "".join(code or "" for _name, code in sections)
 
     def post_known_arguments(self, name):
         from Path.Post.Processor import PostProcessorFactory
@@ -925,119 +938,304 @@ class FreeCadCam:
 # ---------------------------------------------------------------------------------------------
 # Enchaînement du calcul
 # ---------------------------------------------------------------------------------------------
-def compute(project, source, workdir, backend, cam_gcode_check, freecad_version):
+def _write_json(workdir, name, payload):
+    with open(os.path.join(workdir, name), "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=False, allow_nan=False)
+
+
+def _progress(workdir, payload):
+    """Progression RÉELLE : opérations terminées / total, opération courante ; l'avancement interne est indéterminé."""
+    try:
+        payload = dict(payload, updated_at=time.time())
+        tmp = os.path.join(workdir, PROGRESS_FILE + ".tmp")
+        with open(tmp, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, allow_nan=False)
+        os.replace(tmp, os.path.join(workdir, PROGRESS_FILE))
+    except OSError:
+        pass
+
+
+def _check_cancel(workdir):
+    if os.path.exists(os.path.join(workdir, CANCEL_FILE)):
+        raise CamCancelled("Calcul CNC annulé par l'utilisateur.")
+
+
+def place_model(project, source, backend):
+    """Import, échelle, orientation, brut, origine : (shape placé, info, stock (min, max), cylindre|None, issues, stock_model)."""
     factor = 25.4 if project["units"] == "inch" else 1.0
-    source_scale = 25.4 if project["source"]["units"] == "inch" else 1.0
+    source_scale = (25.4 if project["source"]["units"] == "inch" else 1.0) * float(project["source"].get("scale", 1) or 1)
     shape = backend.import_model(source, project["source"]["kind"])
     shape = backend.transform(shape, source_scale, orientation_steps(project["orientation"]))
     info = backend.model_info(shape)
     issues = model_checks(info)
     stock_model, _ = stock_box(info["bounds"], project["stock"], factor)
     low, high = info["bounds"]
-    if project["stock"]["mode"] == "explicit" and any(low[i] < stock_model[0][i] - 1e-6 or high[i] > stock_model[1][i] + 1e-6
-                                                      for i in range(3)):
+    if project["stock"]["mode"] == "explicit" and any(low[i] < stock_model[0][i] - 1e-6 or high[i] > stock_model[1][i] + 1e-6 for i in range(3)):
         raise CamEngineError("La pièce ne tient pas dans le brut saisi : agrandis le brut ou choisis « depuis le modèle ».")
     origin = origin_point(stock_model, project["origin"], factor)
     shape = backend.translate(shape, origin)
     stock = shift_box(stock_model, origin)
     info = backend.model_info(shape)
+    cylinder = None
+    if project["stock"].get("shape") == "cylinder":
+        cylinder = {"radius": (stock[1][0] - stock[0][0]) / 2.0, "center": [(stock[0][0] + stock[1][0]) / 2.0, (stock[0][1] + stock[1][1]) / 2.0],
+                    "height": stock[1][2] - stock[0][2]}
     machine = project["machine"]
     size = [stock[1][i] - stock[0][i] for i in range(3)]
     for index, axis in enumerate("xyz"):
         if size[index] > machine["travel"][axis] + 1e-6:
             raise CamEngineError("Brut plus grand que la course %s de la machine (%.1f mm pour %g mm)."
                                  % (axis.upper(), size[index], machine["travel"][axis]))
+    return shape, info, stock, cylinder, issues
+
+
+def preview(project, source, workdir, backend, freecad_version):
+    """Aperçu AVANT calcul : modèle orienté et placé (STL borné), brut, origine ; aucun Job FreeCAD."""
+    project = ops.normalize_project(project)
+    shape, info, stock, cylinder, issues = place_model(project, source, backend)
+    stem = project["output"]["stem"]
+    stl_name = stem + ".preview.stl"
+    mesh_info = backend.tessellate(shape, os.path.join(workdir, stl_name))
+    size = [stock[1][i] - stock[0][i] for i in range(3)]
+    payload = {"ok": True, "op": "preview", "engine_version": ops.ENGINE_VERSION, "freecad_version": freecad_version, "units": "mm",
+               "model": {"bounds": {"min": info["bounds"][0], "max": info["bounds"][1]}, "is_solid": info["is_solid"], "is_mesh": info["is_mesh"],
+                         "facets": info["facets"], "units_assumed": project["source"]["units"], "scale": project["source"].get("scale", 1)},
+               "stock": {"size": {"x": size[0], "y": size[1], "z": size[2]}, "bounds": {"min": stock[0], "max": stock[1]},
+                         "shape": project["stock"].get("shape", "box"), "cylinder": cylinder, "origin_machine": [0.0, 0.0, 0.0]},
+               "fixtures": project["fixtures"], "mesh_preview": dict(mesh_info, name=stl_name) if mesh_info else None,
+               "manufacturability": issues}
+    _write_json(workdir, "cam_preview.json", payload)
+    artifacts = ["cam_preview.json"] + ([stl_name] if mesh_info else [])
+    return {"op": "preview", "artifacts": artifacts, "mesh_preview": payload["mesh_preview"], "freecad_version": freecad_version}
+
+
+def compute(project, source, workdir, backend, cam_gcode_check, freecad_version):
+    project = ops.normalize_project(project)
+    factor = 25.4 if project["units"] == "inch" else 1.0
+    machine = project["machine"]
+    shape, info, stock, cylinder, issues = place_model(project, source, backend)
+    size = [stock[1][i] - stock[0][i] for i in range(3)]
     heights = {key: project["heights"][key] * factor for key in ("clearance", "safe", "retract")}
     stock_top, model_top = stock[1][2], info["bounds"][1][2]
-    tools, plan = operations_plan(project)
-    backend.create_job(shape, stock, project["origin"]["wcs"])
-    controllers, op_reports = {}, []
-    for entry in plan:   # tous les contrôleurs d'abord : une opération FreeCAD en exige un
+    clearance = ops.clearance_issue(size[2], heights["clearance"], float(machine["travel"]["z"]))
+    if clearance:
+        raise CamEngineError(clearance[2])
+    tools, entries = ops.plan(project)
+    backend.create_job(shape, stock, project["origin"]["wcs"], cylinder=cylinder)
+    controllers = {}
+    for entry in entries:   # tous les contrôleurs d'abord : une opération FreeCAD en exige un
         if "controller" in entry and entry["controller"] not in controllers:
             tool = tools[entry["tool"]]
             controllers[entry["controller"]] = backend.add_controller(
                 tool, (tool["number"], entry["feed_xy"] or tool["feed_xy"], entry["feed_plunge"] or tool["feed_plunge"],
                        entry["spindle_rpm"] or tool["spindle_rpm"], entry["spindle_dir"]),
                 "T%d %s" % (tool["number"], comment_text(tool["name"])))
-    manual = project["machine"]["tool_change"] == "manual"
-    for step in sequence_steps(plan, tools, manual):
+    policy = project["sequence"]["tool_change_policy"]
+    manual = machine["tool_change"] == "manual"
+    position = machine.get("tool_change_position")
+    change_position = position if isinstance(position, dict) and position.get("verified") is True else None
+    steps = ops.sequence_steps(entries, tools, policy, manual, change_position)
+    machining_total = sum(1 for step in steps if step[0] == "op")
+    reports, previews, program_objects = {}, {}, {}
+    order = []
+    progress = {"total": machining_total, "done": 0, "current": None, "operations": {step[1]["id"]: "pending" for step in steps if step[0] == "op"},
+                "within_operation": "indeterminate"}
+    _progress(workdir, progress)
+    rapid_speed = float(machine.get("max_rapid") or machine["max_feed"])
+    accel = machine.get("max_accel")
+    for step in steps:
+        _check_cancel(workdir)
+        program = step[-1]
         if step[0] == "custom":
-            _kind, label, lines, key, report = step
-            backend.add_custom(label, lines, controllers[key] if key else None)
-            if report:
-                op_reports.append({"id": report["id"], "type": report["type"], "name": report["name"],
-                                   "machining": False, "segments": 0, "ok": True})
+            _kind, label, lines, key, entry, _program = step
+            obj = backend.add_custom(label, lines, controllers[key] if key else None)
+            program_objects.setdefault(program, []).append(obj)
+            if entry is not None:
+                reports[entry["id"]] = ops.result_operation(entry, "computed", segments=0, estimated_s=0.0, machining=False)
+                order.append(entry["id"])
             continue
         entry = step[1]
         tool = tools[entry["tool"]]
-        op = backend.add_operation(entry, controllers[entry["controller"]], heights, stock_top)
-        backend.recompute()
-        start, final, warning = depth_window(entry["type"], stock_top, model_top, backend.geometry_final(op), entry)
-        backend.set_depths(op, start, final, entry["step_down"])
-        warnings = [warning] if warning else []
-        if entry["type"] == "profile" and entry["tabs"]["count"]:
-            try:
-                backend.add_tabs(op, entry["tabs"])
-            except Exception as error:
-                warnings.append(("tabs_not_applied", "Ponts non posés (%s) : la pièce peut se détacher en fin de contour."
-                                 % type(error).__name__))
-        if stock_top - final > tool["flute_length"] + 1e-6:
-            raise CamEngineError("Opération « %s » : profondeur %.2f mm supérieure à la longueur taillée de T%d."
-                                 % (entry["name"], stock_top - final, tool["number"]))
-        op_reports.append({"id": entry["id"], "type": entry["type"], "name": entry["name"], "machining": True,
-                           "op": op, "warnings": warnings})
-    backend.recompute()
-    for report in op_reports:
-        if report["machining"]:
-            report["segments"] = backend.path_count(report.pop("op"))
-            report["ok"] = report["segments"] > 0
+        order.append(entry["id"])
+        progress.update(current=entry["id"])
+        progress["operations"][entry["id"]] = "computing"
+        _progress(workdir, progress)
+        report = _compute_operation(entry, tool, controllers[entry["controller"]], heights, stock_top, model_top, backend, rapid_speed, accel)
+        reports[entry["id"]] = report["result"]
+        if report.get("preview"):
+            previews[entry["id"]] = report["preview"]
+        if report["result"]["state"] == "computed":
+            program_objects.setdefault(program, []).append(report["object"])
+        progress["done"] += 1
+        progress["operations"][entry["id"]] = report["result"]["state"]
+        _progress(workdir, progress)
+    progress.update(current=None)
+    _progress(workdir, progress)
+    if not any(item["state"] == "computed" and item.get("machining", True) and item["type"] in ops.MACHINING_TYPES + ("custom",)
+               for item in reports.values()):
+        causes = "; ".join("%s : %s" % (item["name"], item.get("error") or item["state"]) for item in reports.values() if item.get("machining"))
+        raise CamEngineError("Aucune opération n'a produit de parcours (%s)." % (causes or "séquence vide"))
     post_name = machine["post_processor"]
-    arguments = post_arguments(post_name, backend.post_known_arguments(post_name), project)
-    gcode = backend.post(post_name, arguments)
-    if not gcode or not gcode.strip():
-        raise CamEngineError("Le post-processeur n'a produit aucun G-code.")
-    if len(gcode.encode("utf-8")) > GCODE_MAX_BYTES:
-        raise CamEngineError("G-code trop volumineux (plus de 64 Mo).")
+    arguments = ops.post_arguments(post_name, backend.post_known_arguments(post_name), project, policy)
+    runs = ops.program_runs(steps)
+    runs = [run for run in runs if program_objects.get(run["index"])]
     stem = project["output"]["stem"]
-    gcode_name = "%s.%s" % (stem, machine["output_extension"])
-    with open(os.path.join(workdir, gcode_name), "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(gcode)
+    names = ops.program_file_names(runs, stem, machine["output_extension"])
+    files, validations, post_issues, all_segments, time_total = [], [], [], [], 0.0
     stock_bounds = {"min": stock[0], "max": stock[1]}
-    validation = cam_gcode_check.check_gcode(gcode, project, machine, stock=stock_bounds)
-    simulation = cam_gcode_check.simulation_segments(gcode, SIMULATION_LIMIT)
-    issues += manufacturability(project, tools, stock, simulation["segments"], backend.faces(shape), op_reports)
+    check_project = dict(project, machine=machine)
+    grbl = str(machine["controller"]).startswith("grbl")
+    for run, name in zip(runs, names):
+        _check_cancel(workdir)
+        gcode = backend.post(post_name, arguments, program_objects[run["index"]])
+        if not gcode or not gcode.strip():
+            raise CamEngineError("Le post-processeur n'a produit aucun G-code pour le programme « %s »." % name)
+        data = gcode.encode("utf-8")
+        if len(data) > GCODE_MAX_BYTES:
+            raise CamEngineError("G-code trop volumineux (plus de 64 Mo).")
+        with open(os.path.join(workdir, name), "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(gcode)
+        validation = cam_gcode_check.check_gcode(gcode, check_project, machine, stock=stock_bounds)
+        checks = ops.grbl_program_checks(gcode, machine, policy) if grbl else []
+        validations.append({"file": name, "ok": validation["ok"] and not checks, "errors": validation["errors"], "warnings": validation["warnings"],
+                            "post_checks": checks, "stats": validation["stats"]})
+        post_issues.extend(dict(item, file=name) for item in checks)
+        simulation = cam_gcode_check.simulation_segments(gcode, SIMULATION_LIMIT)
+        all_segments.extend(dict(segment, file=name) for segment in simulation["segments"])
+        time_total += float(validation["stats"].get("time_estimate_s") or 0.0)
+        files.append({"name": name, "sha256": ops.file_sha256(data), "bytes": len(data), "lines": len(gcode.splitlines()),
+                      "tool_numbers": list(run["tool_numbers"]), "operations": list(run["operations"]), "index": len(files)})
+    report_list = [reports[identifier] for identifier in order if identifier in reports]
+    for item in report_list:
+        item["gcode_file"] = next((file["name"] for file in files if item["id"] in file["operations"]), None)
+    issues += manufacturability(project, tools, stock, all_segments, backend.faces(shape), report_list)
     if info.get("solids", 1) > 1:
         issues.append({"code": "closed_cavity", "severity": "warning", "operation": "",
                        "message": "Le modèle contient plusieurs solides (cavité fermée ou pièces séparées) : vérifie le résultat."})
-    stats = validation["stats"]
-    summary = {"bounds": stats["bounds"], "length_mm": stats["length_mm"], "time_estimate_s": stats["time_estimate_s"],
-               "tools_used": sorted({entry["tool"] for entry in plan if entry.get("tool") and entry["type"] != "tool_change"}),
-               "operations": [{"id": report["id"], "type": report["type"], "ok": report["ok"], "segments": report["segments"]}
-                              for report in op_reports]}
-    fcstd_name, json_name, html_name = stem + ".FCStd", stem + ".cam.json", stem + ".setup.html"
+    manual_steps = ops.manual_steps(entries, tools, runs, names, change_position)
+    not_simulated = ops.not_simulated(project, tools)
+    tool_shapes = {}
+    for entry in entries:
+        if entry.get("engine_shape") and entry.get("tool") is not None:
+            label = "%s : %s" % (entry["type"], entry["engine_shape"]["shape"])
+            tool_shapes.setdefault(str(entry["tool"]), [])
+            if label not in tool_shapes[str(entry["tool"])]:
+                tool_shapes[str(entry["tool"])].append(label)
+    validation_all = {"ok": all(item["ok"] for item in validations), "errors": [], "warnings": []}
+    for item in validations:
+        validation_all["errors"].extend(dict(entry, file=item["file"]) for entry in item["errors"])
+        validation_all["warnings"].extend(dict(entry, file=item["file"]) for entry in item["warnings"])
+    for item in post_issues:
+        validation_all["errors"].append({"code": item["code"], "line": item.get("line", 0), "message": item["message"], "count": 1, "file": item["file"]})
+    validation_all["ok"] = validation_all["ok"] and not post_issues
+    bounds = _merge_bounds([item["stats"]["bounds"] for item in validations])
+    length = {key: round(sum(float(item["stats"]["length_mm"][key]) for item in validations), 3) for key in ("rapid", "cut", "total")}
+    summary = {"bounds": bounds, "length_mm": length, "time_estimate_s": round(time_total, 1), "time_estimate_is_estimate": True,
+               "tools_used": sorted({entry["tool"] for entry in entries if entry.get("tool") and entry["type"] != "tool_change"}),
+               "operations": [{key: item.get(key) for key in ("id", "type", "name", "state", "ok", "segments", "estimated_s", "error", "engine_shape", "gcode_file")}
+                              for item in report_list],
+               "tool_shapes": tool_shapes, "not_simulated": not_simulated, "programs": len(files)}
+    fcstd_name, json_name, html_name, stl_name = stem + ".FCStd", stem + ".cam.json", stem + ".setup.html", stem + ".preview.stl"
+    all_objects = [obj for index in sorted(program_objects) for obj in program_objects[index]]
     backend.save(os.path.join(workdir, fcstd_name))
+    mesh_info = backend.tessellate(shape, os.path.join(workdir, stl_name))
     with open(os.path.join(workdir, json_name), "w", encoding="utf-8") as handle:
-        json.dump({"project": project, "freecad_version": freecad_version, "post_processor": post_name,
-                   "post_arguments": arguments}, handle, ensure_ascii=False, indent=1, allow_nan=False)
+        json.dump({"project": project, "freecad_version": freecad_version, "post_processor": post_name, "post_arguments": arguments,
+                   "engine_version": ops.ENGINE_VERSION, "contract_version": ops.CONTRACT_VERSION}, handle, ensure_ascii=False, indent=1, allow_nan=False)
     with open(os.path.join(workdir, html_name), "w", encoding="utf-8") as handle:
-        handle.write(setup_sheet_html(project, summary, stock, issues, validation, freecad_version))
+        handle.write(setup_sheet_html(project, summary, stock, issues, validation_all, freecad_version, manual_steps, files))
+    previews = ops.preview_budget(previews)
     cam_result = {
-        "ok": True, "freecad_version": freecad_version, "post_processor": post_name, "gcode_file": gcode_name,
-        "gcode_lines": len(gcode.splitlines()), "gcode_bytes": len(gcode.encode("utf-8")), "summary": summary,
+        "ok": True, "engine_version": ops.ENGINE_VERSION, "contract_version": ops.CONTRACT_VERSION, "freecad_version": freecad_version,
+        "post_processor": post_name, "post_arguments": arguments, "tool_change_policy": policy,
+        "gcode_file": files[0]["name"], "gcode_lines": files[0]["lines"], "gcode_bytes": files[0]["bytes"], "gcode_sha256": files[0]["sha256"],
+        "gcode_files": files, "summary": summary, "operations": report_list,
         "model": {"bounds": {"min": info["bounds"][0], "max": info["bounds"][1]}, "is_solid": info["is_solid"],
-                  "is_mesh": info["is_mesh"], "facets": info["facets"], "units_assumed": project["source"]["units"]},
+                  "is_mesh": info["is_mesh"], "facets": info["facets"], "units_assumed": project["source"]["units"],
+                  "scale": project["source"].get("scale", 1)},
         "stock": {"size": {"x": size[0], "y": size[1], "z": size[2]}, "origin_machine": [0.0, 0.0, 0.0],
-                  "bounds": {"min": stock[0], "max": stock[1]}},
+                  "bounds": {"min": stock[0], "max": stock[1]}, "shape": project["stock"].get("shape", "box"), "cylinder": cylinder},
         "manufacturability": issues,
-        "validation": {"ok": validation["ok"], "errors": validation["errors"], "warnings": validation["warnings"]},
-        "simulation": simulation,
+        "validation": validation_all, "validation_files": validations,
+        "simulation": {"units": "mm", "segments": all_segments[:SIMULATION_LIMIT], "truncated": len(all_segments) > SIMULATION_LIMIT, "limit": SIMULATION_LIMIT},
+        "preview": {"units": "mm", "operations": previews, "mesh_preview": dict(mesh_info, name=stl_name) if mesh_info else None,
+                    "stock": {"bounds": {"min": stock[0], "max": stock[1]}, "cylinder": cylinder}, "fixtures": project["fixtures"]},
+        "manual_steps": manual_steps, "not_simulated": not_simulated,
+        "tool_controllers": {str(key[0]): backend.controller_notes(controller) for key, controller in controllers.items()}
+                            if hasattr(backend, "controller_notes") else {},
     }
-    with open(os.path.join(workdir, "cam_result.json"), "w", encoding="utf-8") as handle:
-        json.dump(cam_result, handle, ensure_ascii=False, allow_nan=False)
-    artifacts = [gcode_name, fcstd_name, json_name, html_name, "cam_result.json"]
-    return {"op": "compute", "gcode_file": gcode_name, "artifacts": artifacts,
-            "validation_ok": validation["ok"], "errors": len(validation["errors"]),
-            "warnings": len(validation["warnings"]), "manufacturability": len(issues), "freecad_version": freecad_version}
+    _write_json(workdir, "cam_result.json", cam_result)
+    artifacts = [file["name"] for file in files] + [fcstd_name, json_name, html_name] + ([stl_name] if mesh_info else []) + ["cam_result.json"]
+    return {"op": "compute", "gcode_file": files[0]["name"], "gcode_files": [file["name"] for file in files], "artifacts": artifacts,
+            "validation_ok": validation_all["ok"], "errors": len(validation_all["errors"]), "warnings": len(validation_all["warnings"]),
+            "manufacturability": len(issues), "freecad_version": freecad_version, "engine_version": ops.ENGINE_VERSION,
+            "operations": {item["id"]: item["state"] for item in report_list}}
+
+
+def _compute_operation(entry, tool, controller, heights, stock_top, model_top, backend, rapid_speed, accel):
+    """Une opération d'usinage : propriétés, sélection, profondeurs, dressups, recalcul, analyse ; jamais d'exception FreeCAD propagée."""
+    kind = entry["type"]
+    issues, warnings = [], []
+    started = time.time()
+    try:
+        properties = ops.operation_properties(entry, tool, heights, stock_top)
+        targets, zones, note = backend.select_targets(entry)
+        if note:
+            warnings.append(("selection_note", "warning", "Opération « %s » : %s." % (entry["name"], note)))
+        issues += ops.zone_issues(entry, tool, zones)
+        op = backend.add_operation(entry, controller, properties, targets)
+        backend.recompute()
+        start, final, warning = depth_window(kind, stock_top, model_top, backend.geometry_final(op), entry)
+        if kind not in ("deburr",):
+            backend.set_depths(op, start, final, entry["step_down"])
+        if warning:
+            warnings.append((warning[0], "warning", warning[1]))
+        reach = ops.tool_reach_issues(entry, tool, stock_top, final)
+        issues += reach
+        if any(severity == "error" for _code, severity, _message in reach):
+            backend.remove_operation(op)
+            return {"result": ops.result_operation(entry, "error", error=next(message for _c, severity, message in reach if severity == "error"),
+                                                   issues=issues + warnings, machining=True), "preview": None, "object": None}
+        final_op = op
+        for dressup in entry.get("dressups", []):
+            try:
+                final_op = backend.apply_dressup(final_op, dressup)
+            except Exception as error:
+                warnings.append(ops.dressup_not_applied_warning(entry, dressup, str(error) or type(error).__name__))
+        backend.recompute()
+        state = backend.op_state(final_op)
+        commands = backend.path_commands(final_op)
+        analysis = ops.path_analysis(commands, entry["feed_xy"] or tool["feed_xy"], entry["feed_plunge"] or tool["feed_plunge"], rapid_speed, accel)
+    except CamCancelled:
+        raise
+    except Exception as error:
+        message = str(error) or type(error).__name__
+        return {"result": ops.result_operation(entry, "error", error=("%s : %s" % (type(error).__name__, message))[:240], issues=issues + warnings,
+                                               machining=True, compute_s=round(time.time() - started, 2)), "preview": None, "object": None}
+    if not state["valid"]:
+        backend.remove_operation(final_op)
+        return {"result": ops.result_operation(entry, "error", error="FreeCAD a invalidé l'opération (géométrie non reconnue ou outil inadapté : %s)."
+                                               % ", ".join(state["state"]), issues=issues + warnings, machining=True,
+                                               compute_s=round(time.time() - started, 2)), "preview": None, "object": None}
+    if analysis["segments"] == 0:
+        backend.remove_operation(final_op)
+        cause = note or "aucune géométrie détectée pour cette opération"
+        return {"result": ops.result_operation(entry, "empty", error=cause, issues=issues + warnings, machining=True, segments=0,
+                                               compute_s=round(time.time() - started, 2)), "preview": None, "object": None}
+    preview = {"polylines": analysis["polylines"], "bounds": analysis["bounds"], "truncated": analysis["truncated"], "tool": entry["tool"]}
+    result_entry = ops.result_operation(entry, "computed", segments=analysis["segments"], estimated_s=analysis["estimated_s"],
+                                        length_mm=analysis["length_mm"], issues=issues + warnings, machining=True,
+                                        dressups=[item["type"] for item in entry.get("dressups", [])],
+                                        compute_s=round(time.time() - started, 2))
+    return {"result": result_entry, "preview": preview, "object": final_op}
+
+
+def _merge_bounds(items):
+    items = [item for item in items if item]
+    if not items:
+        return None
+    return {"min": [min(item["min"][axis] for item in items) for axis in range(3)],
+            "max": [max(item["max"][axis] for item in items) for axis in range(3)]}
 
 
 def main():
@@ -1053,16 +1251,22 @@ def main():
     version = ".".join(str(part) for part in App.Version()[:3])
     if op == "capabilities":
         found = capabilities(App)
-        with open(os.path.join(workdir, "cam_capabilities.json"), "w", encoding="utf-8") as handle:
-            json.dump(found, handle, ensure_ascii=False)
+        _write_json(workdir, "cam_capabilities.json", found)
         result(True, op="capabilities", freecad_version=version, artifacts=["cam_capabilities.json"],
-               cam_available=found["cam_available"], post_processors=len(found["post_processors"]))
+               cam_available=found["cam_available"], post_processors=len(found["post_processors"]), engine_version=ops.ENGINE_VERSION)
         return
     if not _importable("Path.Main.Job"):
         raise CamEngineError("FreeCAD CAM n'est pas disponible sur ce Worker (module Path absent).")
+    required = {name for entry in project["operations"] if entry["enabled"] for name in ops.OPERATION_REQUIREMENTS.get(entry["type"], ())}
+    if "ocl" in required and importlib.util.find_spec("opencamlib") is None and importlib.util.find_spec("ocl") is None:
+        raise CamEngineError("OpenCAMLib absent sur ce Worker : les opérations Surface et Waterline ne peuvent pas être calculées "
+                             "(Installations → Convertisseur 3D → OpenCAMLib).")
+    if "area" in required and importlib.util.find_spec("area") is None:
+        raise CamEngineError("Module « area » (libarea) absent de ce FreeCAD : Adaptive et Vcarve indisponibles.")
     backend = FreeCadCam()
     try:
-        details = compute(project, source, workdir, backend, cam_gcode_check, version)
+        details = preview(project, source, workdir, backend, version) if op == "preview" else \
+            compute(project, source, workdir, backend, cam_gcode_check, version)
     finally:
         backend.close()
     result(True, **details)
@@ -1082,6 +1286,10 @@ def launched_by_freecadcmd():
 if __name__ == "__main__" or launched_by_freecadcmd():
     try:
         main()
+    except CamCancelled as exc:
+        result(False, error=str(exc), cancelled=True)
+        if __name__ == "__main__":
+            sys.exit(3)
     except Exception as exc:
         traceback.print_exc()
         message = str(exc) if isinstance(exc, (CamEngineError, ValueError)) else "Erreur du moteur CAM : %s" % type(exc).__name__

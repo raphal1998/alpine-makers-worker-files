@@ -184,6 +184,8 @@ def v2_features(project):
     found = []
     if not isinstance(project, dict):
         return found
+    # Les opérations d'abord : c'est la raison la plus parlante dans le message de refus.
+    found.extend(_operation_features(project))
     scale = _dig(project, "source", "scale")
     if _is_number(scale) and abs(scale - 1.0) > 1e-12:
         found.append(("source.scale", "facteur d'échelle différent de 1"))
@@ -204,6 +206,16 @@ def v2_features(project):
         for key in V2_TOOL_SHAPE_KEYS:
             if tool.get(key) not in (None, 0):
                 found.append((f"{where}.{key}", "paramètre de forme ou de porte-outil v2"))
+    sequence = project.get("sequence") if isinstance(project.get("sequence"), dict) else {}
+    if sequence.get("tool_change_policy") not in (None, "pause_m0"):
+        found.append(("sequence.tool_change_policy", f"politique « {sequence.get('tool_change_policy')} »"))
+    if _is_number(sequence.get("spindle_wait_s")) and sequence["spindle_wait_s"] > 0:
+        found.append(("sequence.spindle_wait_s", "attente de broche"))
+    return found
+
+
+def _operation_features(project):
+    found = []
     for index, operation in enumerate(project.get("operations") if isinstance(project.get("operations"), list) else []):
         if not isinstance(operation, dict):
             continue
@@ -232,11 +244,6 @@ def v2_features(project):
         for key, neutral in V2_OPERATION_NEUTRAL.items():
             if key in operation and operation[key] != neutral:
                 found.append((f"{where}.{key}", "réglage propre v2 différent du comportement v1"))
-    sequence = project.get("sequence") if isinstance(project.get("sequence"), dict) else {}
-    if sequence.get("tool_change_policy") not in (None, "pause_m0"):
-        found.append(("sequence.tool_change_policy", f"politique « {sequence.get('tool_change_policy')} »"))
-    if _is_number(sequence.get("spindle_wait_s")) and sequence["spindle_wait_s"] > 0:
-        found.append(("sequence.spindle_wait_s", "attente de broche"))
     return found
 
 

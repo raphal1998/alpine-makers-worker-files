@@ -446,7 +446,7 @@ def validate_handoff(document):
             if operation_id is not None and operation_id not in operation_ids:
                 _fail(f"{where}.operation_id", "identifiant d'opération absent du projet.")
             for key in ("tool_from", "tool_to"):
-                number = _optional_int(item.get(key), f"{where}.{key}", 1, 999)
+                number = _optional_int(item.get(key), f"{where}.{key}", low=1, high=999)
                 if number is not None and number not in tool_numbers:
                     _fail(f"{where}.{key}", "numéro d'outil absent du projet.")
             position = item.get("position")

@@ -600,10 +600,11 @@ def _grbl(value, path, machine):
                 _fail(f"machine.travel.{axis}", f"course déclarée ({machine['travel'][axis]:g} mm) au-delà de la course "
                                                 f"mesurée sur la carte ($13{'xyz'.index(axis)} = {measured:g} mm).")
     if clean["max_rate"]:
-        rates = [rate for rate in clean["max_rate"].values() if rate is not None and rate > 0]
-        if rates and machine["max_feed"] > min(rates) + 1e-9:
+        # L'avance d'un déplacement XY ne peut pas dépasser la plus rapide des vitesses $110/$111 (GRBL plafonne par axe).
+        rates = [clean["max_rate"][axis] for axis in ("x", "y") if clean["max_rate"][axis] is not None and clean["max_rate"][axis] > 0]
+        if rates and machine["max_feed"] > max(rates) + 1e-9:
             _fail("machine.max_feed", f"avance maximale déclarée ({machine['max_feed']:g} mm/min) au-delà de la vitesse "
-                                      f"maximale mesurée sur la carte ($110-112 : {min(rates):g} mm/min).")
+                                      f"maximale mesurée sur la carte ($110/$111 : {max(rates):g} mm/min).")
     return clean
 
 
