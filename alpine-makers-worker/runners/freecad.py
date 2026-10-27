@@ -289,17 +289,20 @@ def _run_cam(job, workdir, state, parameters):
     cam = clean["cam"]
     request = {"op": cam["op"]}
     if cam["op"] in ("compute", "preview"):
-        project = cam["project"]
+        source_block = cam["project"]["source"] if cam["op"] == "compute" else cam["source"]
         source_info = parameters.get("input_file") if isinstance(parameters.get("input_file"), dict) else {}
         source = Path(str(source_info.get("path") or "")).resolve()
         if not source.is_file() or source.parent != workdir:
             raise ValueError("Fichier source absent ou non autorisé.")
         if source.stat().st_size > 512 * 1024 * 1024:
             raise ValueError("Fichier source trop volumineux.")
-        expected = project["source"]["file"]
+        expected = source_block["file"]
         if source.name != expected or str(source_info.get("name") or source.name) != expected:
             raise ValueError("Le fichier joint ne correspond pas au fichier source du projet CNC.")
-        request.update(project=project, source=expected)
+        if cam["op"] == "compute":
+            request.update(project=cam["project"], source=expected)
+        else:
+            request.update(source=expected, preview={key: cam[key] for key in ("source", "units", "orientation")})
     stdout_path, stderr_path = workdir / "freecad.stdout", workdir / "freecad.stderr"
     process = None
     if state.value["state"] == "preparing":

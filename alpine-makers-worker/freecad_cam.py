@@ -91,17 +91,26 @@ def read_request(path, workdir, cam_payload):
         request = json.load(handle)
     if not isinstance(request, dict):
         raise CamEngineError("Requête CAM invalide.")
-    unknown = sorted(set(request) - {"op", "project", "source"})
+    unknown = sorted(set(request) - {"op", "project", "source", "preview"})
     if unknown:
         raise CamEngineError("Requête CAM invalide : champ « %s » refusé." % unknown[0])
     op = request.get("op")
     if op == "capabilities":
-        if "project" in request or "source" in request:
+        if "project" in request or "source" in request or "preview" in request:
             raise CamEngineError("La lecture des capacités ne prend ni projet ni fichier.")
         return "capabilities", None, None
     if op not in REQUEST_OPS:
         raise CamEngineError("Opération CAM inconnue.")
-    project = ops.normalize_request_project(request.get("project"), cam_payload)
+    if op == "preview":
+        # Aperçu sans Job (contrat T1) : {"op": "preview", "source": "<nom>", "preview": {source {file, kind, units, scale}, units, orientation}}
+        if "project" in request or not isinstance(request.get("preview"), dict):
+            raise CamEngineError("Un aperçu prend « preview » (source, unités, orientation), jamais un projet.")
+        if getattr(cam_payload, "CAM_PAYLOAD_VERSION", 1) < 2:
+            raise CamEngineError("L'aperçu exige le validateur cam_payload v2 sur ce Worker.")
+        clean = cam_payload.validate_cam_job_parameters({"cam": dict(request["preview"], op="preview")})["cam"]
+        project = {"version": 2, "preview": True, "source": clean["source"], "units": clean["units"], "orientation": clean["orientation"]}
+    else:
+        project = ops.normalize_request_project(request.get("project"), cam_payload)
     source_name = request.get("source")
     if not isinstance(source_name, str) or source_name != project["source"]["file"]:
         raise CamEngineError("Le fichier source joint ne correspond pas au projet.")
@@ -997,24 +1006,30 @@ def place_model(project, source, backend):
     return shape, info, stock, cylinder, issues
 
 
-def preview(project, source, workdir, backend, freecad_version):
-    """Aperçu AVANT calcul : modèle orienté et placé (STL borné), brut, origine ; aucun Job FreeCAD."""
-    project = ops.normalize_project(project)
-    shape, info, stock, cylinder, issues = place_model(project, source, backend)
-    stem = project["output"]["stem"]
+def preview(request, source, workdir, backend, freecad_version):
+    """Aperçu AVANT calcul (contrat T1) : modèle importé, mis à l'échelle et orienté, STL borné + bornes ; aucun Job FreeCAD.
+
+    Le brut et l'origine ne sont pas connus ici (pas de projet) : le site place le brut lui-même autour des bornes rendues.
+    """
+    scale = (25.4 if request["source"]["units"] == "inch" else 1.0) * float(request["source"].get("scale", 1) or 1)
+    shape = backend.import_model(source, request["source"]["kind"])
+    shape = backend.transform(shape, scale, orientation_steps(request["orientation"]))
+    info = backend.model_info(shape)
+    issues = model_checks(info)
+    stem = os.path.splitext(request["source"]["file"])[0]
+    stem = "".join(char if char.isalnum() or char in "._-" else "_" for char in stem)[:60] or "modele"
     stl_name = stem + ".preview.stl"
     mesh_info = backend.tessellate(shape, os.path.join(workdir, stl_name))
-    size = [stock[1][i] - stock[0][i] for i in range(3)]
     payload = {"ok": True, "op": "preview", "engine_version": ops.ENGINE_VERSION, "freecad_version": freecad_version, "units": "mm",
                "model": {"bounds": {"min": info["bounds"][0], "max": info["bounds"][1]}, "is_solid": info["is_solid"], "is_mesh": info["is_mesh"],
-                         "facets": info["facets"], "units_assumed": project["source"]["units"], "scale": project["source"].get("scale", 1)},
-               "stock": {"size": {"x": size[0], "y": size[1], "z": size[2]}, "bounds": {"min": stock[0], "max": stock[1]},
-                         "shape": project["stock"].get("shape", "box"), "cylinder": cylinder, "origin_machine": [0.0, 0.0, 0.0]},
-               "fixtures": project["fixtures"], "mesh_preview": dict(mesh_info, name=stl_name) if mesh_info else None,
+                         "facets": info["facets"], "units_assumed": request["source"]["units"], "scale": request["source"].get("scale", 1),
+                         "solids": info.get("solids", 1)},
+               "orientation": request["orientation"], "mesh_preview": dict(mesh_info, name=stl_name) if mesh_info else None,
                "manufacturability": issues}
     _write_json(workdir, "cam_preview.json", payload)
     artifacts = ["cam_preview.json"] + ([stl_name] if mesh_info else [])
-    return {"op": "preview", "artifacts": artifacts, "mesh_preview": payload["mesh_preview"], "freecad_version": freecad_version}
+    return {"op": "preview", "artifacts": artifacts, "mesh_preview": payload["mesh_preview"], "model": payload["model"],
+            "freecad_version": freecad_version}
 
 
 def compute(project, source, workdir, backend, cam_gcode_check, freecad_version):
@@ -1199,7 +1214,10 @@ def _compute_operation(entry, tool, controller, heights, stock_top, model_top, b
         op = backend.add_operation(entry, controller, properties, targets)
         backend.recompute()
         geometry_final = backend.geometry_final(op)
-        start, final, warning = depth_window(kind, stock_top, model_top, geometry_final, entry)
+        if entry.get("final") is None:   # ébavurage : pas de FinalDepth, profondeur = extra_depth sous l'arête
+            start, final, warning = stock_top, model_top - float(entry["settings"].get("extra_depth") or 0.0), None
+        else:
+            start, final, warning = depth_window(kind, stock_top, model_top, geometry_final, entry)
         if kind == "pocket" and geometry_final is not None and final > geometry_final + 1e-6:
             # Mesuré (FreeCAD 1.1.3) : Pocket avec FinalDepth au-dessus du fond détecté → « shape is not planar », opération
             # invalide. Le moteur ne descend JAMAIS plus bas que demandé : il refuse avec la cause au lieu de forcer le fond.
@@ -1208,7 +1226,7 @@ def _compute_operation(entry, tool, controller, heights, stock_top, model_top, b
                      "exige d'atteindre le fond ; augmente depth.final ou choisis « adaptive » (ébauche bornée en profondeur)."
                      % (entry["final"], stock_top - geometry_final))
             return {"result": ops.result_operation(entry, "error", error=cause, issues=issues + warnings, machining=True), "preview": None, "object": None}
-        if kind not in ("deburr",):
+        if entry.get("final") is not None:
             backend.set_depths(op, start, final, entry["step_down"])
         if warning:
             warnings.append((warning[0], "warning", warning[1]))
@@ -1296,6 +1314,14 @@ def main():
         result(True, op="capabilities", freecad_version=version, artifacts=["cam_capabilities.json"],
                cam_available=found["cam_available"], post_processors=len(found["post_processors"]), engine_version=ops.ENGINE_VERSION)
         return
+    if op == "preview":
+        backend = FreeCadCam()
+        try:
+            details = preview(project, source, workdir, backend, version)
+        finally:
+            backend.close()
+        result(True, **details)
+        return
     if not _importable("Path.Main.Job"):
         raise CamEngineError("FreeCAD CAM n'est pas disponible sur ce Worker (module Path absent).")
     required = {name for entry in project["operations"] if entry["enabled"] for name in ops.OPERATION_REQUIREMENTS.get(entry["type"], ())}
@@ -1306,8 +1332,7 @@ def main():
         raise CamEngineError("Module « area » (libarea) absent de ce FreeCAD : Adaptive et Vcarve indisponibles.")
     backend = FreeCadCam()
     try:
-        details = preview(project, source, workdir, backend, version) if op == "preview" else \
-            compute(project, source, workdir, backend, cam_gcode_check, version)
+        details = compute(project, source, workdir, backend, cam_gcode_check, version)
     finally:
         backend.close()
     result(True, **details)

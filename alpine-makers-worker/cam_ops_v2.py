@@ -280,9 +280,18 @@ def validate_job_parameters(parameters, cam_payload=None):
         _fail("cam", "paramètres CAM invalides.")
     if "scene" in parameters:
         _fail("scene", "un job CAM ne porte pas de scène paramétrique.")
+    if cam_payload is not None and getattr(cam_payload, "CAM_PAYLOAD_VERSION", 1) >= 2:
+        # Contrat T1 livré : cam_payload valide capabilities / compute (version conservée) / preview ; le moteur ajoute
+        # ses propres contrôles (familles, Peck + Dwell, Waterline…) sans réécrire le projet transmis.
+        clean = cam_payload.validate_cam_job_parameters(parameters)
+        if clean["cam"]["op"] == "compute":
+            normalize_project(clean["cam"]["project"])
+        return clean
     clean = copy.deepcopy(parameters)
     cam = clean["cam"]
     operation = cam.get("op")
+    if operation == "preview":
+        _fail("cam.op", "l'aperçu exige le validateur cam_payload v2.")
     if operation == "capabilities":
         if set(cam) - {"op"}:
             _fail("cam", "la lecture des capacités ne prend que « op ».")
@@ -643,23 +652,33 @@ def _normalize_machining(operation, where, kind, factor, machine, tool, heights)
         selection.update(min_diameter=low, max_diameter=high)
     operation["selection"] = selection
     depth = dict(operation.get("depth") or {})
-    if "final" not in depth:
-        _fail(where + ".depth.final", "profondeur finale obligatoire.")
-    final = _require_number(depth["final"], where + ".depth.final", 0.001 / factor)
-    if final > tool["flute_length"] + 1e-9:
-        _fail(where + ".depth.final", "profondeur (%g) supérieure à la longueur taillée de l'outil n°%d (%g)."
-              % (final, tool["number"], tool["flute_length"]))
-    start = depth.get("start")
-    if start is not None and _require_number(start, where + ".depth.start", 0.0) >= final:
-        _fail(where + ".depth.start", "la profondeur de départ doit être au-dessus de la profondeur finale.")
-    step_down = depth.get("step_down")
-    step_down = min(tool["step_down"], final) if step_down is None else _require_number(step_down, where + ".depth.step_down", 0.001 / factor)
-    if step_down > final + 1e-9 or step_down > tool["flute_length"] + 1e-9:
-        _fail(where + ".depth.step_down", "profondeur de passe supérieure à la profondeur finale ou à la longueur taillée.")
-    finish = _require_number(depth.get("finish", 0.0), where + ".depth.finish", 0.0, 50.0 / factor)
-    if finish and kind not in ("facing", "pocket"):
-        _fail(where + ".depth.finish", "passe de finition non prise en charge par FreeCAD 1.1.3 hors surfaçage et poche.")
-    operation["depth"] = {"start": start, "final": final, "step_down": step_down, "finish": finish}
+    if kind == "deburr":
+        # FreeCAD 1.1.3 : Deburr n'a pas de FinalDepth (profondeur = ExtraDepth sous l'arête) ; depth.final reste null.
+        if depth.get("final") is not None:
+            _fail(where + ".depth.final", "l'ébavurage n'a pas de profondeur finale (elle vient de extra_depth) : laisse null.")
+        step_down = depth.get("step_down")
+        operation["depth"] = {"start": depth.get("start"), "final": None,
+                              "step_down": tool["step_down"] if step_down is None else _require_number(step_down, where + ".depth.step_down", 0.001 / factor),
+                              "finish": 0.0}
+        final = float(operation.get("extra_depth") if _num(operation.get("extra_depth")) else 0.5 / factor)
+    else:
+        if depth.get("final") is None:
+            _fail(where + ".depth.final", "profondeur finale obligatoire.")
+        final = _require_number(depth["final"], where + ".depth.final", 0.001 / factor)
+        if final > tool["flute_length"] + 1e-9:
+            _fail(where + ".depth.final", "profondeur (%g) supérieure à la longueur taillée de l'outil n°%d (%g)."
+                  % (final, tool["number"], tool["flute_length"]))
+        start = depth.get("start")
+        if start is not None and _require_number(start, where + ".depth.start", 0.0) >= final:
+            _fail(where + ".depth.start", "la profondeur de départ doit être au-dessus de la profondeur finale.")
+        step_down = depth.get("step_down")
+        step_down = min(tool["step_down"], final) if step_down is None else _require_number(step_down, where + ".depth.step_down", 0.001 / factor)
+        if step_down > final + 1e-9 or step_down > tool["flute_length"] + 1e-9:
+            _fail(where + ".depth.step_down", "profondeur de passe supérieure à la profondeur finale ou à la longueur taillée.")
+        finish = _require_number(depth.get("finish") if depth.get("finish") is not None else 0.0, where + ".depth.finish", 0.0, 50.0 / factor)
+        if finish and kind not in ("facing", "pocket"):
+            _fail(where + ".depth.finish", "passe de finition non prise en charge par FreeCAD 1.1.3 hors surfaçage et poche.")
+        operation["depth"] = {"start": start, "final": final, "step_down": step_down, "finish": finish}
     op_heights = operation.get("heights")
     if op_heights is not None:
         for key in ("clearance", "safe"):
@@ -915,7 +934,7 @@ def plan(project):
                 entry["gcode_lines"] = list(operation["gcode_lines"])
             else:
                 depth = operation["depth"]
-                entry.update({"final": depth["final"] * factor, "step_down": depth["step_down"] * factor,
+                entry.update({"final": None if depth["final"] is None else depth["final"] * factor, "step_down": depth["step_down"] * factor,
                               "start": None if depth["start"] is None else depth["start"] * factor, "finish": depth["finish"] * factor,
                               "stepover_pct": operation["stepover_pct"], "direction": operation["direction"],
                               "stock_to_leave": {key: value * factor for key, value in operation["stock_to_leave"].items()},
@@ -928,6 +947,9 @@ def plan(project):
                               "engine_shape": engine_tool_shape(kind, tool["family"])})
         entries.append(entry)
     return tools, entries
+
+
+operations_plan = plan   # nom utilisé par CNC Studio (cnc_sequences.py) : signature et tuples stables
 
 
 def _selection_mm(selection, factor):
