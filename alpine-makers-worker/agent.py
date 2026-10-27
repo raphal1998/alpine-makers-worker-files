@@ -101,7 +101,7 @@ else:
     import job_limits
     import resource_limits
 
-AGENT_VERSION = "1.50.44"
+AGENT_VERSION = "1.50.45"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -166,6 +166,11 @@ AGENT_CAPABILITIES += ("worker_self_service_v1",)  # littéral : le site lit ces
 # Agent 1.49.0, Préparer pour une CNC : runners/freecad.py lance freecad_cam.py (FreeCAD CAM) sur un projet déclaratif revalidé par
 # cam_payload ; le G-code produit est relu par cam_gcode_check avant d'être rendu. Aucune commande vers une machine.
 AGENT_CAPABILITIES += ("freecad_cam_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.50.45, Préparer pour une CNC v2 (tranche T2) : freecad_cam.py + cam_ops_v2.py calculent le contrat v2 (toutes les
+# opérations console de FreeCAD 1.1.3, dressups Tags/DogboneII/Boundary, outils ballend/bullnose/vbit/chamfer/threadmill, OCL
+# Surface/Waterline), un G-code par outil en « split_files », aperçu de trajectoire et STL du modèle, progression réelle par
+# opération, annulation propre, capacités détaillées. Aucune commande vers une machine.
+AGENT_CAPABILITIES += ("freecad_cam_v2",)  # littéral : le site lit ces lignes sans importer l'agent
 # Agent 1.50.0 : gestion complète depuis worker.exe. L'action locale « manage » (full_control.py) relaie une opération
 # de Mes Workers vers la route signée self/manage ; le site ne l'accepte que si le propriétaire l'a activée.
 AGENT_CAPABILITIES += ("worker_full_control_v1",)  # littéral : le site lit ces lignes sans importer l'agent

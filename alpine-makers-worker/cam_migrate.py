@@ -32,7 +32,7 @@ V2_OPERATION_NEUTRAL = {
     "rest_machining": False, "boundary": "stock", "use_comp": True, "passes": 1, "pass_stepover": None,
     "join_type": "round", "process_perimeter": True, "process_holes": False, "process_circles": False,
     "handle_multiple": "collectively", "retract_mode": "G98", "retract_height": None, "extra_offset": "none",
-    "keep_tool_down": False, "min_travel": False, "heights": None, "stop_spindle": True,
+    "keep_tool_down": False, "min_travel": False, "heights": None, "start_point": None, "stop_spindle": True,
     "go_to_change_position": False,
 }
 V2_OPERATION_INFO_KEYS = ("description", "phase")

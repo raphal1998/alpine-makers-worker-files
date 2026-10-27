@@ -415,8 +415,9 @@ def _ref(value, path):
 def _neutral(item, key, where, neutral, reason):
     """Un réglage non pris en charge : seule sa valeur neutre (ou l'absence) est admise."""
     if key in item and item[key] is not None and item[key] != neutral:
+        shown = "vide (null)" if neutral is None else str(neutral).lower() if isinstance(neutral, bool) else f"{neutral}"
         _fail(f"{where}.{key}", f"réglage non pris en charge par FreeCAD 1.1.3 pour cette opération ({reason}) : "
-                                f"laisse « {neutral!r} » ou retire le champ.".replace("'", ""))
+                                f"laisse « {shown} » ou retire le champ.")
     return neutral
 
 
@@ -1093,17 +1094,18 @@ def _machining(item, where, kind, factor, machine, tool, heights, defined):
 # ---------------------------------------------------------------------------------------------
 _V2_COMMON_OPTIONAL = ("selection", "stepover_pct", "stock_to_leave", "tolerance", "direction", "feed_xy", "feed_plunge",
                        "feed_ramp", "spindle_rpm", "spindle_dir", "coolant", "keep_tool_down", "min_travel", "heights",
-                       "dressups")
+                       "start_point", "dressups")
 
 
-def _spec(own, *, step_down=True, stepover=True, stepover_default=None, finish=False, radial=False, axial=False,
-          tolerance=False, tolerance_default=None, direction=False, keep_tool_down=False, min_travel=False,
-          diameters=False, required=()):
+def _spec(own, *, step_down=True, depth_final=True, stepover=True, stepover_default=None, finish=False, radial=False,
+          axial=False, tolerance=False, tolerance_default=None, direction=False, keep_tool_down=False, min_travel=False,
+          start_point=False, diameters=False, required=()):
+    """Drapeaux = propriétés réellement présentes sur l'opération FreeCAD 1.1.3 (audit, ops_props.json)."""
     return {"required": _MACHINING_REQUIRED + tuple(required), "optional": _V2_COMMON_OPTIONAL + tuple(own),
-            "own": own, "step_down": step_down, "stepover": stepover, "stepover_default": stepover_default,
-            "finish": finish, "radial": radial, "axial": axial, "tolerance": tolerance,
-            "tolerance_default": tolerance_default, "direction": direction, "keep_tool_down": keep_tool_down,
-            "min_travel": min_travel, "diameters": diameters}
+            "own": own, "step_down": step_down, "depth_final": depth_final, "stepover": stepover,
+            "stepover_default": stepover_default, "finish": finish, "radial": radial, "axial": axial,
+            "tolerance": tolerance, "tolerance_default": tolerance_default, "direction": direction,
+            "keep_tool_down": keep_tool_down, "min_travel": min_travel, "start_point": start_point, "diameters": diameters}
 
 
 _V2_SPECS = {
@@ -1112,17 +1114,17 @@ _V2_SPECS = {
         "zigzag_angle": ("number", "zigzag_angle_deg", 45), "clear_edges": ("bool", None, True),
         "start_at": ("choice", START_AT, "center"), "exclude_raised": ("bool", None, False),
         "rest_machining": ("bool", None, False)}, finish=True, radial=True, direction=True, keep_tool_down=True,
-        min_travel=True),
+        min_travel=True, start_point=True),
     "pocket": _spec({
         "pattern": ("choice", CLEARING_PATTERNS, "zigzag"), "zigzag_angle": ("number", "zigzag_angle_deg", 45),
         "start_at": ("choice", START_AT, "center"), "rest_machining": ("bool", None, False)},
-        finish=True, radial=True, direction=True, keep_tool_down=True, min_travel=True),
+        finish=True, radial=True, direction=True, keep_tool_down=True, min_travel=True, start_point=True),
     "profile": _spec({
         "side": ("choice", PROFILE_SIDES, "outside"), "use_comp": ("bool", None, True),
         "passes": ("int", "pass_count", 1), "pass_stepover": ("length_or_null", "length_mm", None),
         "join_type": ("choice", JOIN_TYPES, "round"), "process_perimeter": ("bool", None, True),
         "process_holes": ("bool", None, False), "process_circles": ("bool", None, False),
-        "handle_multiple": ("choice", HANDLE_MULTIPLE, "collectively")}, radial=True, direction=True),
+        "handle_multiple": ("choice", HANDLE_MULTIPLE, "collectively")}, radial=True, direction=True, start_point=True),
     "drilling": _spec({
         "peck": ("length", (0.0, 3000.0), 0), "dwell": ("number", "dwell_s", 0),
         "retract_mode": ("choice", RETRACT_MODES, "G98"), "retract_height": ("length_or_null", "retract_height_mm", None),
@@ -1134,8 +1136,8 @@ _V2_SPECS = {
         "helix_diameter_limit": ("length", (0.0, 3000.0), 0), "use_helix_arcs": ("bool", None, False),
         "lift_distance": ("length", "lift_distance_mm", 0), "keep_tool_down_ratio": ("number", (0.0, 10.0), 3),
         "finishing_profile": ("bool", None, True), "force_inside_out": ("bool", None, True),
-        "order_by_region": ("bool", None, True)}, stepover_default=20, radial=True, axial=True, tolerance=True,
-        tolerance_default=0.1),
+        "order_by_region": ("bool", None, True)}, stepover_default=20, finish=True, radial=True, axial=True,
+        tolerance=True, tolerance_default=0.1),
     "engrave": _spec({"start_vertex": ("int", "vertex_index", 0)}, stepover=False),
     "vcarve": _spec({
         "discretize": ("length", "discretize_mm", 0.25), "colinear": ("number", "colinear_deg", 10),
@@ -1143,11 +1145,11 @@ _V2_SPECS = {
         "optimize_movements": ("bool", None, True)}, stepover=False, tolerance=True, tolerance_default=0.01),
     "helix": _spec({
         "start_side": ("choice", PROFILE_SIDES, "inside"), "start_radius": ("length", (0.0, 100.0), 0),
-        "path_direction": ("choice", PATH_DIRECTIONS, "cw")}, diameters=True),
+        "path_direction": ("choice", PATH_DIRECTIONS, "cw")}, radial=True, direction=True, diameters=True),
     "slot": _spec({
         "pattern": ("choice", SLOT_PATTERNS, "line"), "layer_mode": ("choice", LAYER_MODES, "multi"),
         "extend_start": ("length", "extend_mm", 0), "extend_end": ("length", "extend_mm", 0),
-        "reverse": ("bool", None, False)}, stepover=False),
+        "reverse": ("bool", None, False)}, stepover=False, start_point=True),
     "surface": _spec({
         "requires": ("requires", None, ["ocl"]), "bound_box": ("choice", ("base", "stock"), "stock"),
         "scan_type": ("choice", SURFACE_SCAN_TYPES, "planar"), "pattern": ("choice", SURFACE_PATTERNS, "line"),
@@ -1157,19 +1159,19 @@ _V2_SPECS = {
         "boundary_adjustment": ("length", "boundary_adjustment_mm", 0), "internal_features_cut": ("bool", None, True),
         "optimize_linear_paths": ("bool", None, True), "optimize_stepover_transitions": ("bool", None, False),
         "circular_use_g2g3": ("bool", None, False), "linear_deflection": ("length", "linear_deflection_mm", 0.0025)},
-        stepover_default=50),
+        stepover_default=50, direction=True, start_point=True),
     "waterline": _spec({
         "requires": ("requires", None, ["ocl"]), "algorithm": ("choice", WATERLINE_ALGORITHMS, "ocl_dropcutter"),
         "bound_box": ("choice", ("stock",), "stock"), "layer_mode": ("choice", ("multi",), "multi"),
         "clear_last_layer": ("bool", None, False), "pattern": ("choice", SURFACE_PATTERNS, "line"),
         "ignore_outer_above": ("length", (0.0, 3000.0), 0), "sample_interval": ("length", "sample_interval_mm", 1),
         "boundary_enforcement": ("bool", None, True), "boundary_adjustment": ("length", "boundary_adjustment_mm", 0),
-        "internal_features_cut": ("bool", None, True)}, stepover_default=50),
+        "internal_features_cut": ("bool", None, True)}, stepover_default=50, direction=True, start_point=True),
     "deburr": _spec({
         "width": ("length", "deburr_width_mm", 1), "extra_depth": ("length", "extra_depth_mm", 0.5),
         "join": ("choice", DEBURR_JOINS, "round"), "path_direction": ("choice", PATH_DIRECTIONS, "cw"),
         "side": ("choice", PROFILE_SIDES, "outside"), "entry_point": ("int", "vertex_index", 0)},
-        step_down=False, stepover=False),
+        depth_final=False, stepover=False),
     "thread_milling": _spec({
         "thread": ("thread", None, None), "passes": ("int", (1, 10), 1),
         "orientation": ("choice", THREAD_ORIENTATIONS, "right"), "path_direction": ("choice", PATH_DIRECTIONS, "cw"),
@@ -1177,9 +1179,9 @@ _V2_SPECS = {
     "custom": {"required": ("tool", "gcode_lines"), "optional": ("spindle_rpm", "spindle_dir", "feed_xy", "feed_plunge", "coolant"),
                "own": {}, "custom": True},
 }
-_V2_SPECS["custom"].update(step_down=False, stepover=False, stepover_default=None, finish=False, radial=False, axial=False,
-                           tolerance=False, tolerance_default=None, direction=False, keep_tool_down=False, min_travel=False,
-                           diameters=False)
+_V2_SPECS["custom"].update(step_down=False, depth_final=False, stepover=False, stepover_default=None, finish=False, radial=False,
+                           axial=False, tolerance=False, tolerance_default=None, direction=False, keep_tool_down=False,
+                           min_travel=False, start_point=False, diameters=False)
 
 
 def _own_setting(item, where, key, spec, factor):
@@ -1262,18 +1264,23 @@ def _machining_v2(item, where, kind, factor, machine, tool, heights, sequence):
         clean_selection.update(min_diameter=low, max_diameter=high)
     entry["selection"] = clean_selection
     # Profondeurs
-    depth = _keys(item["depth"], f"{where}.depth", ("final",), ("start", "step_down", "finish"))
-    final = _number(depth["final"], f"{where}.depth.final", CAM_BOUNDS["length_mm"], factor=factor)
+    if spec["depth_final"]:
+        depth = _keys(item["depth"], f"{where}.depth", ("final",), ("start", "step_down", "finish"))
+        final = _number(depth["final"], f"{where}.depth.final", CAM_BOUNDS["length_mm"], factor=factor)
+        if final > tool["flute_length"] + 1e-9:
+            _fail(f"{where}.depth.final", f"profondeur ({final:g}) supérieure à la longueur taillée de l'outil "
+                                          f"n°{tool['number']} ({tool['flute_length']:g}).")
+    else:
+        # Ébavurage : FreeCAD 1.1.3 n'a pas de FinalDepth (profondeur = ExtraDepth sous l'arête) ; StartDepth seul.
+        depth = _keys(item["depth"], f"{where}.depth", (), ("final", "start", "step_down", "finish"))
+        final = _neutral(depth, "final", f"{where}.depth", None, "pas de FinalDepth : la profondeur vient de extra_depth")
     start = _optional_number(depth.get("start"), f"{where}.depth.start", (0.0, 3000.0), factor=factor)
-    if start is not None and start >= final:
+    if start is not None and final is not None and start >= final:
         _fail(f"{where}.depth.start", "la profondeur de départ doit être au-dessus de la profondeur finale.")
-    if final > tool["flute_length"] + 1e-9:
-        _fail(f"{where}.depth.final", f"profondeur ({final:g}) supérieure à la longueur taillée de l'outil "
-                                      f"n°{tool['number']} ({tool['flute_length']:g}).")
     if spec["step_down"]:
-        step_down = _number(depth.get("step_down", min(tool["step_down"], final)), f"{where}.depth.step_down",
-                            CAM_BOUNDS["length_mm"], factor=factor)
-        if step_down > final + 1e-9:
+        default_step = min(tool["step_down"], final) if final is not None else tool["step_down"]
+        step_down = _number(depth.get("step_down", default_step), f"{where}.depth.step_down", CAM_BOUNDS["length_mm"], factor=factor)
+        if final is not None and step_down > final + 1e-9:
             _fail(f"{where}.depth.step_down", "profondeur de passe supérieure à la profondeur finale.")
         if step_down > tool["flute_length"] + 1e-9:
             _fail(f"{where}.depth.step_down", "profondeur de passe supérieure à la longueur taillée.")
@@ -1285,8 +1292,19 @@ def _machining_v2(item, where, kind, factor, machine, tool, heights, sequence):
         if finish >= final:
             _fail(f"{where}.depth.finish", "passe de finition plus épaisse que la profondeur finale.")
     else:
-        finish = _neutral(depth, "finish", f"{where}.depth", 0, "FinishDepth n'existe que pour le surfaçage et la poche")
+        finish = _neutral(depth, "finish", f"{where}.depth", 0, "FinishDepth n'existe que pour le surfaçage, la poche et l'adaptative")
     entry["depth"] = {"start": start, "final": final, "step_down": step_down, "finish": float(finish)}
+    # Point de départ (UseStartPoint / StartPoint : surfaçage, poche, contour, rainure, surface, lignes de niveau)
+    start_point = item.get("start_point")
+    if start_point is None:
+        entry["start_point"] = None
+    elif not spec["start_point"]:
+        _fail(f"{where}.start_point", "point de départ non pris en charge par FreeCAD 1.1.3 pour cette opération "
+                                      "(UseStartPoint : surfaçage, poche, contour, rainure, surface, lignes de niveau).")
+    else:
+        _keys(start_point, f"{where}.start_point", ("x", "y"))
+        entry["start_point"] = {axis: _number(start_point[axis], f"{where}.start_point.{axis}", CAM_BOUNDS["coordinate_mm"],
+                                              factor=factor) for axis in ("x", "y")}
     # Hauteurs par opération
     own_heights = item.get("heights")
     if own_heights is None:
@@ -1315,7 +1333,7 @@ def _machining_v2(item, where, kind, factor, machine, tool, heights, sequence):
     if radial and not spec["radial"]:
         _fail(f"{where}.stock_to_leave.radial", "surépaisseur radiale non prise en charge par FreeCAD 1.1.3 pour cette "
                                                 "opération (OffsetExtra/ExtraOffset/StockToLeave : surfaçage, poche, "
-                                                "contour, adaptative) : laisse 0.")
+                                                "contour, hélice, adaptative) : laisse 0.")
     if axial and not spec["axial"]:
         _fail(f"{where}.stock_to_leave.axial", "surépaisseur axiale non prise en charge par FreeCAD 1.1.3 hors Adaptive "
                                                "(ZStockToLeave) : laisse 0.")
@@ -1330,7 +1348,8 @@ def _machining_v2(item, where, kind, factor, machine, tool, heights, sequence):
     direction = _choice(item.get("direction", "climb"), f"{where}.direction", CUT_DIRECTIONS)
     if direction != "climb" and not spec["direction"]:
         _fail(f"{where}.direction", "sens de coupe non réglable pour cette opération en FreeCAD 1.1.3 (CutMode : surfaçage, "
-                                    "poche ; Direction déduite du côté pour le contour) : laisse « climb ».")
+                                    "poche, hélice, surface, lignes de niveau ; Direction déduite du côté pour le contour) : "
+                                    "laisse « climb ».")
     entry["direction"] = direction
     entry["keep_tool_down"] = _bool(item.get("keep_tool_down", False), f"{where}.keep_tool_down")
     if entry["keep_tool_down"] and not spec["keep_tool_down"]:
@@ -1402,7 +1421,7 @@ def _dressups(value, where, kind, entry, final, factor):
             if count < 1:
                 _fail(f"{path}.count", "au moins un pont (sinon retire le dressup).")
             height = _number(item.get("height", 2.0 / factor), f"{path}.height", CAM_BOUNDS["length_mm"], factor=factor)
-            if height >= final:
+            if final is not None and height >= final:
                 _fail(f"{path}.height", "pont plus haut que la profondeur de coupe.")
             clean.append({"type": "tags", "count": count,
                           "width": _number(item.get("width", 6.0 / factor), f"{path}.width", CAM_BOUNDS["length_mm"], factor=factor),

@@ -1,5 +1,26 @@
 # Historique des mises à jour
 
+## Version 1.50.45 — 2026-10-27
+
+**Préparer pour une CNC v2 : toutes les opérations FreeCAD CAM, un G-code par outil, aperçu et capacités détaillées**
+
+### Ajouté
+- Capacité freecad_cam_v2 : le moteur calcule le projet CAM v2 avec toutes les opérations réellement disponibles en console FreeCAD 1.1.3 (MillFace, Pocket, Profile, Drilling G81/G82/G83 traduits en G0/G1, Helix, Adaptive, Slot, Engrave, Vcarve, Deburr, Surface et Waterline avec OpenCAMLib, ThreadMilling avec diamètres et pas, bloc personnalisé borné), dressups Tags / DogboneII / Boundary, outils boule, torique, V, chanfrein, graveur et fraise à fileter.
+- Politique de changement d'outil : pauses M0 (défaut), un fichier G-code par outil (<nom>_T<n>.nc, nommés et ordonnés, chacun complet et contrôlé) ou M6 réel seulement pour une machine à changeur hors GRBL ; manifeste avec empreinte SHA-256 par fichier, étapes manuelles et liste de ce que la simulation ne couvre pas.
+- Aperçu : trajectoires rapides / coupe / plongées par opération et STL du modèle placé (borné à 8 Mio) pour la vue 3D du site, op « preview » (modèle, brut, origine) sans calcul.
+- Capacités détaillées rapportées au site : version FreeCAD, OpenCAMLib et version, opérations importables et satisfaites, formes d'outils présentes, dressups, arguments réels de chaque post, politiques de changement d'outil, restrictions.
+
+### Modifié
+- État par opération (calculée, vide avec cause, erreur avec cause), forme d'outil réellement lue par FreeCAD, durée estimée par opération d'après longueurs et avances (trapèze si l'accélération de la machine est connue), progression réelle (opérations terminées / total) et annulation propre entre deux opérations.
+- Contrôles de fabricabilité : outil trop court, porte-outil dans le brut, zones plus étroites que l'outil (écartées de la poche et signalées), dégagement hors course Z, parcours hors course, vérification G21/G17/G90, M3/M5 et absence de G43/G84/cycles bruts dans chaque fichier.
+
+### Corrigé
+- Diamètre d'outil ignoré : les propriétés du ToolBit (Diameter, CuttingEdgeHeight, Length, Flutes…) posées avant l'attache au document étaient écrasées par FreeCAD (Ø 5 mm par défaut quel que soit l'outil). Elles sont posées après l'attache et relues ; le moteur refuse un contrôleur dont le diamètre ne correspond pas.
+- Un argument de post inconnu (ex. --no-tlo) tuait freecadcmd : la ligne d'options est filtrée par le parser réel du post ; --translate_drill explicite et --precision posés pour grbl.
+
+### Technique
+- Empreinte du paquet publié : `fa64c05ac315a76b…` (dossier du paquet).
+
 ## Version 1.50.44 — 2026-10-27
 
 ### Technique

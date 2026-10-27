@@ -765,10 +765,15 @@ class FreeCadCam:
         return ["Edge%d" % (index + 1) for index, edge in enumerate(shape.Edges)
                 if abs(edge.BoundBox.ZMin - top) < 1e-6 and abs(edge.BoundBox.ZMax - top) < 1e-6]
 
-    def select_targets(self, entry):
-        """(sous-éléments FaceN/EdgeN ou None, zones [{name, width}], note) selon le type et ``selection``."""
+    def select_targets(self, entry, tool=None):
+        """(sous-éléments FaceN/EdgeN ou None, zones [{name, width}], note) selon le type et ``selection``.
+
+        Poche / adaptative : un fond plus étroit que l'outil est ÉCARTÉ de la sélection (mesuré : un seul fond de 4 mm
+        avec une fraise de 6 vide toute la poche collective) ; il reste signalé par ``zone_too_small_for_tool``.
+        """
         kind, selection = entry["type"], entry["selection"]
         faces = self._face_entries()
+        diameter = float(tool["diameter"]) if tool else 0.0
         if selection.get("mode") == "faces":
             names = {face["name"] for face in faces}
             missing = [name for name in selection["faces"] if name not in names]
@@ -780,7 +785,10 @@ class FreeCadCam:
             return [face["name"] for face in faces if face["is_top"]] or None, [], ""
         if kind in ("pocket", "adaptive"):
             floors = [face for face in faces if face["is_floor"]]
-            return [face["name"] for face in floors] or None, [{"name": face["name"], "width": min(face["xlen"], face["ylen"])} for face in floors], ""
+            zones = [{"name": face["name"], "width": min(face["xlen"], face["ylen"])} for face in floors]
+            usable = [face["name"] for face in floors if min(face["xlen"], face["ylen"]) >= diameter - 1e-6]
+            note = "" if usable or not floors else "tous les fonds détectés sont plus étroits que l'outil"
+            return usable or None, zones, note
         if kind == "slot":
             floors = [face for face in faces if face["is_floor"] and min(face["xlen"], face["ylen"]) < 0.5 * max(face["xlen"], face["ylen"])]
             if not floors:
@@ -1037,7 +1045,7 @@ def compute(project, source, workdir, backend, cam_gcode_check, freecad_version)
     steps = ops.sequence_steps(entries, tools, policy, manual, change_position)
     machining_total = sum(1 for step in steps if step[0] == "op")
     reports, previews, program_objects = {}, {}, {}
-    order = []
+    machining_programs, order = set(), []
     progress = {"total": machining_total, "done": 0, "current": None, "operations": {step[1]["id"]: "pending" for step in steps if step[0] == "op"},
                 "within_operation": "indeterminate"}
     _progress(workdir, progress)
@@ -1060,12 +1068,16 @@ def compute(project, source, workdir, backend, cam_gcode_check, freecad_version)
         progress.update(current=entry["id"])
         progress["operations"][entry["id"]] = "computing"
         _progress(workdir, progress)
-        report = _compute_operation(entry, tool, controllers[entry["controller"]], heights, stock_top, model_top, backend, rapid_speed, accel)
+        if entry["type"] == "custom":
+            report = _compute_custom(entry, tool, controllers[entry["controller"]], backend, rapid_speed, accel)
+        else:
+            report = _compute_operation(entry, tool, controllers[entry["controller"]], heights, stock_top, model_top, backend, rapid_speed, accel)
         reports[entry["id"]] = report["result"]
         if report.get("preview"):
             previews[entry["id"]] = report["preview"]
         if report["result"]["state"] == "computed":
             program_objects.setdefault(program, []).append(report["object"])
+            machining_programs.add(program)
         progress["done"] += 1
         progress["operations"][entry["id"]] = report["result"]["state"]
         _progress(workdir, progress)
@@ -1078,7 +1090,8 @@ def compute(project, source, workdir, backend, cam_gcode_check, freecad_version)
     post_name = machine["post_processor"]
     arguments = ops.post_arguments(post_name, backend.post_known_arguments(post_name), project, policy)
     runs = ops.program_runs(steps)
-    runs = [run for run in runs if program_objects.get(run["index"])]
+    # Un programme sans usinage calculé (consigne seule, opérations vides) ne donne aucun fichier : ses étapes manuelles restent.
+    runs = [run for run in runs if run["index"] in machining_programs]
     stem = project["output"]["stem"]
     names = ops.program_file_names(runs, stem, machine["output_extension"])
     files, validations, post_issues, all_segments, time_total = [], [], [], [], 0.0
@@ -1179,13 +1192,22 @@ def _compute_operation(entry, tool, controller, heights, stock_top, model_top, b
     started = time.time()
     try:
         properties = ops.operation_properties(entry, tool, heights, stock_top)
-        targets, zones, note = backend.select_targets(entry)
+        targets, zones, note = backend.select_targets(entry, tool)
         if note:
             warnings.append(("selection_note", "warning", "Opération « %s » : %s." % (entry["name"], note)))
         issues += ops.zone_issues(entry, tool, zones)
         op = backend.add_operation(entry, controller, properties, targets)
         backend.recompute()
-        start, final, warning = depth_window(kind, stock_top, model_top, backend.geometry_final(op), entry)
+        geometry_final = backend.geometry_final(op)
+        start, final, warning = depth_window(kind, stock_top, model_top, geometry_final, entry)
+        if kind == "pocket" and geometry_final is not None and final > geometry_final + 1e-6:
+            # Mesuré (FreeCAD 1.1.3) : Pocket avec FinalDepth au-dessus du fond détecté → « shape is not planar », opération
+            # invalide. Le moteur ne descend JAMAIS plus bas que demandé : il refuse avec la cause au lieu de forcer le fond.
+            backend.remove_operation(op)
+            cause = ("la profondeur demandée (%.2f mm) n'atteint pas le fond détecté (%.2f mm sous le brut) : FreeCAD Pocket "
+                     "exige d'atteindre le fond ; augmente depth.final ou choisis « adaptive » (ébauche bornée en profondeur)."
+                     % (entry["final"], stock_top - geometry_final))
+            return {"result": ops.result_operation(entry, "error", error=cause, issues=issues + warnings, machining=True), "preview": None, "object": None}
         if kind not in ("deburr",):
             backend.set_depths(op, start, final, entry["step_down"])
         if warning:
@@ -1230,6 +1252,25 @@ def _compute_operation(entry, tool, controller, heights, stock_top, model_top, b
     return {"result": result_entry, "preview": preview, "object": final_op}
 
 
+def _compute_custom(entry, tool, controller, backend, rapid_speed, accel):
+    """Bloc personnalisé : lignes déjà validées (cam_ops_v2.validate_custom_motion_line), recopiées par Path.Op.Custom."""
+    started = time.time()
+    try:
+        obj = backend.add_custom(entry["name"], entry["gcode_lines"], controller)
+        backend.recompute()
+        commands = backend.path_commands(obj)
+        analysis = ops.path_analysis(commands, entry["feed_xy"] or tool["feed_xy"], entry["feed_plunge"] or tool["feed_plunge"], rapid_speed, accel)
+    except CamCancelled:
+        raise
+    except Exception as error:
+        return {"result": ops.result_operation(entry, "error", error=("%s : %s" % (type(error).__name__, str(error) or ""))[:240], machining=True,
+                                               compute_s=round(time.time() - started, 2)), "preview": None, "object": None}
+    preview = {"polylines": analysis["polylines"], "bounds": analysis["bounds"], "truncated": analysis["truncated"], "tool": entry["tool"]}
+    return {"result": ops.result_operation(entry, "computed", segments=analysis["segments"], estimated_s=analysis["estimated_s"],
+                                           length_mm=analysis["length_mm"], machining=True, compute_s=round(time.time() - started, 2)),
+            "preview": preview if analysis["segments"] else None, "object": obj}
+
+
 def _merge_bounds(items):
     items = [item for item in items if item]
     if not items:
@@ -1259,8 +1300,8 @@ def main():
         raise CamEngineError("FreeCAD CAM n'est pas disponible sur ce Worker (module Path absent).")
     required = {name for entry in project["operations"] if entry["enabled"] for name in ops.OPERATION_REQUIREMENTS.get(entry["type"], ())}
     if "ocl" in required and importlib.util.find_spec("opencamlib") is None and importlib.util.find_spec("ocl") is None:
-        raise CamEngineError("OpenCAMLib absent sur ce Worker : les opérations Surface et Waterline ne peuvent pas être calculées "
-                             "(Installations → Convertisseur 3D → OpenCAMLib).")
+        raise CamEngineError("[FREECAD_OCL_MISSING] OpenCAMLib absent sur ce Worker : les opérations Surface et Waterline ne peuvent "
+                             "pas être calculées (Installations → Convertisseur 3D → OpenCAMLib).")
     if "area" in required and importlib.util.find_spec("area") is None:
         raise CamEngineError("Module « area » (libarea) absent de ce FreeCAD : Adaptive et Vcarve indisponibles.")
     backend = FreeCadCam()

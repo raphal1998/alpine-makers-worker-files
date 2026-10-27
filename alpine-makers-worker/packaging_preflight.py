@@ -17,7 +17,7 @@ REQUIRED_SOURCE_FILES = (
     "local_sandbox.py", "legal_policy.json", "legal_evidence.json", "legal_sources/INDEX.json", "run_worker.ps1", "install_linux.sh",
     "installers/component_installer.py", "installers/model_installer.py",
     "installers/model_catalog.py", "installers/python_runtime.py",
-    "runners/comfyui.py", "runners/hunyuan3d.py", "runners/freecad.py", "cam_payload.py", "cam_gcode_check.py",
+    "runners/comfyui.py", "runners/hunyuan3d.py", "runners/freecad.py", "cam_payload.py", "cam_gcode_check.py", "cam_migrate.py", "cam_handoff.py",
 )
 
 

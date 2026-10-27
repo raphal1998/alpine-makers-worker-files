@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from safety import safe_relative_name, validate_freecad_scene
-from job_state import RunnerLease, RunnerState, TERMINAL
+from job_state import RunnerLease, RunnerState, TERMINAL, read_json
 from process_control import process_identity, terminate_owned_process
 
 
@@ -108,21 +108,35 @@ def _run(job, workdir, state):
     return details
 
 
-def _supervise(state, process, stdout_path):
-    """Attend le seul processus FreeCAD de ce job (annulation ciblée, délai 3600 s) ; rend sa ligne de résultat."""
+def _supervise(state, process, stdout_path, progress_path=None):
+    """Attend le seul processus FreeCAD de ce job (annulation ciblée, délai 3600 s) ; rend sa ligne de résultat.
+
+    ``progress_path`` (CAM v2) : ``cam_progress.json`` écrit par le moteur — opérations terminées / total, opération
+    courante — relayé dans l'état du runner. Jamais de pourcentage inventé : l'avancement interne d'une opération
+    reste « indéterminé ».
+    """
     pid, identity = state.value.get("pid"), state.value.get("process_identity")
     if not pid:
         raise ValueError("Lancement FreeCAD incertain ; aucune nouvelle conversion ne sera lancée.")
     deadline = time.time() + 3600
+    cancel_marker = Path(progress_path).parent / ".cancel.json" if progress_path is not None else None
+    last_progress = None
     while process.poll() is None if process is not None else process_identity(pid) == identity and identity is not None:
         if state.cancellation_requested():
             state.update(state="cancel_requested")
+            if cancel_marker is not None and not cancel_marker.exists():
+                try:   # le moteur CAM s'arrête proprement entre deux opérations dès qu'il voit ce marqueur
+                    cancel_marker.write_text(json.dumps({"execution_id": state.value["execution_id"]}), encoding="utf-8")
+                except OSError:
+                    pass
             if process is not None:
                 process.terminate()
             elif not terminate_owned_process(pid, identity):
                 raise ValueError("Impossible de confirmer l’identité du processus FreeCAD ; aucun autre processus arrêté.")
         if time.time() > deadline:
             raise ValueError("Délai de conversion dépassé ; état du processus à réconcilier.")
+        if progress_path is not None:
+            last_progress = _relay_progress(state, progress_path, last_progress)
         time.sleep(0.3)
     if process is not None:
         process.wait()
@@ -144,6 +158,31 @@ def _supervise(state, process, stdout_path):
     details["_returncode"] = returncode if isinstance(returncode, int) else None
     details["_reported"] = bool(reported)
     return details
+
+
+def _relay_progress(state, progress_path, previous):
+    """Lit ``cam_progress.json`` (si changé) et met l'état du runner à jour : progression RÉELLE par opération."""
+    try:
+        raw = Path(progress_path).read_text(encoding="utf-8")
+    except OSError:
+        return previous
+    if raw == previous:
+        return previous
+    try:
+        payload = json.loads(raw)
+    except ValueError:
+        return previous
+    if not isinstance(payload, dict):
+        return previous
+    total, done = payload.get("total"), payload.get("done")
+    fields = {"cam_progress": {key: payload.get(key) for key in ("total", "done", "current", "operations", "within_operation")}}
+    if isinstance(total, int) and isinstance(done, int) and total > 0:
+        fields["progress"] = max(1, min(99, int(round(100.0 * done / total))))
+        current = payload.get("current")
+        fields["message"] = (f"Opération « {current} » en cours ({done}/{total} terminées ; avancement interne indéterminé)."
+                             if current else f"{done}/{total} opérations calculées.")
+    state.update(**fields)
+    return raw
 
 
 # Codes de sortie Windows (NTSTATUS) d'un FreeCADCmd qui n'a pas pu démarrer ou s'est arrêté brutalement.
@@ -225,19 +264,31 @@ def _launch(state, command, stdout_path, stderr_path):
     return process
 
 
-CAM_ARTIFACT_SUFFIXES = (".nc", ".ngc", ".tap", ".gcode", ".fcstd", ".cam.json", ".setup.html")
+CAM_ARTIFACT_SUFFIXES = (".nc", ".ngc", ".tap", ".gcode", ".fcstd", ".cam.json", ".setup.html", ".preview.stl")
+CAM_RESULT_FILES = ("cam_result.json", "cam_capabilities.json", "cam_preview.json", "cam_progress.json")
+
+
+def _cam_parameters(parameters):
+    """Revalidation du job CAM : cam_ops_v2 (v1 inchangé, v2 normalisé, op preview) sur le validateur cam_payload."""
+    try:
+        import cam_payload
+    except ImportError:
+        raise ValueError("Le moteur CNC manque sur ce Worker : mets le Worker à jour.") from None
+    try:
+        import cam_ops_v2
+    except ImportError:
+        cam_ops_v2 = None
+    if cam_ops_v2 is None:
+        return cam_payload.validate_cam_job_parameters(parameters)
+    return cam_ops_v2.validate_job_parameters(parameters, cam_payload)
 
 
 def _run_cam(job, workdir, state, parameters):
     """Préparer pour une CNC : FreeCAD CAM sur un projet DÉCLARATIF revalidé ici, jamais un script."""
-    try:
-        from cam_payload import validate_cam_job_parameters
-    except ImportError:
-        raise ValueError("Le moteur CNC manque sur ce Worker : mets le Worker à jour.") from None
-    clean = validate_cam_job_parameters(parameters)
+    clean = _cam_parameters(parameters)
     cam = clean["cam"]
     request = {"op": cam["op"]}
-    if cam["op"] == "compute":
+    if cam["op"] in ("compute", "preview"):
         project = cam["project"]
         source_info = parameters.get("input_file") if isinstance(parameters.get("input_file"), dict) else {}
         source = Path(str(source_info.get("path") or "")).resolve()
@@ -265,8 +316,11 @@ def _run_cam(job, workdir, state, parameters):
         request_path.write_text(json.dumps(request, ensure_ascii=False, allow_nan=False), encoding="utf-8")
         command = [freecad, engine_path(engine), engine_path(request_path), engine_path(workdir)]
         process = _launch(state, command, stdout_path, stderr_path)
-    details = _supervise(state, process, stdout_path)
+    details = _supervise(state, process, stdout_path, progress_path=workdir / "cam_progress.json" if cam["op"] == "compute" else None)
     if not details.get("ok"):
+        if details.get("cancelled"):
+            state.finish("cancelled", error=str(details.get("error") or "Calcul CNC annulé."))
+            raise ValueError(str(details.get("error") or "Calcul CNC annulé."))
         raise ValueError(engine_failure(details, stdout_path, stderr_path, "Calcul FreeCAD CAM échoué."))
     _clean(details)
     wanted = ["cam_capabilities.json"] if cam["op"] == "capabilities" else details.get("artifacts")
@@ -275,13 +329,22 @@ def _run_cam(job, workdir, state, parameters):
     artifacts = []
     for name in wanted:
         name = safe_relative_name(str(name), basename=True)
-        allowed = name in ("cam_result.json", "cam_capabilities.json") or name.lower().endswith(CAM_ARTIFACT_SUFFIXES)
+        allowed = name in CAM_RESULT_FILES or name.lower().endswith(CAM_ARTIFACT_SUFFIXES)
         path = workdir / name
         if not allowed or path.resolve().parent != workdir or not path.is_file() or path.stat().st_size == 0:
             raise ValueError("Sortie du moteur CNC incomplète ou non autorisée.")
         artifacts.append(name)
-    if cam["op"] == "compute" and ("cam_result.json" not in artifacts or details.get("gcode_file") not in artifacts):
-        raise ValueError("Sortie du moteur CNC incomplète (G-code ou résultat absent).")
+    if cam["op"] == "compute":
+        gcode_files = details.get("gcode_files") if isinstance(details.get("gcode_files"), list) else [details.get("gcode_file")]
+        if "cam_result.json" not in artifacts or not gcode_files or any(name not in artifacts for name in gcode_files) \
+                or details.get("gcode_file") not in artifacts:
+            raise ValueError("Sortie du moteur CNC incomplète (G-code ou résultat absent).")
+        details["gcode_files"] = list(gcode_files)
+        progress = read_json(workdir / "cam_progress.json", {}) if (workdir / "cam_progress.json").is_file() else {}
+        if isinstance(progress, dict) and progress.get("operations"):
+            details.setdefault("operations", progress["operations"])
+    elif cam["op"] == "preview" and "cam_preview.json" not in artifacts:
+        raise ValueError("Sortie du moteur CNC incomplète (aperçu absent).")
     details["artifacts"] = artifacts
     state.finish("completed", result=details)
     return details
