@@ -1,5 +1,18 @@
 # Historique des mises à jour
 
+## Version 1.51.0 — 2026-10-29
+
+**Alpine Toile Creator : une image devient une toile 3D multicolore calculée par le Worker**
+
+### Ajouté
+- Alpine Toile Creator (outil toile-studio, menu Studio) : la carte des couleurs préparée dans le navigateur (PNG 8 bits, un index de couleur par pixel, 255 = vide) devient sur le Worker un modèle 3D de toile, une pièce par couleur plus la plaque de base, contours au pixel près, puis un 3MF multicolore avec les filaments attribués pour Bambu Studio / OrcaSlicer, un aperçu et un récapitulatif (dimensions, triangles, grammes estimés par couleur).
+- Moteur toile-engine : Python isolé (.venv) aux paquets épinglés (numpy, Pillow), processeur seulement, installé depuis Mes Workers → Installations → Alpine Toile Creator.
+- Module facultatif toile-detourage : séparation premier plan / arrière-plan par IA (BiRefNet lite en ONNX, licence MIT, ONNX Runtime sur le processeur), modèle épinglé vérifié par taille et SHA-256, téléchargé sur demande explicite seulement ; aucune image n'est envoyée à un service tiers.
+- Capacité toile_engine_v1 : le site n'envoie un calcul de toile qu'à un agent qui l'annonce (1.51.0 ou plus) et un détourage qu'à un Worker dont le module est installé.
+
+### Technique
+- Empreinte du paquet publié : `e4d90d362b01bb69…` (dossier du paquet).
+
 ## Version 1.50.45 — 2026-10-27
 
 ### Technique

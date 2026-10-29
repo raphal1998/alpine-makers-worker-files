@@ -101,7 +101,7 @@ else:
     import job_limits
     import resource_limits
 
-AGENT_VERSION = "1.50.45"
+AGENT_VERSION = "1.51.0"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -230,6 +230,10 @@ AGENT_CAPABILITIES += ("resource_limits_v1",)  # littéral : le site lit ces lig
 # Stabilité du PC hôte (host_stability.py) : ComfyUI sans mémoire épinglée, moteurs et captures en priorité basse,
 # journal logs/ressources.log, moteurs inactifs déchargés quand la RAM du PC devient rare.
 AGENT_CAPABILITIES += ("host_stability_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.51.0 : Alpine Toile Creator. Carte des couleurs → toile 3D multicolore (3MF multi-pièces) par le moteur du
+# composant « toile-engine » (toile_engine/, Python isolé), détourage IA par le module « toile-detourage » (BiRefNet
+# lite, ONNX Runtime CPU) ; un processus par job (runners/toile-engine.py).
+AGENT_CAPABILITIES += ("toile_engine_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -376,13 +380,15 @@ TOOL_HANDLERS = {
     "laser-studio": "laser-engine",
     # Alpine CNC Studio (agent 1.50.15) : moteur d'analyse du G-code (runners/cnc-engine.py), un processus par job.
     "cnc-studio": "cnc-engine",
+    # Alpine Toile Creator (agent 1.51.0) : maillage et 3MF de la toile, détourage (runners/toile-engine.py).
+    "toile-studio": "toile-engine",
 }
 # Outils « à la demande » : un interrupteur logique (fiche runtime enabled), un processus par calcul,
 # aucun service résident à démarrer, surveiller ou arrêter.
-ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio")
-# Lanceurs dont le moteur tourne DANS leur arbre de processus (FreeCADCmd, Python du moteur laser ou CNC, script
-# Pillow) : arrêter cet arbre prouve que plus rien ne calcule pour le job (agent 1.50.33, arrêt forcé).
-IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine")
+ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio", "toile-studio")
+# Lanceurs dont le moteur tourne DANS leur arbre de processus (FreeCADCmd, Python du moteur laser, CNC ou de toile,
+# script Pillow) : arrêter cet arbre prouve que plus rien ne calcule pour le job (agent 1.50.33, arrêt forcé).
+IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine")
 HUNYUAN_MODELS = {model_id: (folder, *HUNYUAN_REQUIREMENTS[model_id]) for model_id, (_, folder) in HUNYUAN_CATALOG.items()}
 
 
@@ -1885,6 +1891,12 @@ class Agent:
             tools["cnc-studio"] = {"tool_id": "cnc-studio", "engine_id": "cnc-engine", "status": "online" if self._runtime_running("cnc-studio") else "ready", "version": "local"}
         elif cnc_root.is_dir() and any((cnc_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
             tools["cnc-studio"] = {"tool_id": "cnc-studio", "engine_id": "cnc-engine", "status": "incomplete", "version": "local"}
+        # Moteur de toile (agent 1.51.0) : même logique, composant « toile-engine ».
+        toile_root = self.root / "components" / "toile-engine"
+        if component_ready("toile-engine", toile_root):
+            tools["toile-studio"] = {"tool_id": "toile-studio", "engine_id": "toile-engine", "status": "online" if self._runtime_running("toile-studio") else "ready", "version": "local"}
+        elif toile_root.is_dir() and any((toile_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
+            tools["toile-studio"] = {"tool_id": "toile-studio", "engine_id": "toile-engine", "status": "incomplete", "version": "local"}
         for tool_id, engine in TOOL_HANDLERS.items():
             if tool_id in {"image-generation", "3d-generation"}:
                 continue
@@ -1901,7 +1913,8 @@ class Agent:
             modules = {}
             module_sizes = {}
             for module in ({"ai3d": ("cuda-toolkit", "hunyuan3d-21", "open3d-lab"), "model-studio": ("orca-bridge",),
-                            "laser-studio": ("fire-watch",), "converter": ("opencamlib",)}.get(tool_id, ())):
+                            "laser-studio": ("fire-watch",), "converter": ("opencamlib",),
+                            "toile-studio": ("toile-detourage",)}.get(tool_id, ())):
                 module_root = self.root / "components" / module
                 if module == "fire-watch":
                     # Surveillance IA (agent 1.34.0) : une installation commencée ou interrompue se voit.
@@ -1997,6 +2010,28 @@ class Agent:
             return None
         return str(python_in(root / ".venv").resolve())
 
+    def _toile_engine_python(self):
+        """Python isolé du composant toile-engine quand le moteur de toile est prêt, sinon None (agent 1.51.0)."""
+        if __package__:
+            from .installers.component_installer import component_ready, python_in
+        else:
+            from installers.component_installer import component_ready, python_in
+        root = self.root / "components" / "toile-engine"
+        if not component_ready("toile-engine", root):
+            return None
+        return str(python_in(root / ".venv").resolve())
+
+    def _toile_detourage(self):
+        """(Python isolé, modèle ONNX) du module toile-detourage quand il est prêt, sinon None (agent 1.51.0)."""
+        if __package__:
+            from .installers.component_installer import component_ready, python_in, toile_model_path
+        else:
+            from installers.component_installer import component_ready, python_in, toile_model_path
+        root = self.root / "components" / "toile-detourage"
+        if not component_ready("toile-detourage", root):
+            return None
+        return str(python_in(root / ".venv").resolve()), str(toile_model_path(root).resolve())
+
     def _runtime_record_path(self, tool_id):
         runtime = self.root / "runtime"
         runtime.mkdir(parents=True, exist_ok=True)
@@ -2030,6 +2065,8 @@ class Agent:
             return record.get("enabled") is True and bool(self._laser_engine_python())
         if tool_id == "cnc-studio":
             return record.get("enabled") is True and bool(self._cnc_engine_python())
+        if tool_id == "toile-studio":
+            return record.get("enabled") is True and bool(self._toile_engine_python())
         pid = record.get("pid")
         root = str(record.get("root") or "").strip()
         expected_identity = str(record.get("process_identity") or "").strip()
@@ -2810,7 +2847,9 @@ class Agent:
                 raise AgentError("Le moteur laser n’est pas installé. Installe ou répare Alpine Laser Studio (Mes Workers → Installations).")
             if action == "start" and tool_id == "cnc-studio" and not self._cnc_engine_python():
                 raise AgentError("Le moteur CNC n’est pas installé. Installe ou répare Alpine CNC Studio (Mes Workers → Installations).")
-            # FreeCADCmd, the laser engine and the CNC engine are per-job processes, not persistent servers.
+            if action == "start" and tool_id == "toile-studio" and not self._toile_engine_python():
+                raise AgentError("Le moteur de toile n’est pas installé. Installe ou répare Alpine Toile Creator (Mes Workers → Installations).")
+            # FreeCADCmd, the laser, CNC and toile engines are per-job processes, not persistent servers.
             atomic_json(record_path, {"enabled": action == "start", "updated_at": time.time()})
             return {"started": action == "start", "stopped": action == "stop", "on_demand": True}
         record = self._runtime_record(tool_id)
@@ -4389,7 +4428,7 @@ class Agent:
         tool_id = str(payload.get("tool_id") or "")
         if not self._valid_execution_id(job_id):
             raise AgentError("Identifiant du job invalide.")
-        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "orca", "laser-engine", "cnc-engine"}:
+        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "orca", "laser-engine", "cnc-engine", "toile-engine"}:
             raise AgentError("Outil de job non autorisé par le Worker.")
         with self.maintenance_lock:
             existing = self.journal.get("jobs", job_id)
@@ -4612,6 +4651,18 @@ class Agent:
                     if not cnc_python:
                         raise AgentError("Le moteur CNC n’est pas installé sur ce Worker.")
                     environment["CNC_ENGINE_PYTHON"] = cnc_python
+                if tool_id == "toile-studio":
+                    # Maillage dans le Python isolé du moteur ; détourage dans celui du module, seulement s'il est prêt
+                    # (sinon le runner refuse « detourer » avec MODULE_MISSING).
+                    toile_python = self._toile_engine_python()
+                    if not toile_python:
+                        raise AgentError("Le moteur de toile n’est pas installé sur ce Worker.")
+                    environment["TOILE_ENGINE_PYTHON"] = toile_python
+                    for name in ("TOILE_DETOURAGE_PYTHON", "TOILE_DETOURAGE_MODEL"):
+                        environment.pop(name, None)
+                    detourage = self._toile_detourage()
+                    if detourage:
+                        environment["TOILE_DETOURAGE_PYTHON"], environment["TOILE_DETOURAGE_MODEL"] = detourage
                 # Labo image, restauration des visages (agent 1.44.0) : lanceur dédié, pas un graphe ComfyUI.
                 face_restore = tool_id in {"image_generation", "image-generation"} and parameters.get("lab_tool") == "face_restore"
                 # Outils de cartes du Labo (agent 1.46.0) : lanceur dédié (script Pillow), pas un graphe ComfyUI.

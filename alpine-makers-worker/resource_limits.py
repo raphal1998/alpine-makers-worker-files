@@ -264,11 +264,12 @@ def settings_summary(max_jobs, stored, hw):
 # --------------------------------------------------------------------------------------------------- estimation
 
 ENGINE_KINDS = ("comfyui", "hunyuan3d", "orca")
-IN_TREE_KINDS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine")
+IN_TREE_KINDS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine")
 # Besoins prudents par type de calcul, en Mio : (VRAM, RAM).
 DEFAULT_NEEDS = {"comfyui": (6144, 8192), "hunyuan3d": (12288, 12288), "orca": (0, 4096), "freecad": (0, 3072),
                  "mesh_repair": (0, 2048), "face_restore": (1536, 3072), "image_maps": (0, 2048),
-                 "laser-engine": (0, 1536), "cnc-engine": (0, 1536), "other": (0, 2048)}
+                 "laser-engine": (0, 1536), "cnc-engine": (0, 1536),
+                 "toile-engine": (0, 3072), "other": (0, 2048)}
 # Avec la taille du modèle : (VRAM ajoutée, RAM ajoutée, VRAM minimale, RAM minimale), en Mio.
 MODEL_NEEDS = {"comfyui": (1536, 2048, 2048, 4096), "hunyuan3d": (3072, 4096, 6144, 8192)}
 TEXTURE_VRAM_MB = 12288
@@ -293,7 +294,8 @@ def job_kind(tool_id, parameters=None):
         return "hunyuan3d"
     if tool_id == "converter":
         return "mesh_repair" if parameters.get("task") == "mesh_repair" else "freecad"
-    return {"model-studio": "orca", "laser-studio": "laser-engine", "cnc-studio": "cnc-engine"}.get(tool_id, "other")
+    return {"model-studio": "orca", "laser-studio": "laser-engine", "cnc-studio": "cnc-engine",
+            "toile-studio": "toile-engine"}.get(tool_id, "other")
 
 
 def requests_texture(parameters):

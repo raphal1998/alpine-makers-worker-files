@@ -81,6 +81,24 @@ CATALOG = {
     # Moteur d'Alpine CNC Studio : le code (cnc_engine/ + cam_gcode_check.py) arrive avec le paquet Worker ;
     # bibliothèque standard seulement, le composant n'installe que son Python isolé (.venv), comme laser-engine.
     "cnc-engine": {"kind": "python-venv", "packages": ()},
+    # Moteur d'Alpine Toile Creator (agent 1.51.0) : le code (toile_engine/) arrive avec le paquet Worker ; Python
+    # isolé avec numpy et Pillow épinglés (versions déjà éprouvées sur Python 3.12 par fire-watch et laser-engine).
+    # CPU seulement. Licences : numpy BSD-3-Clause, Pillow MIT-CMU.
+    "toile-engine": {"kind": "python-venv", "packages": ("numpy==2.5.3", "Pillow==11.0.0"),
+                     "license": "numpy BSD-3-Clause ; Pillow MIT-CMU"},
+    # Module « Détourage IA » d'Alpine Toile Creator : son propre Python isolé (ONNX Runtime CPU + numpy + Pillow,
+    # mêmes versions que fire-watch) et le modèle BiRefNet lite (MIT) téléchargé à sa révision épinglée, vérifié par
+    # taille et SHA-256. Désinstaller le module ne touche jamais au moteur, réparer le moteur ne touche jamais au module.
+    "toile-detourage": {"kind": "python-venv", "requires": "toile-engine",
+                        "packages": ("onnxruntime==1.30.0", "numpy==2.5.3", "Pillow==11.0.0", "flatbuffers==25.12.19",
+                                     "packaging==26.3", "protobuf==7.36.2"),
+                        "license": "Modèle BiRefNet lite MIT (ZhengPeng7/BiRefNet ; conversion ONNX onnx-community) ; "
+                                   "ONNX Runtime MIT ; numpy BSD-3-Clause ; Pillow MIT-CMU",
+                        "model": {"url": "https://huggingface.co/onnx-community/BiRefNet_lite-ONNX/resolve/"
+                                         "de15b22ba131738a16dff04aab8bdf8dc32e3ac1/onnx/model.onnx",
+                                  "size": 224005088,
+                                  "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+                                  "path": "models/birefnet-lite/model.onnx"}},
     # Surveillance IA des graveuses (agent 1.34.0) : module du tool laser-studio, indépendant du moteur
     # laser. Python isolé + ONNX Runtime (GPU NVIDIA si compatible, sinon CPU) ; le code d'analyse
     # (fire_watch_engine/) arrive avec le paquet Worker, les poids sont convertis sur place.
@@ -644,7 +662,8 @@ CUDA_TORCH_PROBE = (
 def selected_profile(component):
     tool = {"comfyui": "image_generation", "hunyuan3d": "ai3d", "cuda-toolkit": "ai3d", "hunyuan3d-21": "ai3d", "open3d-lab": "ai3d",
             "orca": "model-studio", "orca-bridge": "model-studio", "freecad": "converter", "opencamlib": "converter",
-            "laser-engine": "laser-studio", "fire-watch": "laser-studio", "cnc-engine": "cnc-studio"}.get(component, component)
+            "laser-engine": "laser-studio", "fire-watch": "laser-studio", "cnc-engine": "cnc-studio",
+            "toile-engine": "toile-studio", "toile-detourage": "toile-studio"}.get(component, component)
     profile = runtime_profile(detect_hardware(), tool)
     if component == "cnc-engine" and profile["status"] == "unsupported" and "profil matériel" in profile["reason"]:
         # Tant que hardware_profiles ne connaît pas cnc-studio : même profil CPU que le moteur laser.
@@ -1452,6 +1471,107 @@ def install_cnc_engine(worker_root, root, spec):
     return "Moteur CNC installé : Python isolé prêt sur ce Worker (analyse et simulation de programmes G-code)."
 
 
+# ---------------------------------------------------------------- Alpine Toile Creator (agent 1.51.0)
+TOILE_SHIPPED = ("toile_engine/__init__.py", "toile_engine/mesh.py", "toile_engine/troismf.py",
+                 "toile_engine/detourage.py", "toile_engine/cli.py", "runners/toile-engine.py")
+# Sondes exécutées dans le .venv du composant (cwd = dossier du Worker) : elles prouvent que le Worker calcule.
+TOILE_ENGINE_PROBE = "import json, toile_engine.cli as cli; print(json.dumps(cli.probe()))"
+TOILE_DETOURAGE_PROBE = "import json, sys, toile_engine.cli as cli; print(json.dumps(cli.probe_detourage(sys.argv[1])))"
+TOILE_MIT_NOTICE = (
+    "BiRefNet lite — modèle publié sous licence MIT par ZhengPeng7 (https://github.com/ZhengPeng7/BiRefNet), "
+    "converti en ONNX par onnx-community (https://huggingface.co/onnx-community/BiRefNet_lite-ONNX, révision "
+    "de15b22ba131738a16dff04aab8bdf8dc32e3ac1). Fichier téléchargé par ce Worker à cette révision épinglée et vérifié "
+    "par taille et SHA-256 ; Alpine Makers ne le redistribue pas.\n\n"
+    "MIT License\n\nCopyright (c) 2024 ZhengPeng7\n\n"
+    "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated "
+    "documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation "
+    "the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and "
+    "to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\n"
+    "The above copyright notice and this permission notice shall be included in all copies or substantial portions "
+    "of the Software.\n\n"
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED "
+    "TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE "
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF "
+    "CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER "
+    "DEALINGS IN THE SOFTWARE.\n"
+)
+
+
+def toile_model_path(root, spec=None):
+    """Emplacement du modèle de détourage dans le composant (models/ est conservé par une désinstallation)."""
+    spec = spec or CATALOG["toile-detourage"]
+    return Path(root) / spec["model"]["path"]
+
+
+def toile_detourage_ready(root):
+    """Module prêt : marqueur, Python isolé et modèle à la taille épinglée (SHA-256 vérifié à l'installation)."""
+    model = toile_model_path(root)
+    return ((root / ".raphal-ready").is_file() and python_in(root / ".venv").is_file() and model.is_file()
+            and not is_link(model) and model.stat().st_size == CATALOG["toile-detourage"]["model"]["size"])
+
+
+def install_toile(worker_root, root, component, spec, upgrade=False):
+    """Moteur (toile-engine) ou module de détourage (toile-detourage) d'Alpine Toile Creator : Python isolé, paquets
+    épinglés et, pour le module, modèle épinglé ; marqueur .raphal-ready écrit seulement après la sonde.
+
+    ``upgrade`` : composant déjà prêt que l'on complète ; son marqueur reste en place jusqu'à la vérification."""
+    detourage = component == "toile-detourage"
+    label = "module de détourage" if detourage else "moteur de toile"
+    progress(5, f"Préparation du {label} d’Alpine Toile Creator (Python isolé)…")
+    worker_dir = Path(__file__).resolve().parents[1]
+    if not all((worker_dir / name).is_file() and not is_link(worker_dir / name) for name in TOILE_SHIPPED):
+        raise RuntimeError("Le moteur de toile manque au paquet Worker. Mets à jour le Worker puis relance l’installation.")
+    if detourage and not component_ready("toile-engine", root.parent / "toile-engine"):
+        raise RuntimeError("Installe d’abord le moteur d’Alpine Toile Creator (Mes Workers → Installations).")
+    needed = 1024 ** 3 + (spec["model"]["size"] if detourage else 0)
+    if shutil.disk_usage(root.parent).free < needed:
+        raise RuntimeError(f"Au moins {needed / 1024 ** 3:.1f} Gio libres sont nécessaires sur le disque du Worker pour le {label}.")
+    root.mkdir(parents=True, exist_ok=True)
+    ready = root / ".raphal-ready"
+    if is_link(ready):
+        raise RuntimeError(f"Marqueur du {label} sous forme de lien ; installation refusée.")
+    if not upgrade:
+        ready.unlink(missing_ok=True)
+    py = engine_environment(root)
+    progress(30, "Environnement Python prêt, installation des bibliothèques épinglées…")
+    call([py, "-m", "pip", "install", "--upgrade", "pip"], cwd=root, timeout=900,
+         progress_value=30, progress_label="Préparation de pip")
+    call([py, "-m", "pip", "install", "--upgrade", *PIP_WHEEL_PREFERENCE, *spec["packages"]], cwd=root, timeout=1800,
+         progress_value=40, progress_label="Installation de " + ", ".join(spec["packages"][:3]))
+    model = None
+    if detourage:
+        model = toile_model_path(root, spec)
+        progress(55, "Téléchargement du modèle BiRefNet lite (≈ 214 Mo, source épinglée)…")
+        download_pinned(spec["model"]["url"], model, spec["model"]["size"], spec["model"]["sha256"],
+                        "Modèle de détourage BiRefNet lite", value=55)
+        _write_json_file(model.parent / "provenance.json", {
+            "model": "BiRefNet lite (ONNX)", "license": "MIT", "url": spec["model"]["url"],
+            "size": spec["model"]["size"], "sha256": spec["model"]["sha256"],
+            "source": "https://github.com/ZhengPeng7/BiRefNet", "verified_at": int(time.time())})
+        (model.parent / "LICENSE-MIT.txt").write_text(TOILE_MIT_NOTICE, encoding="utf-8")
+    progress(88, f"Vérification du {label} dans son environnement…")
+    try:
+        arguments = [py, "-c", TOILE_DETOURAGE_PROBE, str(model)] if detourage else [py, "-c", TOILE_ENGINE_PROBE]
+        report = json.loads(call(arguments, cwd=worker_dir, timeout=900 if detourage else 120).strip().splitlines()[-1])
+    except (RuntimeError, ValueError, IndexError) as error:
+        raise RuntimeError(f"Le {label} ne démarre pas dans son environnement Python : " + str(error)[-800:]) from error
+    if not isinstance(report, dict) or not report.get("ok"):
+        raise RuntimeError(f"Vérification du {label} échouée : le calcul d’essai ne répond pas comme attendu.")
+    marker = {"component": component, "packages": list(spec["packages"])}
+    if detourage:
+        marker.update(model={"sha256": spec["model"]["sha256"], "size": spec["model"]["size"]},
+                      onnxruntime=str(report.get("onnxruntime") or ""))
+    else:
+        marker.update(numpy=str(report.get("numpy") or ""), pillow=str(report.get("pillow") or ""))
+    ready.write_text(json.dumps(marker), encoding="utf-8")
+    progress(99, f"{label[0].upper() + label[1:]} prêt.")
+    if detourage:
+        return (f"Détourage IA installé : ONNX Runtime {report.get('onnxruntime')} (CPU) et modèle BiRefNet lite "
+                "(licence MIT, vérifié par SHA-256) prêts sur ce Worker.")
+    return (f"Moteur de toile installé : Python isolé, numpy {report.get('numpy')} et Pillow {report.get('pillow')} "
+            "prêts sur ce Worker (génération de toiles 3D multicolores).")
+
+
 # ---------------------------------------------------------------- surveillance IA des graveuses (fire-watch)
 # Composant components/fire-watch/ : .venv (ONNX Runtime, NumPy, OpenCV), models/<id>/{source.pt, model.onnx,
 # provenance.json, LICENSE-AGPL-3.0.txt} et le marqueur .raphal-ready. Les poids ne viennent jamais du site :
@@ -2127,8 +2247,10 @@ def install_fire_watch(worker_root, root, upgrade=False):
 
 
 def component_ready(component, root):
-    if component in {"laser-engine", "cnc-engine"}:
+    if component in {"laser-engine", "cnc-engine", "toile-engine"}:
         return (root / ".raphal-ready").is_file() and python_in(root / ".venv").is_file()
+    if component == "toile-detourage":
+        return toile_detourage_ready(root)
     if component == "fire-watch":
         return fire_watch_ready(root)
     if component in {"comfyui", "hunyuan3d"}:
@@ -2266,6 +2388,9 @@ def _manage(component, action):
         if component == "laser-engine" and laser_engine_outdated(root, CATALOG[component]):
             # Installé avant l'assistant de code : on complète le Python isolé (rien d'autre n'est touché).
             return install_laser_engine(worker_root, root, CATALOG[component], upgrade=True)
+        if component in {"toile-engine", "toile-detourage"} and laser_engine_outdated(root, CATALOG[component]):
+            # Paquets épinglés changés depuis l'installation : on complète, marqueur conservé jusqu'à la sonde.
+            return install_toile(worker_root, root, component, CATALOG[component], upgrade=True)
         if component == "fire-watch" and fire_watch_outdated(root):
             # Nouveau modèle ou paquet au catalogue, ou GPU devenu compatible : on complète, marqueur conservé.
             return install_fire_watch(worker_root, root, upgrade=True)
@@ -2314,6 +2439,8 @@ def _manage(component, action):
     if spec["kind"] == "python-venv":
         if component == "cnc-engine":
             return install_cnc_engine(worker_root, root, spec)
+        if component in {"toile-engine", "toile-detourage"}:
+            return install_toile(worker_root, root, component, spec)
         return install_laser_engine(worker_root, root, spec)
     if spec["kind"] == "fire-watch":
         return install_fire_watch(worker_root, root)
