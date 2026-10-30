@@ -1,5 +1,16 @@
 # Historique des mises à jour
 
+## Version 1.51.1 — 2026-10-30
+
+**Installation Windows : un Bureau synchronisé par OneDrive ne bloque plus install_windows.bat**
+
+### Corrigé
+- Sur un PC neuf dont le Bureau est dans OneDrive (cas par défaut d'un compte Microsoft sous Windows 11), install_windows.bat s'arrêtait juste après la question du démarrage automatique : le dossier par défaut Bureau\alpine-makers-worker traverse un dossier OneDrive, marqué comme point d'analyse, et l'installateur le refusait comme un lien. Le Worker s'installe alors dans le dossier du compte (%USERPROFILE%\alpine-makers-worker), hors synchronisation ; un -InstallDir explicite dans OneDrive, un lien ou une jonction reste refusé, avec le dossier fautif et un exemple de dossier local.
+- En cas d'échec, la fenêtre d'install_windows.bat reste ouverte (pause) avec le message d'erreur et l'emplacement du journal %TEMP%\alpine-makers-worker-installation.log (message et ligne seulement, sans le code d'association) ; elle se fermait aussitôt après un double-clic.
+
+### Technique
+- Empreinte du paquet publié : `5384fe430e860792…` (dossier du paquet).
+
 ## Version 1.51.0 — 2026-10-29
 
 **Alpine Toile Creator : une image devient une toile 3D multicolore calculée par le Worker**

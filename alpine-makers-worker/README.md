@@ -175,7 +175,11 @@ Sommaire : [1 Ce qu'est le Worker](#1-ce-quest-le-worker) ·
 ## 2. Carte du dossier
 
 Un seul emplacement d'installation est prévu : **le dossier `alpine-makers-worker` du
-Bureau** (`C:\Users\<ton compte>\Desktop\alpine-makers-worker`). Les anciens emplacements
+Bureau** (`C:\Users\<ton compte>\Desktop\alpine-makers-worker`). Si le Bureau est synchronisé
+par OneDrive (cas courant d'un Windows 11 neuf avec un compte Microsoft), l'installateur (agent 1.51.1)
+utilise à la place `C:\Users\<ton compte>\alpine-makers-worker`, hors synchronisation ; un dossier
+choisi par `-InstallDir` dans OneDrive, un lien ou une jonction est refusé. En cas d'échec, la fenêtre
+reste ouverte et le journal est `%TEMP%\alpine-makers-worker-installation.log`. Les anciens emplacements
 `C:\ProgramData\AlpineMakersWorker` et `C:\Users\Public\AlpineMakersWorker` sont
 **historiques** : si tu en croises encore un, c'est un reste d'une vieille installation
 (voir « tâche planifiée orpheline », section 10).

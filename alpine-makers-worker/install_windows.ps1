@@ -1,5 +1,22 @@
 param([string]$ServerUrl="",[string]$PairingCode="",[string]$Name="",[ValidateSet("Ask","Yes","No")][string]$AutoStart="Ask",[string]$InstallDir="",[switch]$RecoverExisting)
 $ErrorActionPreference = "Stop"
+# Agent 1.51.1 : toute erreur bloquante est aussi ecrite dans un journal (message et ligne seulement, jamais les
+# arguments : le code d'association n'y figure pas). install_windows.bat l'indique et garde la fenetre ouverte.
+$installLog = Join-Path ([IO.Path]::GetTempPath()) "alpine-makers-worker-installation.log"
+function Write-InstallLog {
+  param([string]$Message)
+  # Longues suites sans espace (jeton, cle) masquees par prudence ; un journal manquant ne bloque jamais l'installation.
+  $safe = ([string]$Message) -replace '[A-Za-z0-9_\-\.=+/]{32,}', '[masque]'
+  try { Add-Content -LiteralPath $installLog -Value ("[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $safe) -Encoding UTF8 } catch {}
+}
+trap {
+  Write-InstallLog ("ECHEC ligne {0} : {1}" -f $_.InvocationInfo.ScriptLineNumber, $_.Exception.Message)
+  Write-Host ""
+  Write-Host ("ERREUR : " + $_.Exception.Message) -ForegroundColor Red
+  Write-Host ("Journal de l'installation : " + $installLog) -ForegroundColor Yellow
+  break
+}
+Write-InstallLog ("Installation lancee depuis " + $PSScriptRoot + " (PowerShell " + $PSVersionTable.PSVersion + ")")
 $sandboxOnly = ($env:ALPINE_LOCAL_SANDBOX -eq '1') -or (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'TEST_SANDBOX_ONLY.txt'))
 if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'config.json')) {
   $localConfig = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'config.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -9,7 +26,7 @@ if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'config.json')) {
 if ($sandboxOnly) { throw "Paquet TEST : l'installateur standard est desactive pour proteger le Worker en service. Utilise le lanceur isole de la dashboard TEST." }
 if ($RecoverExisting -and ($PairingCode -or $Name)) { throw "La recuperation conserve le Worker existant. N'utilise pas -PairingCode ni -Name ; le code de migration sera demande de facon masquee." }
 if ($RecoverExisting -and !$InstallDir) {
-  $recoveryCandidates = @($PSScriptRoot, (Join-Path ([Environment]::GetFolderPath("Desktop")) "alpine-makers-worker"), (Join-Path $env:PUBLIC "AlpineMakersWorker"), (Join-Path $env:ProgramData "AlpineMakersWorker")) |
+  $recoveryCandidates = @($PSScriptRoot, (Join-Path ([Environment]::GetFolderPath("Desktop")) "alpine-makers-worker"), (Join-Path $env:USERPROFILE "alpine-makers-worker"), (Join-Path $env:PUBLIC "AlpineMakersWorker"), (Join-Path $env:ProgramData "AlpineMakersWorker")) |
     Select-Object -Unique | Where-Object { (Test-Path -LiteralPath (Join-Path $_ "config.json")) -or (Test-Path -LiteralPath (Join-Path $_ "config\identity\private.key")) }
   Write-Host "Recuperation d'un Worker existant, sans nouvelle inscription."
   Write-Host "Utilise le meme compte Windows que lors de l'installation. Attends la fin des installations/calculs avant de reparer les fichiers du programme."
@@ -216,18 +233,42 @@ function Install-WorkerGit {
   return $detected
 }
 
+# Premier dossier existant du chemin (lui compris) qui est un point d'analyse : lien, jonction, ou dossier synchronise
+# par OneDrive (balise cloud : le Bureau d'un compte Microsoft sur un Windows 11 neuf est dans OneDrive). $null sinon.
+function Get-WorkerLinkedParent {
+  param([string]$Path)
+  for ($item = [IO.DirectoryInfo]::new($Path); $null -ne $item; $item = $item.Parent) {
+    if ($item.Exists -and ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { return $item.FullName }
+  }
+  return $null
+}
+# Agent 1.51.1 : sur un PC neuf dont le Bureau est synchronise par OneDrive, le dossier par defaut
+# Bureau\alpine-makers-worker traversait un point d'analyse et l'installation s'arretait juste apres la question du
+# demarrage automatique. Le Worker (moteurs et modeles de plusieurs Go, cle d'identite) n'a rien a faire dans un
+# dossier synchronise : on l'installe alors dans le dossier du compte, hors synchronisation.
+function Resolve-WorkerDefaultRoot {
+  param([string]$Desktop, [string]$Fallback)
+  $desktopRoot = Join-Path $Desktop "alpine-makers-worker"
+  $linkedParent = Get-WorkerLinkedParent $desktopRoot
+  if (!$linkedParent) { return $desktopRoot }
+  Write-Host "Le Bureau passe par un dossier synchronise (OneDrive) ou un lien : $linkedParent" -ForegroundColor Yellow
+  Write-Host "Le Worker est installe hors synchronisation, dans $Fallback" -ForegroundColor Yellow
+  Write-InstallLog ("Bureau dans un point d'analyse ($linkedParent) : dossier par defaut $Fallback")
+  return $Fallback
+}
+$fallbackWorkerRoot = Join-Path $env:USERPROFILE "alpine-makers-worker"
 # Resolve the target before bootstrapping dependencies or copying any program.
 $agentRoot = if ($InstallDir) {
   [IO.Path]::GetFullPath($InstallDir)
 } else {
-  Join-Path ([Environment]::GetFolderPath("Desktop")) "alpine-makers-worker"
+  Resolve-WorkerDefaultRoot -Desktop ([Environment]::GetFolderPath("Desktop")) -Fallback $fallbackWorkerRoot
 }
+Write-InstallLog ("Dossier du Worker : " + $agentRoot)
 $normalizedRoot = $agentRoot.TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar)
 $broadRoots = @([IO.Path]::GetPathRoot($agentRoot), $env:USERPROFILE, $env:ProgramData, $env:PUBLIC, $env:WINDIR, $env:ProgramFiles, ${env:ProgramFiles(x86)})
 if (@($broadRoots | Where-Object { $_ -and $_.TrimEnd([IO.Path]::DirectorySeparatorChar,[IO.Path]::AltDirectorySeparatorChar) -eq $normalizedRoot }).Count) { throw "Choisis un sous-dossier dedie au Worker." }
-for ($workerParent = [IO.DirectoryInfo]::new($agentRoot); $null -ne $workerParent; $workerParent = $workerParent.Parent) {
-  if ($workerParent.Exists -and ($workerParent.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw "Un dossier Worker ne doit pas traverser un lien ou une jonction. Aucun fichier modifie." }
-}
+$linkedWorkerParent = Get-WorkerLinkedParent $agentRoot
+if ($linkedWorkerParent) { throw "Un dossier Worker ne doit pas traverser un lien, une jonction ou un dossier synchronise (OneDrive) : $linkedWorkerParent. Choisis un dossier local, par exemple -InstallDir `"$fallbackWorkerRoot`". Aucun fichier modifie." }
 if ((Test-Path -LiteralPath $agentRoot) -and !(Test-Path -LiteralPath (Join-Path $agentRoot "agent.py")) -and @(Get-ChildItem -LiteralPath $agentRoot -Force).Count) { throw "Le dossier contient des fichiers sans installation Worker reconnue. Aucun fichier modifie." }
 if ($RecoverExisting -and (Test-Path -LiteralPath (Join-Path $agentRoot ".worker-detached"))) { throw "Ce Worker a ete supprime du site. Reinscris-le explicitement ; la recuperation ne contourne pas une suppression." }
 $python = Find-WorkerPython
@@ -363,12 +404,14 @@ try {
   Pop-Location
 }
 if($pairExitCode -ne 0){
+  Write-InstallLog ("Association impossible, code " + $pairExitCode)
   Write-Host "Association du Worker impossible. Vérifie le code et crée-en un nouveau s'il a plus de 10 minutes." -ForegroundColor Red
   exit $pairExitCode
 }
 Grant-WorkerIdentityToInstaller
 & (Join-Path $agentRoot "configure_autostart.ps1") -AutoStart $AutoStart
 Write-Host "Worker associe dans $agentRoot. Choix de demarrage automatique : $AutoStart."
+Write-InstallLog ("Worker associe dans " + $agentRoot)
 # Premiere connexion du proprietaire : worker.exe demande le compte du proprietaire a chaque lancement d'un Worker
 # associe (agent 1.50.12). On l'ouvre a la fin de l'installation, sans attendre, et seulement dans une session
 # interactive (jamais depuis une tache planifiee ou un bac a sable). Sans lui, le raccourci « Alpine Makers Worker » suffit.
