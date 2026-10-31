@@ -101,7 +101,7 @@ else:
     import job_limits
     import resource_limits
 
-AGENT_VERSION = "1.51.1"
+AGENT_VERSION = "1.52.0"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -234,6 +234,10 @@ AGENT_CAPABILITIES += ("host_stability_v1",)  # littéral : le site lit ces lign
 # composant « toile-engine » (toile_engine/, Python isolé), détourage IA par le module « toile-detourage » (BiRefNet
 # lite, ONNX Runtime CPU) ; un processus par job (runners/toile-engine.py).
 AGENT_CAPABILITIES += ("toile_engine_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.52.0 : Alpine Guard, surveillance des impressions 3D dans l'agent (guard.py, moteur guard_engine/ du composant
+# « guard-engine », modèle facultatif du module « guard-obico »), synchro /api/worker-protocol/guard/sync, pause /
+# reprise / arrêt vérifiés par gcode_state.
+AGENT_CAPABILITIES += ("guard_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -382,10 +386,12 @@ TOOL_HANDLERS = {
     "cnc-studio": "cnc-engine",
     # Alpine Toile Creator (agent 1.51.0) : maillage et 3MF de la toile, détourage (runners/toile-engine.py).
     "toile-studio": "toile-engine",
+    # Alpine Guard (agent 1.52.0) : moteur d'analyse piloté par le service guard.py de l'agent, jamais par tool.start.
+    "alpine-guard": "guard-engine",
 }
 # Outils « à la demande » : un interrupteur logique (fiche runtime enabled), un processus par calcul,
 # aucun service résident à démarrer, surveiller ou arrêter.
-ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio", "toile-studio")
+ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio", "toile-studio", "alpine-guard")
 # Lanceurs dont le moteur tourne DANS leur arbre de processus (FreeCADCmd, Python du moteur laser, CNC ou de toile,
 # script Pillow) : arrêter cet arbre prouve que plus rien ne calcule pour le job (agent 1.50.33, arrêt forcé).
 IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine")
@@ -662,6 +668,48 @@ class Agent:
         self.fire_watch_error = ""
         self.fire_watch_wanted = False
         self._create_fire_watch()
+        # Alpine Guard (agent 1.52.0) : surveillance des impressions 3D dans CE processus, à côté de la liaison MQTT
+        # de l'imprimante et de la caméra. Création sans fil ; un échec n'empêche jamais l'agent de démarrer et ne
+        # touche à aucune commande de l'imprimante.
+        self.guard = None
+        self.guard_error = ""
+        self._create_guard()
+
+    # ------------------------------------------------------------ Alpine Guard (impressions 3D)
+    def _create_guard(self):
+        try:
+            if __package__:
+                from .guard import Guard
+            else:
+                from guard import Guard
+            self.guard = Guard(self)
+            self.guard_error = ""
+        except Exception as error:
+            self.guard = None
+            self.guard_error = f"{type(error).__name__} : {str(error)[:300]}"
+            print(f"Alpine Guard indisponible ({type(error).__name__}) ; l’agent continue sans lui.", flush=True)
+        return self.guard
+
+    def _start_guard(self):
+        guard = self.guard
+        if guard is None:
+            return False
+        try:
+            guard.start()
+            return True
+        except Exception as error:
+            self.guard_error = f"{type(error).__name__} : {str(error)[:300]}"
+            print(f"Alpine Guard non démarré ({type(error).__name__}) ; l’agent continue sans lui.", flush=True)
+            return False
+
+    def _stop_guard(self, timeout=5.0):
+        guard = self.guard
+        if guard is None:
+            return
+        try:
+            guard.stop(timeout=timeout)
+        except Exception as error:
+            print(f"Arrêt d’Alpine Guard incomplet ({type(error).__name__}).", flush=True)
 
     # ------------------------------------------------------------ surveillance IA des graveuses
     def _create_fire_watch(self):
@@ -1897,6 +1945,17 @@ class Agent:
             tools["toile-studio"] = {"tool_id": "toile-studio", "engine_id": "toile-engine", "status": "online" if self._runtime_running("toile-studio") else "ready", "version": "local"}
         elif toile_root.is_dir() and any((toile_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
             tools["toile-studio"] = {"tool_id": "toile-studio", "engine_id": "toile-engine", "status": "incomplete", "version": "local"}
+        # Alpine Guard (agent 1.52.0) : « online » quand le service surveille au moins une imprimante.
+        guard_root = self.root / "components" / "guard-engine"
+        if component_ready("guard-engine", guard_root):
+            watching = False
+            try:
+                watching = bool(self.guard is not None and any(config.get("enabled") for config in self.guard.configs.values()))
+            except Exception:
+                watching = False
+            tools["alpine-guard"] = {"tool_id": "alpine-guard", "engine_id": "guard-engine", "status": "online" if watching else "ready", "version": "local"}
+        elif guard_root.is_dir() and any((guard_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
+            tools["alpine-guard"] = {"tool_id": "alpine-guard", "engine_id": "guard-engine", "status": "incomplete", "version": "local"}
         for tool_id, engine in TOOL_HANDLERS.items():
             if tool_id in {"image-generation", "3d-generation"}:
                 continue
@@ -1914,7 +1973,7 @@ class Agent:
             module_sizes = {}
             for module in ({"ai3d": ("cuda-toolkit", "hunyuan3d-21", "open3d-lab"), "model-studio": ("orca-bridge",),
                             "laser-studio": ("fire-watch",), "converter": ("opencamlib",),
-                            "toile-studio": ("toile-detourage",)}.get(tool_id, ())):
+                            "toile-studio": ("toile-detourage",), "alpine-guard": ("guard-obico",)}.get(tool_id, ())):
                 module_root = self.root / "components" / module
                 if module == "fire-watch":
                     # Surveillance IA (agent 1.34.0) : une installation commencée ou interrompue se voit.
@@ -2413,6 +2472,15 @@ class Agent:
                             f"Score sous le seuil de sécurité de {config['min_score'] * 100:.0f} % : aucune pause.")
         if not config["equipment_id"]:
             return conclure("no_printer", "Aucune imprimante associée à la pause automatique : aucune pause.")
+        guard = getattr(self, "guard", None)
+        try:
+            guard_claims = bool(guard is not None and guard.claims(config["equipment_id"]))
+        except Exception:
+            guard_claims = False
+        if guard_claims:
+            # Alpine Guard est choisi pour cette imprimante avec sa propre réponse automatique : jamais deux pauses.
+            return conclure("guard", "Alpine Guard est choisi pour cette imprimante : pause PrintGuard non envoyée "
+                                     "(jamais deux pauses automatiques sur la même imprimante).")
         conclure("sending", "Envoi de la pause à l’imprimante depuis le Worker, issue à suivre.")
         try:
             resultat = self.equipment_relay.pause_locale(config["equipment_id"])
@@ -3043,6 +3111,7 @@ class Agent:
             self.control_runtime(tool_id, "stop")
         # Le moteur de surveillance IA tient des fichiers de components/fire-watch : arrêté avant la suppression.
         self._stop_fire_watch()
+        self._stop_guard()   # idem pour components/guard-engine et guard-obico
         try:
             components = (self.root / "components").resolve()
             if components.parent != self.root.resolve():
@@ -3068,6 +3137,8 @@ class Agent:
             # Nettoyage échoué : le Worker reste en service, sa surveillance aussi.
             if self.fire_watch_wanted and not self.stop_requested.is_set():
                 self._start_fire_watch()
+            if not self.stop_requested.is_set():
+                self._start_guard()
             raise
         return {"purged": True, "removed_components": removed}
 
@@ -4049,6 +4120,7 @@ class Agent:
             environment["ALPINE_ASSET_TOKEN"] = token
         self.command_progress(item.get("command_id"), 1, "Préparation de l’opération sur le Worker…")
         paused_fire_watch = None
+        guard_paused = False
         try:
             self._check_install_cancel(item)
             if fire_watch_module and self.fire_watch is not None:
@@ -4059,6 +4131,10 @@ class Agent:
                 operation = {"install": "Installation", "update": "Mise à jour", "repair": "Réparation",
                              "uninstall": "Désinstallation"}.get(action, "Opération")
                 paused_fire_watch = self._suspend_fire_watch(f"{operation} du moteur de surveillance en cours sur ce Worker")
+            if kind == "component" and known in {"guard-engine", "guard-obico"} and self.guard is not None:
+                # Alpine Guard : moteur arrêté le temps de l'opération (fichiers du .venv libérés), relancé ensuite.
+                guard_paused = True
+                self.guard.suspend_engines(f"{action} du moteur Alpine Guard en cours sur ce Worker")
             result = self.run_installer(arguments, environment, item.get("command_id"))
             if adopt_managed:
                 storage.activate_managed_component(engine, ownership["configured_path"])
@@ -4067,6 +4143,11 @@ class Agent:
         finally:
             if paused_fire_watch:
                 self._resume_fire_watch(paused_fire_watch)
+            if guard_paused and self.guard is not None:
+                try:
+                    self.guard.resume_engines()
+                except Exception:
+                    pass
             with self.inventory_lock:
                 self.inventory_revision += 1
                 self.inventory_updated_at = 0
@@ -4143,6 +4224,7 @@ class Agent:
         })
         self.stop_requested.set()
         self._stop_fire_watch(timeout=3.0)
+        self._stop_guard(timeout=3.0)
         try:
             self.equipment_relay.sync([])
         except Exception as error:
@@ -4187,6 +4269,7 @@ class Agent:
         self.restart_requested.set()
         # Moteur d'analyse fermé proprement (il s'arrêterait aussi sur la fin de son entrée standard).
         self._stop_fire_watch(timeout=3.0)
+        self._stop_guard(timeout=3.0)
         self._close_equipment_before_exit()
         # The platform installer always runs the agent under run_worker.ps1 (or
         # systemd on Linux), which recreates it after this clean exit.
@@ -4860,6 +4943,7 @@ class Agent:
         threading.Thread(target=self.equipment_relay.loop, name="worker-equipment", daemon=True).start()
         # Après le relais d'équipements : la surveillance lit ses caméras et arrête ses machines GRBL.
         self._start_fire_watch()
+        self._start_guard()   # Alpine Guard lit caméras et télémétrie du même relais
         self._start_environment_maintenance()
         try:
             # Jobs et ressources : mesure en continu (VRAM par processus, RAM, processeur) dans son propre fil.
@@ -4893,6 +4977,7 @@ class Agent:
         finally:
             self.stop_requested.set()
             self._stop_fire_watch()
+            self._stop_guard()
 
 
 def main():

@@ -237,7 +237,10 @@ TELEMETRY_KEYS = {"fun", "gcode_state", "mc_percent", "mc_remaining_time", "laye
                   # appliqué, « ota_version » de savoir si le firmware propose
                   # le Mode développeur. Aucun blob volumineux (ipcam, xcam) :
                   # la télémétrie est plafonnée à 128 KiB côté dashboard.
-                  "lights_report", "heatbreak_fan_speed", "chamber_temper", "mc_print_error_code", "fail_reason", "ota_version"}
+                  "lights_report", "heatbreak_fan_speed", "chamber_temper", "mc_print_error_code", "fail_reason", "ota_version",
+                  # Alpine Guard (agent 1.52.0) : étape en cours (étalonnage, changement AMS, pause) pour n'armer la
+                  # surveillance que pendant l'impression proprement dite. Deux entiers.
+                  "stg_cur", "mc_print_stage"}
 
 
 def valid_api_key(value):
@@ -3218,6 +3221,42 @@ class EquipmentRelay:
         fps = getattr(device, "capture_fps", None)
         return {"present": True, "kind": device.spec.get("kind"), "connected": connected, "frame": frame,
                 "frame_at": float(frame_at or 0.0), "fps": round(float(fps), 2) if fps else None}
+
+    # ------------------------------------------------ Alpine Guard (agent 1.52.0)
+    GUARD_TELEMETRY = ("gcode_state", "stg_cur", "mc_print_stage", "layer_num", "total_layer_num", "mc_percent",
+                       "mc_remaining_time", "subtask_name", "hms", "print_error")
+
+    def guard_printer(self, equipment_id):
+        """État d'une imprimante pour Alpine Guard, en mémoire et en lecture seule (aucun envoi)."""
+        device = self.devices.get(str(equipment_id or ""))
+        if device is None or device.spec.get("kind") != "printer":
+            return {"present": False, "connected": False, "telemetry": {}}
+        with device.lock:
+            telemetry = {key: copy.deepcopy(device.telemetry[key]) for key in self.GUARD_TELEMETRY if key in device.telemetry}
+            connected = bool(device.snapshot.get("connected"))
+        return {"present": True, "connected": connected, "transport": "mqtt" if device.client else "http" if device.driver else None,
+                "telemetry": telemetry}
+
+    def guard_command(self, equipment_id, action):
+        """Pause, reprise ou arrêt demandés par Alpine Guard (automatique ou bouton du site / de l'application).
+
+        Même message que les boutons de l'imprimante (``print.command``), signé comme les autres commandes du Worker
+        quand une identité de signature existe. Le résultat n'est JAMAIS tenu pour une exécution : Guard relit
+        ``gcode_state`` (la P1S répond à l'écho même quand elle refuse, HMS 0500-0500-0001-0007)."""
+        if action not in ("pause", "resume", "stop"):
+            raise ValueError("Action inconnue.")
+        device = self.devices.get(str(equipment_id or ""))
+        if not device or device.spec.get("kind") != "printer":
+            raise ValueError("Imprimante inconnue de ce Worker.")
+        if not device.client or device.driver:
+            raise ValueError("Réponse réservée aux imprimantes Bambu reliées en MQTT à ce Worker.")
+        if not device.report().get("connected"):
+            raise ValueError("La connexion imprimante n’est pas prête sur le Worker.")
+        state = str(device.telemetry.get("gcode_state") or "").upper()
+        allowed = {"pause": {"RUNNING"}, "resume": {"PAUSE"}, "stop": {"RUNNING", "PAUSE", "PREPARE"}}[action]
+        if state not in allowed:
+            raise ValueError(f"État de l’imprimante {state or 'inconnu'} : {action} non envoyé.")
+        return self._envoyer(device, device.spec, {"print": {"command": action}})
 
     def sync(self, items):
         with self.lock:

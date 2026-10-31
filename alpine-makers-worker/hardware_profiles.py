@@ -25,7 +25,7 @@ ENGINE_PYTHON = "3.12"
 GPU_TOOLS = frozenset({"image_generation", "ai3d"})
 CPU_LABELS = {"converter": "FreeCAD · CPU", "model-studio": "OrcaSlicer · CPU", "printguard": "PrintGuard · LiteRT CPU",
               "laser-studio": "Moteur laser · CPU", "cnc-studio": "Moteur CNC · CPU",
-              "toile-studio": "Alpine Toile Creator · CPU"}
+              "toile-studio": "Alpine Toile Creator · CPU", "alpine-guard": "Alpine Guard · vision CPU"}
 # Paquets distribués uniquement sous Windows ; les autres outils (FreeCAD, moteur laser, GPU) vont aussi sur Linux.
 WINDOWS_ONLY_TOOLS = frozenset({"model-studio", "printguard"})
 DRIVER_MINIMUMS = {

@@ -99,6 +99,22 @@ CATALOG = {
                                   "size": 224005088,
                                   "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
                                   "path": "models/birefnet-lite/model.onnx"}},
+    # Alpine Guard (agent 1.52.0) : moteur de vision classique (guard_engine/ livré avec le paquet Worker) dans un Python
+    # isolé, numpy et OpenCV épinglés aux versions déjà éprouvées par fire-watch. CPU seulement, aucun modèle.
+    "guard-engine": {"kind": "python-venv", "packages": ("numpy==2.5.3", "opencv-python-headless==4.14.0.94"),
+                     "license": "OpenCV Apache-2.0 ; numpy BSD-3-Clause"},
+    # Module facultatif « modèle Obico » d'Alpine Guard : son propre Python isolé (vision + ONNX Runtime CPU) et le
+    # détecteur d'échecs d'Obico (AGPL-3.0) téléchargé à l'adresse publiée par Obico, vérifié par taille et SHA-256
+    # publiés par Obico (ml_api/model/model-weights.onnx.url et .sha256, commit 6f938964). Jamais le modèle PrintGuard.
+    "guard-obico": {"kind": "python-venv", "requires": "guard-engine",
+                    "packages": ("onnxruntime==1.30.0", "numpy==2.5.3", "opencv-python-headless==4.14.0.94",
+                                 "flatbuffers==25.12.19", "packaging==26.3", "protobuf==7.36.2"),
+                    "license": "Modèle Obico AGPL-3.0 (TheSpaghettiDetective/obico-server) ; ONNX Runtime MIT ; OpenCV "
+                               "Apache-2.0 ; numpy BSD-3-Clause",
+                    "model": {"url": "https://www.obico.io/static_pub/ml-models/model-weights-5a6b1be1fa.onnx",
+                              "size": 202223918,
+                              "sha256": "0a6ebd8e30dbf6a450c50f9c0a5406f04ba7eb1c99fd5996e888c78bb383b9aa",
+                              "path": "models/obico/model.onnx"}},
     # Surveillance IA des graveuses (agent 1.34.0) : module du tool laser-studio, indépendant du moteur
     # laser. Python isolé + ONNX Runtime (GPU NVIDIA si compatible, sinon CPU) ; le code d'analyse
     # (fire_watch_engine/) arrive avec le paquet Worker, les poids sont convertis sur place.
@@ -663,7 +679,8 @@ def selected_profile(component):
     tool = {"comfyui": "image_generation", "hunyuan3d": "ai3d", "cuda-toolkit": "ai3d", "hunyuan3d-21": "ai3d", "open3d-lab": "ai3d",
             "orca": "model-studio", "orca-bridge": "model-studio", "freecad": "converter", "opencamlib": "converter",
             "laser-engine": "laser-studio", "fire-watch": "laser-studio", "cnc-engine": "cnc-studio",
-            "toile-engine": "toile-studio", "toile-detourage": "toile-studio"}.get(component, component)
+            "toile-engine": "toile-studio", "toile-detourage": "toile-studio",
+            "guard-engine": "alpine-guard", "guard-obico": "alpine-guard"}.get(component, component)
     profile = runtime_profile(detect_hardware(), tool)
     if component == "cnc-engine" and profile["status"] == "unsupported" and "profil matériel" in profile["reason"]:
         # Tant que hardware_profiles ne connaît pas cnc-studio : même profil CPU que le moteur laser.
@@ -1572,6 +1589,93 @@ def install_toile(worker_root, root, component, spec, upgrade=False):
             "prêts sur ce Worker (génération de toiles 3D multicolores).")
 
 
+# ---------------------------------------------------------------- Alpine Guard (agent 1.52.0)
+GUARD_SHIPPED = ("guard.py", "guard_rules.py", "guard_engine/__init__.py", "guard_engine/vision.py",
+                 "guard_engine/model.py", "guard_engine/server.py")
+# Sondes lancées dans le .venv du composant (cwd = dossier du Worker) : une analyse complète sur une image synthétique.
+GUARD_ENGINE_PROBE = "import json, guard_engine.server as s; print(json.dumps(s.probe()))"
+GUARD_OBICO_PROBE = "import json, sys, guard_engine.server as s; print(json.dumps(s.probe(sys.argv[1])))"
+GUARD_AGPL_NOTICE = (
+    "Modèle de détection d'échecs d'Obico (1re génération, ONNX) — publié par Obico (The Spaghetti Detective) dans le "
+    "dépôt https://github.com/TheSpaghettiDetective/obico-server, sous licence GNU Affero General Public License v3.0 "
+    "(https://www.gnu.org/licenses/agpl-3.0.html). Adresse et empreinte lues dans ml_api/model/model-weights.onnx.url et "
+    "model-weights.onnx.sha256 (commit 6f938964c63892df2b6d5b68d99ea783fc1a7c78). Fichier téléchargé par ce Worker à "
+    "cette adresse et vérifié par taille et SHA-256 ; Alpine Makers ne le redistribue pas. Calcul local seulement.\n"
+)
+
+
+def guard_model_path(root, spec=None):
+    spec = spec or CATALOG["guard-obico"]
+    return Path(root) / spec["model"]["path"]
+
+
+def guard_obico_ready(root):
+    model = guard_model_path(root)
+    return ((root / ".raphal-ready").is_file() and python_in(root / ".venv").is_file() and model.is_file()
+            and not is_link(model) and model.stat().st_size == CATALOG["guard-obico"]["model"]["size"])
+
+
+def install_guard(worker_root, root, component, spec, upgrade=False):
+    """Moteur (guard-engine) ou module modèle (guard-obico) d'Alpine Guard : Python isolé, paquets épinglés et, pour
+    le module, modèle épinglé ; marqueur .raphal-ready écrit seulement après une analyse d'essai réussie."""
+    obico = component == "guard-obico"
+    label = "module modèle Obico" if obico else "moteur Alpine Guard"
+    progress(5, f"Préparation du {label} (Python isolé)…")
+    worker_dir = Path(__file__).resolve().parents[1]
+    if not all((worker_dir / name).is_file() and not is_link(worker_dir / name) for name in GUARD_SHIPPED):
+        raise RuntimeError("Le moteur Alpine Guard manque au paquet Worker. Mets à jour le Worker (1.52.0) puis relance.")
+    if obico and not component_ready("guard-engine", root.parent / "guard-engine"):
+        raise RuntimeError("Installe d’abord le moteur Alpine Guard (Mes Workers → Installations).")
+    needed = 1024 ** 3 + (spec["model"]["size"] if obico else 0)
+    if shutil.disk_usage(root.parent).free < needed:
+        raise RuntimeError(f"Au moins {needed / 1024 ** 3:.1f} Gio libres sont nécessaires sur le disque du Worker pour le {label}.")
+    root.mkdir(parents=True, exist_ok=True)
+    ready = root / ".raphal-ready"
+    if is_link(ready):
+        raise RuntimeError(f"Marqueur du {label} sous forme de lien ; installation refusée.")
+    if not upgrade:
+        ready.unlink(missing_ok=True)
+    py = engine_environment(root)
+    progress(30, "Environnement Python prêt, installation des bibliothèques épinglées…")
+    call([py, "-m", "pip", "install", "--upgrade", "pip"], cwd=root, timeout=900,
+         progress_value=30, progress_label="Préparation de pip")
+    call([py, "-m", "pip", "install", "--upgrade", *PIP_WHEEL_PREFERENCE, *spec["packages"]], cwd=root, timeout=1800,
+         progress_value=40, progress_label="Installation de " + ", ".join(spec["packages"][:3]))
+    model = None
+    if obico:
+        model = guard_model_path(root, spec)
+        progress(55, "Téléchargement du modèle Obico (≈ 193 Mo, adresse et empreinte publiées par Obico)…")
+        download_pinned(spec["model"]["url"], model, spec["model"]["size"], spec["model"]["sha256"],
+                        "Modèle de détection Obico", value=55)
+        _write_json_file(model.parent / "provenance.json", {
+            "model": "Obico failure detection (1st gen, ONNX)", "license": "AGPL-3.0", "url": spec["model"]["url"],
+            "size": spec["model"]["size"], "sha256": spec["model"]["sha256"],
+            "source": "https://github.com/TheSpaghettiDetective/obico-server/tree/6f938964c63892df2b6d5b68d99ea783fc1a7c78/ml_api/model",
+            "verified_at": int(time.time())})
+        (model.parent / "LICENSE-AGPL-3.0.txt").write_text(GUARD_AGPL_NOTICE, encoding="utf-8")
+    progress(88, f"Vérification du {label} (analyse d’essai)…")
+    try:
+        arguments = [py, "-c", GUARD_OBICO_PROBE, str(model)] if obico else [py, "-c", GUARD_ENGINE_PROBE]
+        report = json.loads(call(arguments, cwd=worker_dir, timeout=900 if obico else 180).strip().splitlines()[-1])
+    except (RuntimeError, ValueError, IndexError) as error:
+        raise RuntimeError(f"Le {label} ne démarre pas dans son environnement Python : " + str(error)[-800:]) from error
+    if not isinstance(report, dict) or not report.get("ok") or (obico and not report.get("model")):
+        detail = report.get("model_error") if isinstance(report, dict) else None
+        raise RuntimeError(f"Vérification du {label} échouée" + (f" : {detail}" if detail else " : l’analyse d’essai ne répond pas comme attendu."))
+    marker = {"component": component, "packages": list(spec["packages"]),
+              "numpy": str(report.get("numpy") or ""), "opencv": str(report.get("opencv") or "")}
+    if obico:
+        marker.update(model={"sha256": spec["model"]["sha256"], "size": spec["model"]["size"]},
+                      onnxruntime=str(report.get("onnxruntime") or ""))
+    ready.write_text(json.dumps(marker), encoding="utf-8")
+    progress(99, f"{label[0].upper() + label[1:]} prêt.")
+    if obico:
+        return (f"Modèle Obico installé pour Alpine Guard : ONNX Runtime {report.get('onnxruntime')} (CPU) et modèle "
+                "vérifié par SHA-256 (licence AGPL-3.0, calcul local).")
+    return (f"Moteur Alpine Guard installé : Python isolé, numpy {report.get('numpy')} et OpenCV {report.get('opencv')} "
+            "prêts sur ce Worker (vision classique, aucun modèle requis).")
+
+
 # ---------------------------------------------------------------- surveillance IA des graveuses (fire-watch)
 # Composant components/fire-watch/ : .venv (ONNX Runtime, NumPy, OpenCV), models/<id>/{source.pt, model.onnx,
 # provenance.json, LICENSE-AGPL-3.0.txt} et le marqueur .raphal-ready. Les poids ne viennent jamais du site :
@@ -2247,10 +2351,12 @@ def install_fire_watch(worker_root, root, upgrade=False):
 
 
 def component_ready(component, root):
-    if component in {"laser-engine", "cnc-engine", "toile-engine"}:
+    if component in {"laser-engine", "cnc-engine", "toile-engine", "guard-engine"}:
         return (root / ".raphal-ready").is_file() and python_in(root / ".venv").is_file()
     if component == "toile-detourage":
         return toile_detourage_ready(root)
+    if component == "guard-obico":
+        return guard_obico_ready(root)
     if component == "fire-watch":
         return fire_watch_ready(root)
     if component in {"comfyui", "hunyuan3d"}:
@@ -2391,6 +2497,8 @@ def _manage(component, action):
         if component in {"toile-engine", "toile-detourage"} and laser_engine_outdated(root, CATALOG[component]):
             # Paquets épinglés changés depuis l'installation : on complète, marqueur conservé jusqu'à la sonde.
             return install_toile(worker_root, root, component, CATALOG[component], upgrade=True)
+        if component in {"guard-engine", "guard-obico"} and laser_engine_outdated(root, CATALOG[component]):
+            return install_guard(worker_root, root, component, CATALOG[component], upgrade=True)
         if component == "fire-watch" and fire_watch_outdated(root):
             # Nouveau modèle ou paquet au catalogue, ou GPU devenu compatible : on complète, marqueur conservé.
             return install_fire_watch(worker_root, root, upgrade=True)
@@ -2441,6 +2549,8 @@ def _manage(component, action):
             return install_cnc_engine(worker_root, root, spec)
         if component in {"toile-engine", "toile-detourage"}:
             return install_toile(worker_root, root, component, spec)
+        if component in {"guard-engine", "guard-obico"}:
+            return install_guard(worker_root, root, component, spec)
         return install_laser_engine(worker_root, root, spec)
     if spec["kind"] == "fire-watch":
         return install_fire_watch(worker_root, root)

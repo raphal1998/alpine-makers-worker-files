@@ -1,5 +1,19 @@
 # Historique des mises à jour
 
+## Version 1.52.0 — 2026-10-31
+
+**Alpine Guard : surveillance des impressions 3D dans le Worker (capacité guard_v1)**
+
+### Ajouté
+- Service Alpine Guard dans l'agent, à côté de la liaison de l'imprimante et de la caméra : analyse de l'image (moteur « guard-engine », Python isolé avec numpy et OpenCV, processeur seulement), décision par seuil, images consécutives, délai de grâce et cooldown, une exécution suivie par impression et agrégats de risque par minute, synchronisés avec le site.
+- Signaux de vision classique, sans licence tierce : caméra figée, noire ou masquée, amas « spaghetti » (contours courbes dans la zone d'impression issue du cadrage caméra), pièce décollée ou disparue, amas sur la buse, et impression dans le vide (couches qui avancent dans la télémétrie sans changement visible). La surveillance ne s'arme que pendant l'impression proprement dite (étalonnage, chauffe et changement AMS exclus).
+- Réponse notifier, pause ou arrêt, toujours VÉRIFIÉE par gcode_state relu sur la télémétrie (jamais par l'écho) : confirmée, refusée (HMS 0500-0500-0001-0007, avec la marche à suivre), non confirmée ou non envoyée. Pause / arrêt automatiques seulement quand Alpine Guard est choisi pour l'imprimante ; la pause automatique PrintGuard du Worker s'abstient alors (jamais deux pauses).
+- Module facultatif « guard-obico » : détecteur d'échecs d'Obico (licence AGPL-3.0), téléchargé par le Worker à l'adresse publiée par Obico et vérifié par taille et SHA-256, exécuté par ONNX Runtime sur le processeur. Aucun code ni modèle PrintGuard.
+- Télémétrie : étape en cours (stg_cur, mc_print_stage) ajoutée aux valeurs lues de l'imprimante.
+
+### Technique
+- Empreinte du paquet publié : `0c24543d58fdc529…` (dossier du paquet).
+
 ## Version 1.51.1 — 2026-10-30
 
 **Installation Windows : un Bureau synchronisé par OneDrive ne bloque plus install_windows.bat**
