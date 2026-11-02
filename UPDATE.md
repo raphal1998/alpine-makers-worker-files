@@ -1,5 +1,20 @@
 # Historique des mises à jour
 
+## Version 1.53.1 — 2026-11-02
+
+**Application Android Alpine Worker : surveillance Alpine Guard des impressions 3D**
+
+### Ajouté
+- Application Alpine Worker → Surveillances IA → Alpine Guard : imprimantes du compte et choix Alpine Guard / PrintGuard par imprimante, aperçu de la dernière image analysée (image figée signalée), jauge de risque en direct avec seuil et quasi-alerte, valeur de chaque signal, alertes avec image et revue « vraie / fausse alerte », réglages (seuils, signaux et poids, réponse notifier / pause / arrêt, caméra du même Worker, zone de cadrage, conservation) et historique des impressions par période.
+- Pause, reprise, arrêt et « Ignorer l’alerte » depuis l’application, chacun confirmé par l’utilisateur puis suivi jusqu’au résultat réel rapporté par le Worker : confirmée, REFUSÉE par l’imprimante (pause non signée refusée par la P1S hors Mode LAN + Mode développeur, avec la marche à suivre), NON confirmée, non envoyée ou échouée.
+- Démarrer / Éteindre Alpine Guard sur les Workers porteurs depuis l’application (arme ou coupe la surveillance de leurs imprimantes).
+
+### Modifié
+- Agent Worker sans changement de code : numéro 1.53.1 aligné sur celui de l’application Android (même numéro que l’agent). Inutile de mettre à jour un Worker déjà en 1.53.0.
+
+### Technique
+- Empreinte du paquet publié : `fa8af189b7c0bb9b…` (dossier du paquet).
+
 ## Version 1.53.0 — 2026-11-01
 
 **Alpine Tools : les outils des applications Alpine, un par un, installables sur le Worker (capacité alpine_tools_v1)**
