@@ -35,6 +35,7 @@ if __package__ and "." in __package__:
     from ..safety import (is_link, protect_credentials, remove_worker_file,
                           remove_worker_tree, validate_archive, validate_server_url)
     from ..hardware_profiles import detect_hardware, fire_watch_profile, runtime_profile
+    from ..alpine_tools import registry as alpine_registry
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     import worker_legal as legal_compliance
@@ -44,6 +45,7 @@ else:
     from safety import (is_link, protect_credentials, remove_worker_file,
                         remove_worker_tree, validate_archive, validate_server_url)
     from hardware_profiles import detect_hardware, fire_watch_profile, runtime_profile
+    from alpine_tools import registry as alpine_registry
 
 
 CATALOG = {
@@ -136,6 +138,13 @@ CATALOG = {
         "requirements": "requirements-open3d-lab.txt", "runner": "open3d_lab_runner.py", "shims": ("diso", "torchmcubes"),
     },
 }
+
+# Alpine Tools (agent 1.53.0) : un composant par outil (même identifiant que l'outil), Python isolé avec numpy et
+# Pillow épinglés ; le code de l'outil (alpine_tools/<paquet>/) arrive avec le paquet Worker. Aucun programme,
+# modèle ni police tiers (docs/ALPINE_TOOLS.md).
+for _tool_id in alpine_registry.TOOL_IDS:
+    CATALOG[_tool_id] = {"kind": "python-venv", "packages": alpine_registry.PACKAGES_PIP,
+                         "license": alpine_registry.LICENSE, "alpine_tool": alpine_registry.PACKAGES[_tool_id]}
 BACKEND_MODULES = ("hunyuan3d-21", "open3d-lab")
 # Installed only with the PBR paint model, never for shape-only users.
 HUNYUAN3D_21_PAINT_PACKAGES = ("realesrgan==0.3.0", "basicsr==1.4.2", "pytorch-lightning", "timm", "open3d", "cupy-cuda12x")
@@ -680,7 +689,8 @@ def selected_profile(component):
             "orca": "model-studio", "orca-bridge": "model-studio", "freecad": "converter", "opencamlib": "converter",
             "laser-engine": "laser-studio", "fire-watch": "laser-studio", "cnc-engine": "cnc-studio",
             "toile-engine": "toile-studio", "toile-detourage": "toile-studio",
-            "guard-engine": "alpine-guard", "guard-obico": "alpine-guard"}.get(component, component)
+            "guard-engine": "alpine-guard", "guard-obico": "alpine-guard"}.get(
+        component, "toile-studio" if component in alpine_registry.PACKAGES else component)  # Alpine Tools : profil CPU
     profile = runtime_profile(detect_hardware(), tool)
     if component == "cnc-engine" and profile["status"] == "unsupported" and "profil matériel" in profile["reason"]:
         # Tant que hardware_profiles ne connaît pas cnc-studio : même profil CPU que le moteur laser.
@@ -1589,6 +1599,48 @@ def install_toile(worker_root, root, component, spec, upgrade=False):
             "prêts sur ce Worker (génération de toiles 3D multicolores).")
 
 
+# ---------------------------------------------------------------- Alpine Tools (agent 1.53.0)
+ALPINE_TOOL_PROBE = "import json, sys, alpine_tools.cli as c; print(json.dumps(c.probe(sys.argv[1])))"
+
+
+def install_alpine_tool(worker_root, root, component, spec, upgrade=False):
+    """Un outil Alpine Tools : Python isolé, numpy et Pillow épinglés, sonde qui charge l'outil ; marqueur
+    .raphal-ready écrit seulement après la sonde. ``upgrade`` : outil prêt que l'on complète."""
+    paquet = spec["alpine_tool"]
+    nom = alpine_registry.NAMES.get(component, component)
+    progress(5, f"Préparation de {nom} (Python isolé)…")
+    worker_dir = Path(__file__).resolve().parents[1]
+    shipped = [worker_dir / "alpine_tools" / "cli.py", worker_dir / "alpine_tools" / "schema.py",
+               worker_dir / "alpine_tools" / paquet / "__init__.py", worker_dir / "runners" / "alpine-tool.py"]
+    if not all(path.is_file() and not is_link(path) for path in shipped):
+        raise RuntimeError(f"{nom} manque au paquet Worker. Mets à jour le Worker puis relance l’installation.")
+    if shutil.disk_usage(root.parent).free < 1024 ** 3:
+        raise RuntimeError(f"Au moins 1 Gio libre est nécessaire sur le disque du Worker pour {nom}.")
+    root.mkdir(parents=True, exist_ok=True)
+    ready = root / ".raphal-ready"
+    if is_link(ready):
+        raise RuntimeError(f"Marqueur de {nom} sous forme de lien ; installation refusée.")
+    if not upgrade:
+        ready.unlink(missing_ok=True)
+    py = engine_environment(root)
+    progress(30, "Environnement Python prêt, installation de numpy et Pillow…")
+    call([py, "-m", "pip", "install", "--upgrade", "pip"], cwd=root, timeout=900,
+         progress_value=30, progress_label="Préparation de pip")
+    call([py, "-m", "pip", "install", "--upgrade", *PIP_WHEEL_PREFERENCE, *spec["packages"]], cwd=root, timeout=1800,
+         progress_value=50, progress_label="Installation de " + ", ".join(spec["packages"]))
+    progress(88, f"Vérification de {nom} dans son environnement…")
+    try:
+        report = json.loads(call([py, "-c", ALPINE_TOOL_PROBE, paquet], cwd=worker_dir, timeout=180).strip().splitlines()[-1])
+    except (RuntimeError, ValueError, IndexError) as error:
+        raise RuntimeError(f"{nom} ne démarre pas dans son environnement Python : " + str(error)[-800:]) from error
+    if not isinstance(report, dict) or not report.get("ok"):
+        raise RuntimeError(f"Vérification de {nom} échouée.")
+    ready.write_text(json.dumps({"component": component, "packages": list(spec["packages"]), "tool": paquet,
+                                 "numpy": str(report.get("numpy") or ""), "pillow": str(report.get("pillow") or "")}), encoding="utf-8")
+    progress(99, f"{nom} prêt.")
+    return f"{nom} installé : Python isolé, numpy {report.get('numpy')} et Pillow {report.get('pillow')} prêts sur ce Worker."
+
+
 # ---------------------------------------------------------------- Alpine Guard (agent 1.52.0)
 GUARD_SHIPPED = ("guard.py", "guard_rules.py", "guard_engine/__init__.py", "guard_engine/vision.py",
                  "guard_engine/model.py", "guard_engine/server.py")
@@ -2351,7 +2403,7 @@ def install_fire_watch(worker_root, root, upgrade=False):
 
 
 def component_ready(component, root):
-    if component in {"laser-engine", "cnc-engine", "toile-engine", "guard-engine"}:
+    if component in {"laser-engine", "cnc-engine", "toile-engine", "guard-engine"} or component in alpine_registry.PACKAGES:
         return (root / ".raphal-ready").is_file() and python_in(root / ".venv").is_file()
     if component == "toile-detourage":
         return toile_detourage_ready(root)
@@ -2499,6 +2551,8 @@ def _manage(component, action):
             return install_toile(worker_root, root, component, CATALOG[component], upgrade=True)
         if component in {"guard-engine", "guard-obico"} and laser_engine_outdated(root, CATALOG[component]):
             return install_guard(worker_root, root, component, CATALOG[component], upgrade=True)
+        if component in alpine_registry.PACKAGES and laser_engine_outdated(root, CATALOG[component]):
+            return install_alpine_tool(worker_root, root, component, CATALOG[component], upgrade=True)
         if component == "fire-watch" and fire_watch_outdated(root):
             # Nouveau modèle ou paquet au catalogue, ou GPU devenu compatible : on complète, marqueur conservé.
             return install_fire_watch(worker_root, root, upgrade=True)
@@ -2551,6 +2605,8 @@ def _manage(component, action):
             return install_toile(worker_root, root, component, spec)
         if component in {"guard-engine", "guard-obico"}:
             return install_guard(worker_root, root, component, spec)
+        if component in alpine_registry.PACKAGES:
+            return install_alpine_tool(worker_root, root, component, spec)
         return install_laser_engine(worker_root, root, spec)
     if spec["kind"] == "fire-watch":
         return install_fire_watch(worker_root, root)

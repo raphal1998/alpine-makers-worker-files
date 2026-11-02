@@ -76,6 +76,7 @@ if __package__:
     from .installer_process import InstallerScope, installation_commit, scope_record
     from .hardware_profiles import detect_hardware, runtime_profile
     from .equipment_runtime import EquipmentRelay
+    from .alpine_tools import registry as alpine_registry
     from .installers.model_catalog import COMFYUI_CATALOG, COMFYUI_LORA_CATALOG, COMFYUI_BUNDLES, COMFYUI_UTILITY_MODELS, COMFYUI_LAB_MODULES, COMFYUI_REQUIREMENTS, HUNYUAN_CATALOG, HUNYUAN_REQUIREMENTS, HUNYUAN_SNAPSHOT_OPTIONS, AI3D_BACKENDS, AI3D_SNAPSHOTS
     from .installers import environment_maintenance
     from . import comfyui_assets
@@ -86,6 +87,7 @@ else:
     import local_sandbox
     from identity import Identity, configure as configure_identity
     from local_control import local_loop, network_info
+    from alpine_tools import registry as alpine_registry
     from storage_paths import WorkerStorage
     from safety import IMAGE_LAB_MAPS_TOOLS, comfyui_queue_busy, is_link, protect_credentials, release_comfyui_vram, release_comfyui_vram_when_idle, safe_relative_name, validate_archive, validate_server_url
     from job_state import DurableJournal, TERMINAL, atomic_json, read_json, runner_active
@@ -101,7 +103,7 @@ else:
     import job_limits
     import resource_limits
 
-AGENT_VERSION = "1.52.0"
+AGENT_VERSION = "1.53.0"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -238,6 +240,9 @@ AGENT_CAPABILITIES += ("toile_engine_v1",)  # littéral : le site lit ces lignes
 # « guard-engine », modèle facultatif du module « guard-obico »), synchro /api/worker-protocol/guard/sync, pause /
 # reprise / arrêt vérifiés par gcode_state.
 AGENT_CAPABILITIES += ("guard_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.53.0 : Alpine Tools. Un outil par composant atool-<id> (Python isolé numpy + Pillow), un processus par job
+# (runners/alpine-tool.py), code dans alpine_tools/<paquet>/ ; contrat docs/ALPINE_TOOLS.md.
+AGENT_CAPABILITIES += ("alpine_tools_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -391,10 +396,12 @@ TOOL_HANDLERS = {
 }
 # Outils « à la demande » : un interrupteur logique (fiche runtime enabled), un processus par calcul,
 # aucun service résident à démarrer, surveiller ou arrêter.
-ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio", "toile-studio", "alpine-guard")
+# Alpine Tools (agent 1.53.0) : un lanceur commun (runners/alpine-tool.py), composant = identifiant de l'outil.
+TOOL_HANDLERS.update({tool_id: "alpine-tool" for tool_id in alpine_registry.TOOL_IDS})
+ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio", "toile-studio", "alpine-guard", *alpine_registry.TOOL_IDS)
 # Lanceurs dont le moteur tourne DANS leur arbre de processus (FreeCADCmd, Python du moteur laser, CNC ou de toile,
 # script Pillow) : arrêter cet arbre prouve que plus rien ne calcule pour le job (agent 1.50.33, arrêt forcé).
-IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine")
+IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine", "alpine-tool")
 HUNYUAN_MODELS = {model_id: (folder, *HUNYUAN_REQUIREMENTS[model_id]) for model_id, (_, folder) in HUNYUAN_CATALOG.items()}
 
 
@@ -1956,9 +1963,18 @@ class Agent:
             tools["alpine-guard"] = {"tool_id": "alpine-guard", "engine_id": "guard-engine", "status": "online" if watching else "ready", "version": "local"}
         elif guard_root.is_dir() and any((guard_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
             tools["alpine-guard"] = {"tool_id": "alpine-guard", "engine_id": "guard-engine", "status": "incomplete", "version": "local"}
+        # Alpine Tools (agent 1.53.0) : chaque outil est son propre composant.
+        for atool in alpine_registry.TOOL_IDS:
+            atool_root = self.root / "components" / atool
+            if component_ready(atool, atool_root):
+                tools[atool] = {"tool_id": atool, "engine_id": atool, "status": "online" if self._runtime_running(atool) else "ready", "version": "local"}
+            elif atool_root.is_dir() and any((atool_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
+                tools[atool] = {"tool_id": atool, "engine_id": atool, "status": "incomplete", "version": "local"}
         for tool_id, engine in TOOL_HANDLERS.items():
             if tool_id in {"image-generation", "3d-generation"}:
                 continue
+            if engine == "alpine-tool":
+                engine = tool_id  # Alpine Tools : le composant porte l'identifiant de l'outil
             item = tools.setdefault(tool_id, {"tool_id": tool_id, "engine_id": engine, "status": "missing"})
             managed_root = self.root / "components" / engine
             engine_root = comfy_root if engine == "comfyui" else hunyuan_root if engine == "hunyuan3d" else managed_root
@@ -2069,6 +2085,19 @@ class Agent:
             return None
         return str(python_in(root / ".venv").resolve())
 
+    def _alpine_tool_python(self, tool_id):
+        """Python isolé du composant d'un outil Alpine Tools quand il est prêt, sinon None (agent 1.53.0)."""
+        if tool_id not in alpine_registry.PACKAGES:
+            return None
+        if __package__:
+            from .installers.component_installer import component_ready, python_in
+        else:
+            from installers.component_installer import component_ready, python_in
+        root = self.root / "components" / tool_id
+        if not component_ready(tool_id, root):
+            return None
+        return str(python_in(root / ".venv").resolve())
+
     def _toile_engine_python(self):
         """Python isolé du composant toile-engine quand le moteur de toile est prêt, sinon None (agent 1.51.0)."""
         if __package__:
@@ -2126,6 +2155,8 @@ class Agent:
             return record.get("enabled") is True and bool(self._cnc_engine_python())
         if tool_id == "toile-studio":
             return record.get("enabled") is True and bool(self._toile_engine_python())
+        if tool_id in alpine_registry.PACKAGES:
+            return record.get("enabled") is True and bool(self._alpine_tool_python(tool_id))
         pid = record.get("pid")
         root = str(record.get("root") or "").strip()
         expected_identity = str(record.get("process_identity") or "").strip()
@@ -2917,6 +2948,8 @@ class Agent:
                 raise AgentError("Le moteur CNC n’est pas installé. Installe ou répare Alpine CNC Studio (Mes Workers → Installations).")
             if action == "start" and tool_id == "toile-studio" and not self._toile_engine_python():
                 raise AgentError("Le moteur de toile n’est pas installé. Installe ou répare Alpine Toile Creator (Mes Workers → Installations).")
+            if action == "start" and tool_id in alpine_registry.PACKAGES and not self._alpine_tool_python(tool_id):
+                raise AgentError(f"{alpine_registry.NAMES[tool_id]} n’est pas installé. Installe-le depuis Mes Workers → Installations.")
             # FreeCADCmd, the laser, CNC and toile engines are per-job processes, not persistent servers.
             atomic_json(record_path, {"enabled": action == "start", "updated_at": time.time()})
             return {"started": action == "start", "stopped": action == "stop", "on_demand": True}
@@ -4511,7 +4544,7 @@ class Agent:
         tool_id = str(payload.get("tool_id") or "")
         if not self._valid_execution_id(job_id):
             raise AgentError("Identifiant du job invalide.")
-        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "orca", "laser-engine", "cnc-engine", "toile-engine"}:
+        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "orca", "laser-engine", "cnc-engine", "toile-engine", "alpine-tool"}:
             raise AgentError("Outil de job non autorisé par le Worker.")
         with self.maintenance_lock:
             existing = self.journal.get("jobs", job_id)
@@ -4746,6 +4779,12 @@ class Agent:
                     detourage = self._toile_detourage()
                     if detourage:
                         environment["TOILE_DETOURAGE_PYTHON"], environment["TOILE_DETOURAGE_MODEL"] = detourage
+                if tool_id in alpine_registry.PACKAGES:
+                    # Alpine Tools (agent 1.53.0) : le calcul tourne dans le Python isolé du composant de l'outil.
+                    atool_python = self._alpine_tool_python(tool_id)
+                    if not atool_python:
+                        raise AgentError(f"{alpine_registry.NAMES[tool_id]} n’est pas installé sur ce Worker (Mes Workers → Installations).")
+                    environment["ALPINE_TOOL_PYTHON"] = atool_python
                 # Labo image, restauration des visages (agent 1.44.0) : lanceur dédié, pas un graphe ComfyUI.
                 face_restore = tool_id in {"image_generation", "image-generation"} and parameters.get("lab_tool") == "face_restore"
                 # Outils de cartes du Labo (agent 1.46.0) : lanceur dédié (script Pillow), pas un graphe ComfyUI.

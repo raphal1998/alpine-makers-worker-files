@@ -1,5 +1,19 @@
 # Historique des mises à jour
 
+## Version 1.53.0 — 2026-11-01
+
+**Alpine Tools : les outils des applications Alpine, un par un, installables sur le Worker (capacité alpine_tools_v1)**
+
+### Ajouté
+- Douze outils installables séparément dans Mes Workers → Installations (composants atool-*) : Lithophanie, Tableau couleur, Relief souvenir, Gravure photo laser, Porte-clés et plaques, Image d'annonce (Alpine Gift), Alpine Contour, et les cinq estimations d'Alpine Prism (impression filament, impression résine, gravure laser, découpe laser, fraisage CNC).
+- Chaque outil calcule sur le Worker, dans son propre Python isolé (numpy et Pillow épinglés), un processus par job (runners/alpine-tool.py) : aucun programme, modèle ni police tiers. Un outil ne fonctionne qu'une fois installé.
+
+### Modifié
+- Le contrôle d'installation de chaque outil lance l'outil dans son environnement avant de le déclarer prêt.
+
+### Technique
+- Empreinte du paquet publié : `d08057432b392c7f…` (dossier du paquet).
+
 ## Version 1.52.0 — 2026-10-31
 
 **Alpine Guard : surveillance des impressions 3D dans le Worker (capacité guard_v1)**
