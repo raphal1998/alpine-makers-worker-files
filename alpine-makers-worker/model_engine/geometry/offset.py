@@ -162,7 +162,7 @@ def inset_rounds(paths, delta_um, count=None, join: str = "round", **kw):
     rounds = []
     current = paths
     while count is None or len(rounds) < count:
-        current = offset(current, step, join, **kw)
+        current = offset(current, step, join, resolve=not rounds, **kw)  # sorties déjà propres après le 1er tour
         if not current:
             break
         rounds.append(current)
