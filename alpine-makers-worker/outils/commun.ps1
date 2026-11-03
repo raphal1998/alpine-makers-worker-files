@@ -29,7 +29,7 @@ $script:MoteursWorker = @(
     [pscustomobject]@{ Outil = 'image_generation'; Nom = 'ComfyUI (images)';        Port = 8188;  Http = $false }
     [pscustomobject]@{ Outil = 'ai3d';             Nom = 'Hunyuan3D (3D)';          Port = 8189;  Http = $false }
     [pscustomobject]@{ Outil = 'printguard';       Nom = 'PrintGuard';              Port = 8000;  Http = $false }
-    # Model Studio (agent 1.54.0) : plus de bridge Orca résident ; le trancheur Alpine (composant alpine-slicer) est un
+    # Model Studio (agent 1.54.2) : plus de bridge Orca résident ; le trancheur Alpine (composant alpine-slicer) est un
     # processus Python du venv par job, reconnu comme « calcul », jamais comme moteur à port.
 )
 
@@ -573,7 +573,7 @@ function Get-EntreeSessionWorker {
 
 function Test-PortHttpSys {
     <# Un moteur qui écoute par HttpListener = HTTP.sys : le port apparaît sous le PID 4 (System). On lit la file HTTP.sys.
-       (Plus aucun moteur du Worker n'en a besoin depuis le retrait du bridge Orca, agent 1.54.0 ; gardé pour Http = $true.) #>
+       (Plus aucun moteur du Worker n'en a besoin depuis le retrait du bridge Orca, agent 1.54.2 ; gardé pour Http = $true.) #>
     param([int]$Port)
     try { return [bool]((& netsh http show servicestate 2>$null | Select-String -SimpleMatch (':' + $Port + ':')) -ne $null) } catch { return $false }
 }

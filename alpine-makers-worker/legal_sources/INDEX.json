@@ -1255,16 +1255,6 @@
       "retrieved_at": "2026-10-03T17:51:26.016Z"
     },
     {
-      "name": "NOTICE--model-studio",
-      "kind": "generated_attribution_notice",
-      "url": "alpine-makers:generated-notice",
-      "local_path": "legal_sources/NOTICE--model-studio.txt",
-      "sha256": "f2b42476d3b5c2d1d20ab1926905fce37feeac23159e37eab198db066fac08d1",
-      "bytes": 1096,
-      "revision": null,
-      "retrieved_at": "2026-10-03T16:33:37.622Z"
-    },
-    {
       "name": "NOTICE--laser-studio",
       "kind": "generated_attribution_notice",
       "url": "alpine-makers:generated-notice",
@@ -5679,6 +5669,16 @@
       "bytes": 1242,
       "revision": null,
       "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--model-studio",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--model-studio.txt",
+      "sha256": "0479973e78e4bb02e8b50cd3ea69289ec5076c86aa4c0937e07fcc59d4103776",
+      "bytes": 1382,
+      "revision": null,
+      "retrieved_at": "2026-11-03T22:50:13.000Z"
     }
   ]
 }

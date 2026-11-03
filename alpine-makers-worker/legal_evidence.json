@@ -325,46 +325,6 @@
         "retrieved_at": "2026-10-03T17:51:26.016Z"
       }
     },
-    "model-studio": {
-      "id": "model-studio",
-      "evidence_status": "license_text_unpinned_runtime",
-      "evidence_files": [
-        {
-          "name": "OrcaSlicer-AGPL-3.0-current-license",
-          "kind": "license",
-          "url": "https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/main/LICENSE.txt",
-          "local_path": "legal_sources/OrcaSlicer-AGPL-3.0-current-license.txt",
-          "sha256": "57c8ff33c9c0cfc3ef00e650a1cc910d7ee479a8bc509f6c9209a7c2a11399d6",
-          "bytes": 34520,
-          "revision": null,
-          "retrieved_at": "2026-10-03T16:28:05.893Z"
-        }
-      ],
-      "attribution": "OrcaSlicer / Alpine Makers (bridge)",
-      "redistribution_obligations": [
-        "Conserver les licences et attributions de chaque composant.",
-        "Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels."
-      ],
-      "source_delivery_status": "Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.",
-      "review_status": "Dossier documentaire, pas certification juridique ni permission supplémentaire.",
-      "distribution_mode": "see_component_installer",
-      "installed_version_verified": false,
-      "remaining_actions": [
-        "Conserver et présenter les notices/conditions collectées.",
-        "Avant redistribution du paquet, vérifier les sources correspondantes et éléments transitifs réellement inclus."
-      ],
-      "required_attribution": [],
-      "notice_file": {
-        "name": "NOTICE--model-studio",
-        "kind": "generated_attribution_notice",
-        "url": "alpine-makers:generated-notice",
-        "local_path": "legal_sources/NOTICE--model-studio.txt",
-        "sha256": "f2b42476d3b5c2d1d20ab1926905fce37feeac23159e37eab198db066fac08d1",
-        "bytes": 1096,
-        "revision": null,
-        "retrieved_at": "2026-10-03T16:33:37.622Z"
-      }
-    },
     "laser-studio": {
       "id": "laser-studio",
       "evidence_status": "documentation_pending",
@@ -20336,6 +20296,37 @@
         "revision": null,
         "retrieved_at": "2026-11-03T17:11:18.000Z"
       }
+    },
+    "model-studio": {
+      "id": "model-studio",
+      "evidence_status": "documentation_pending",
+      "evidence_files": [],
+      "attribution": "Alpine Makers / dépendances tierces",
+      "redistribution_obligations": [
+        "Conserver les licences et attributions de chaque composant.",
+        "Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.",
+        "Alpine Model Engine : trancheur écrit par Alpine Makers (worker_agent/model_engine), installé dans un Python isolé du Worker (numpy, Pillow) ; aucun programme, modèle ni police tiers, aucun profil ni code d'OrcaSlicer / Bambu Studio repris. Conserver les notices de numpy et Pillow.",
+        "Le fichier tranché et ses estimations (temps, filament) sont indicatifs : vérifier avant impression ; le premier fichier réel s'imprime sous surveillance."
+      ],
+      "source_delivery_status": "Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.",
+      "review_status": "Code Alpine Makers et dépendances tierces : vérifier séparément les titulaires, bibliothèques et wheels embarqués. Aucune licence tierce globale inventée.",
+      "distribution_mode": "see_component_installer",
+      "installed_version_verified": false,
+      "remaining_actions": [
+        "Conserver et présenter les notices/conditions collectées.",
+        "Avant redistribution du paquet, vérifier les sources correspondantes et éléments transitifs réellement inclus."
+      ],
+      "required_attribution": [],
+      "notice_file": {
+        "name": "NOTICE--model-studio",
+        "kind": "generated_attribution_notice",
+        "url": "alpine-makers:generated-notice",
+        "local_path": "legal_sources/NOTICE--model-studio.txt",
+        "sha256": "0479973e78e4bb02e8b50cd3ea69289ec5076c86aa4c0937e07fcc59d4103776",
+        "bytes": 1382,
+        "revision": null,
+        "retrieved_at": "2026-11-03T22:50:13.000Z"
+      }
     }
   },
   "repository_evidence": [
@@ -21838,5 +21829,5 @@
       "collection_mode": "offline"
     }
   ],
-  "total_text_bytes": 2191267
+  "total_text_bytes": 2191553
 }

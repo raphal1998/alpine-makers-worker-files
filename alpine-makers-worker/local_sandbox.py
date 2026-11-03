@@ -6,7 +6,7 @@ import socket
 import urllib.parse
 from pathlib import Path
 
-# Model Studio (agent 1.54.0) : plus de pont OrcaSlicer ni de port ; le trancheur Alpine est un processus par job.
+# Model Studio (agent 1.54.2) : plus de pont OrcaSlicer ni de port ; le trancheur Alpine est un processus par job.
 PORTS = {"image_generation": 28188, "ai3d": 28189, "printguard": 28000}
 PRINTGUARD_MEDIA_PORTS = {"api": 29997, "rtsp": 28554, "rtmp": 21935, "hls": 28888}
 

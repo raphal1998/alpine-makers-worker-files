@@ -194,6 +194,14 @@ FILAMENTS = {
         note="TPU souple 95A : lent (3,2 mm³/s), rétraction courte et lente sans essuyage pour éviter le bourrage dans "
              "l'extrudeur direct, lit tiède, débit légèrement augmenté (le TPU se comprime). À ne pas charger dans "
              "l'AMS : alimentation par la bobine externe."),
+    "TPU-AMS": _fiche(
+        "TPU-AMS", "Alpine TPU for AMS", nozzle=(230, 225), nozzle_range=(210, 240), beds=_BED_TPU,
+        fan=(50, 80, 100, 2, 30, 0), colour="#FF8A3D", flow=1.0, max_volumetric=15.0, density=1.21, cost=38.0,
+        slow_down=(8.0, 15.0), fan_layer_time=60.0, ams=True, dry=True,
+        retraction={"retraction_length": 0.8, "retraction_speed": 25.0, "deretraction_speed": 25.0, "z_hop": 0.2,
+                    "wipe": False},
+        note="TPU 95A haut débit formulé pour l'AMS (« TPU for AMS ») : plus rigide qu'un TPU classique, compatible AMS, "
+             "débit porté à 15 mm³/s, rétraction courte sans essuyage, lit tiède."),
     "PC": _fiche(
         "PC", "Alpine PC", nozzle=(270, 265), nozzle_range=(250, 290), beds=_BED_HOT,
         fan=(0, 20, 40, 3, 0, 0), colour="#E8E8E8", flow=0.94, max_volumetric=8.0, density=1.20, cost=45.0,
@@ -258,8 +266,8 @@ _ALIASES = {
     "petgcf": "PETG-CF", "petgcarbon": "PETG-CF", "petcf": "PETG-CF",
     "abs": "ABS", "absgf": "ABS", "absplus": "ABS",
     "asa": "ASA", "asaaero": "ASA",
-    "tpu": "TPU", "tpu95a": "TPU", "tpu95": "TPU", "tpuams": "TPU", "tpu90a": "TPU", "tpu98a": "TPU", "flex": "TPU",
-    "tpuforams": "TPU",
+    "tpu": "TPU", "tpu95a": "TPU", "tpu95": "TPU", "tpu90a": "TPU", "tpu98a": "TPU", "flex": "TPU",
+    "tpuams": "TPU-AMS", "tpuforams": "TPU-AMS", "tpu95ahf": "TPU-AMS", "tpuhf": "TPU-AMS", "tpuforamsams": "TPU-AMS",
     "pc": "PC", "pcabs": "PC", "polycarbonate": "PC", "pcfr": "PC",
     "pa": "PA", "nylon": "PA", "pa6": "PA", "pa12": "PA", "paht": "PA", "pa6gf": "PA",
     "pacf": "PA-CF", "pahtcf": "PA-CF", "nyloncf": "PA-CF", "pa6cf": "PA-CF", "pa12cf": "PA-CF", "pagf": "PA-CF",
@@ -295,6 +303,8 @@ def canonical_type(material) -> str:
             return "PLA Silk"
         return "PLA"
     if tokens & {"tpu", "tpe", "flex", "flexible"}:
+        if tokens & {"ams", "hf", "highflow"}:
+            return "TPU-AMS"
         return "TPU"
     if "asa" in tokens:
         return "ASA"

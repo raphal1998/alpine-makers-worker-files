@@ -27,7 +27,7 @@ CPU_LABELS = {"converter": "FreeCAD · CPU", "model-studio": "Trancheur Alpine �
               "laser-studio": "Moteur laser · CPU", "cnc-studio": "Moteur CNC · CPU",
               "toile-studio": "Alpine Toile Creator · CPU", "alpine-guard": "Alpine Guard · vision CPU"}
 # Paquets distribués uniquement sous Windows ; les autres outils (FreeCAD, moteur laser, trancheur Alpine, GPU) vont
-# aussi sur Linux (Model Studio n'est plus Windows seulement depuis l'agent 1.54.0 : plus d'OrcaSlicer).
+# aussi sur Linux (Model Studio n'est plus Windows seulement depuis l'agent 1.54.2 : plus d'OrcaSlicer).
 WINDOWS_ONLY_TOOLS = frozenset({"printguard"})
 DRIVER_MINIMUMS = {
     "12.6": {"windows": "560.76", "linux": "560.28.03"},

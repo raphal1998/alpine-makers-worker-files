@@ -265,7 +265,7 @@ def settings_summary(max_jobs, stored, hw):
 
 ENGINE_KINDS = ("comfyui", "hunyuan3d")
 IN_TREE_KINDS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine", "alpine-slicer")
-# Besoins prudents par type de calcul, en Mio : (VRAM, RAM). Trancheur Alpine (agent 1.54.0) : CPU seulement, numpy.
+# Besoins prudents par type de calcul, en Mio : (VRAM, RAM). Trancheur Alpine (agent 1.54.2) : CPU seulement, numpy.
 DEFAULT_NEEDS = {"comfyui": (6144, 8192), "hunyuan3d": (12288, 12288), "alpine-slicer": (0, 4096), "freecad": (0, 3072),
                  "mesh_repair": (0, 2048), "face_restore": (1536, 3072), "image_maps": (0, 2048),
                  "laser-engine": (0, 1536), "cnc-engine": (0, 1536),

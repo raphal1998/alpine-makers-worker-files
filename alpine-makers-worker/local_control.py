@@ -28,14 +28,14 @@ else:
     from safety import is_link
     from installers.model_catalog import COMFYUI_CATALOG
 
-# orca / orca-bridge (retirés en 1.54.0) restent listés : le nettoyage local doit encore pouvoir les retirer du disque.
+# orca / orca-bridge (retirés en 1.54.2) restent listés : le nettoyage local doit encore pouvoir les retirer du disque.
 ENGINES = ("comfyui", "hunyuan3d", "alpine-slicer", "orca", "orca-bridge", "freecad", "cuda-toolkit", "printguard")
 TOOLS = ("image_generation", "ai3d", "model-studio", "converter", "printguard")
 KEEP = {"input", "output", "user", ".cache", "custom_nodes"}
 CHECKPOINTS = {spec[0] for spec in COMFYUI_CATALOG.values()}
 
 # Moteurs a processus permanent pilotes par status / engines-stop / engines-start.
-# "converter" (FreeCAD) et "model-studio" (trancheur Alpine, agent 1.54.0 : un processus par job) n'ont pas de
+# "converter" (FreeCAD) et "model-studio" (trancheur Alpine, agent 1.54.2 : un processus par job) n'ont pas de
 # processus permanent : ils ne sont jamais touches ici.
 # Valeur = cle du verrou par moteur de l'agent (TOOL_HANDLERS, verifie par les tests).
 ENGINE_LOCK_KEYS = {"image_generation": "comfyui", "ai3d": "hunyuan3d", "printguard": "printguard"}

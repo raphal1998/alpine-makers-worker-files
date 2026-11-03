@@ -242,7 +242,7 @@ def _brim(layer1, settings, support_paths, object_heights_um) -> tuple:
     line_w = _line_width_um(settings)
     width = _um(_get(settings, "brim_width"))
     gap = max(0, _um(_get(settings, "brim_object_gap")))
-    objects = {oid: list(p) for oid, p in layer1.regions.items() if p}
+    objects = {oid: list(p) for oid, p in layer1.regions.items() if p and int(oid) > 0}
     material = []
     for p in objects.values():
         material.extend(p)
@@ -346,7 +346,7 @@ def build_adhesion(layers, settings, bed_bbox_um, *, exclude_bbox_um=None) -> No
     heights = {}
     for layer in layers:
         for oid, paths in layer.regions.items():
-            if paths:
+            if paths and int(oid) > 0:
                 heights[oid] = max(heights.get(oid, 0), layer.z_um)
     support_paths = []
     if layer1.support is not None:
@@ -356,8 +356,9 @@ def build_adhesion(layers, settings, bed_bbox_um, *, exclude_bbox_um=None) -> No
     # La jupe entoure aussi la matière des couches qu'elle couvre (une pièce plus large en hauteur n'est pas traversée).
     extent_all = list(extent)
     for layer in layers[1:skirt_height]:
-        for paths in layer.regions.values():
-            extent_all.extend(paths)
+        for oid, paths in layer.regions.items():
+            if int(oid) > 0:
+                extent_all.extend(paths)
     skirt = skirt_rings(extent_all, settings)
     bed = _bed_paths(bed_bbox_um, line_w // 2, exclude_bbox_um)
     skirt_lines = _clip_rings(skirt, bed)

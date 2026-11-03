@@ -831,9 +831,12 @@ def _apply(target: dict, source: dict, warnings: list, origin: str) -> None:
         if key == "support_type" and str(value).strip().lower() in ("off", "none", "0", "false"):
             supports_off = True   # « off » du client : supports désactivés, quel que soit l'ordre des clés
             continue
-        if key == "material" and isinstance(value, (list, tuple)):
+        if key == "ironing_type" and str(value).strip().lower() in ("no ironing", "none", "off", "no", "0", "false"):
+            target["ironing"] = False   # valeur client « no ironing » (ancien contrat) : repassage désactivé
+            continue
+        if isinstance(value, (list, tuple)):      # valeurs par extrudeur des anciens projets (nozzle_diameter, filament_type…)
             value = value[0] if value else None
-            if value is None:
+            if value is None or (isinstance(value, str) and not value.strip()):
                 continue
         target[key] = coerce(key, value)
     if supports_off:

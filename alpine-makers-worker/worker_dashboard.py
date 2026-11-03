@@ -46,7 +46,7 @@ TOP_CATEGORIES = {"cache": "cache", "outputs": "outputs", "workspace": "outputs"
 TOOL_LABELS = {"image_generation": "Génération d'images (ComfyUI)", "ai3d": "IA 3D (Hunyuan3D)",
                "converter": "Convertisseur / CNC (FreeCAD)", "printguard": "PrintGuard (surveillance d'impression)",
                "model-studio": "Model Studio (trancheur Alpine)", "laser-studio": "Laser Studio", "cnc-studio": "CNC Studio"}
-# Moteurs à processus résident (agent 1.54.0 : plus de bridge Orca, le trancheur Alpine est un processus par job).
+# Moteurs à processus résident (agent 1.54.2 : plus de bridge Orca, le trancheur Alpine est un processus par job).
 ENGINE_TOOLS = ("image_generation", "ai3d", "printguard")
 SHARING_LABELS = {"prive": "Privé", "comptes": "Comptes choisis", "public": "Public"}
 AUDIENCE_LABELS = {"team": "équipe", "contributors": "contributeurs", "everyone": "tous les comptes"}

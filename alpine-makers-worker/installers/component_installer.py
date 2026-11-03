@@ -59,11 +59,11 @@ CATALOG = {
         "url": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2.git",
         "ref": "f8db63096c8282cb27354314d896feba5ba6ff8a",
     },
-    # Retirés (agent 1.54.0) : OrcaSlicer et son pont ne sont plus utilisés par Alpine Model Studio. Connus uniquement
+    # Retirés (agent 1.54.2) : OrcaSlicer et son pont ne sont plus utilisés par Alpine Model Studio. Connus uniquement
     # pour la désinstallation (libérer l'espace) ; install / update / repair refusés (voir RETIRED_MESSAGE).
     "orca": {"kind": "orca-portable", "retired": True},
     "orca-bridge": {"kind": "dashboard-file", "retired": True},
-    # Trancheur Alpine Model Engine (agent 1.54.0, docs/MODEL_ENGINE_ARCHITECTURE.md) : le code (model_engine/ et
+    # Trancheur Alpine Model Engine (agent 1.54.2, docs/MODEL_ENGINE_ARCHITECTURE.md) : le code (model_engine/ et
     # runners/alpine-slicer.py) arrive avec le paquet Worker ; Python isolé avec numpy et Pillow épinglés (mêmes roues
     # que les Alpine Tools). CPU seulement, aucun programme ni profil tiers, aucun processus résident.
     "alpine-slicer": {"kind": "python-venv", "packages": ("numpy==2.5.3", "Pillow==11.0.0"),
@@ -153,7 +153,7 @@ for _tool_id in alpine_registry.TOOL_IDS:
     CATALOG[_tool_id] = {"kind": "python-venv", "packages": alpine_registry.PACKAGES_PIP,
                          "license": alpine_registry.LICENSE, "alpine_tool": alpine_registry.PACKAGES[_tool_id]}
 BACKEND_MODULES = ("hunyuan3d-21", "open3d-lab")
-# Composants retirés du catalogue (agent 1.54.0) : désinstallation seulement.
+# Composants retirés du catalogue (agent 1.54.2) : désinstallation seulement.
 RETIRED_MESSAGE = "OrcaSlicer n'est plus utilisé par Alpine Model Studio : désinstalle-le pour libérer l'espace."
 # Installed only with the PBR paint model, never for shape-only users.
 HUNYUAN3D_21_PAINT_PACKAGES = ("realesrgan==0.3.0", "basicsr==1.4.2", "pytorch-lightning", "timm", "open3d", "cupy-cuda12x")
@@ -1608,7 +1608,7 @@ def install_alpine_tool(worker_root, root, component, spec, upgrade=False):
     return f"{nom} installé : Python isolé, numpy {report.get('numpy')} et Pillow {report.get('pillow')} prêts sur ce Worker."
 
 
-# ---------------------------------------------------------------- Alpine Model Engine (agent 1.54.0)
+# ---------------------------------------------------------------- Alpine Model Engine (agent 1.54.2)
 ALPINE_SLICER_NAME = "Trancheur Alpine (Alpine Model Engine)"
 # Fichiers livrés par le paquet Worker sans lesquels le composant ne sert à rien (le reste de model_engine/ suit).
 ALPINE_SLICER_SHIPPED = ("model_engine/__init__.py", "model_engine/cli.py", "runners/alpine-slicer.py")
@@ -2518,7 +2518,7 @@ def _manage(component, action):
     if is_link(root) or root.resolve().parent != components:
         raise RuntimeError("Le répertoire du composant est un lien ou sort de l’espace Worker.")
     if action != "uninstall" and CATALOG[component].get("retired"):
-        # OrcaSlicer et son pont (agent 1.54.0) : jamais réinstallés, réparés ni mis à jour ; seule la désinstallation reste.
+        # OrcaSlicer et son pont (agent 1.54.2) : jamais réinstallés, réparés ni mis à jour ; seule la désinstallation reste.
         raise RuntimeError(RETIRED_MESSAGE)
     if action != "uninstall":
         # Detect the actual target machine, not a profile supplied by a browser.

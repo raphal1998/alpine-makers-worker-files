@@ -652,6 +652,8 @@ def _object_ids(layers):
     seen = []
     for layer in layers:
         for oid in list(layer.regions) + list(layer.walls):
+            if int(oid) <= 0:                       # volumes non imprimés (clés négatives de slicing)
+                continue
             if oid not in seen:
                 seen.append(oid)
     return seen

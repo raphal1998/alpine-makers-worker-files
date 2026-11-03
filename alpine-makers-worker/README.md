@@ -347,7 +347,7 @@ les identifier ni les arrêter**. Les outils concernés demandent donc l'éléva
 | ComfyUI (images) | `image_generation` | `127.0.0.1:8188` | |
 | Hunyuan3D (3D) | `ai3d` | `127.0.0.1:8189` | **Pas 18080** : 18080 est le moteur 3D local du dashboard, autre programme. |
 | PrintGuard | `printguard` | `0.0.0.0:8000` | |
-| Trancheur Alpine (Model Studio) | `model-studio` | aucun port | Pas de moteur résident depuis l'agent 1.54.0 : un processus Python (composant `alpine-slicer`) par tranchage, arrêté avec le job. |
+| Trancheur Alpine (Model Studio) | `model-studio` | aucun port | Pas de moteur résident depuis l'agent 1.54.2 : un processus Python (composant `alpine-slicer`) par tranchage, arrêté avec le job. |
 | Relais caméra | — | `127.0.0.1:1984` | Servi **par l'agent lui-même**. Présent = l'agent vit (et un relais est configuré). |
 | FreeCAD (conversion) | `converter` | aucun | Pas de processus permanent : lancé à chaque conversion. |
 
@@ -1093,7 +1093,7 @@ Les cas **(a) à (j)** sont réels (le cas (i), propre au PC du propriétaire, n
 | **(d)** | « Récupérer une inscription » (7) avec `-PairingCode …` : « N'utilise pas -PairingCode ni -Name ». | La récupération veut un **code de MIGRATION** et une **fiche encore présente**. | Le message de l'outil. | Fiche présente → code de migration, entrée **7**. Sinon entrée **8**. |
 | **(e)** | « Code d'association invalide ou expiré », ou « trop de tentatives ». | Un code vit **10 minutes**, sert **une fois**, est stocké **haché** (le site ne peut pas te le relire), **20 par jour** par compte. | Message du site ou de l'outil. | Crée un code neuf **juste avant** de lancer l'outil. Si quota atteint : attendre. |
 | **(f)** | Tu cherches le moteur 3D sur le port 18080 : rien. | Le moteur 3D **du Worker** écoute sur **8189**. 18080 est le moteur local **du dashboard**. | Entrées **1** et **9**. | Regarder 8189. |
-| **(g)** | Le port **15064** est « tenu par le PID 4 (System) ». | Reste d'un ancien bridge Orca (avant l'agent 1.54.0) passé par **HTTP.sys**, composant de Windows. | Entrée **9**. | Désinstaller OrcaSlicer et son pont depuis le site (Mes Workers → Installations). **Ne jamais viser le PID 4.** |
+| **(g)** | Le port **15064** est « tenu par le PID 4 (System) ». | Reste d'un ancien bridge Orca (avant l'agent 1.54.2) passé par **HTTP.sys**, composant de Windows. | Entrée **9**. | Désinstaller OrcaSlicer et son pont depuis le site (Mes Workers → Installations). **Ne jamais viser le PID 4.** |
 | **(h)** | Worker hors ligne, **toutes** les requêtes refusées, alors que le réseau marche. | **Horloge** du PC décalée de plus de **60 secondes**. | Entrée **1** (contrôle de l'horloge). | Paramètres Windows → Heure → **Synchroniser maintenant**, puis entrée **5**. |
 | **(j)** | Une erreur à chaque ouverture de session ; tâche « **Alpine Makers Worker <identifiant>** ». | Tâche planifiée **orpheline** : elle vise un ancien dossier du Worker (par exemple `C:\Users\Public\AlpineMakersWorker`), **disparu**. | Entrée **15**. | Entrée **15** : retirer l'orpheline. Sans danger : le service `AlpineWorker` assure le démarrage. |
 | | **Hors ligne après un redémarrage du PC.** | Mode tâche : il faut **ouvrir la session** Windows. Mode service : service en **Manuel** (entrée 11 faite, entrée 12 oubliée) ou mot de passe du compte changé. | Entrées **1** et **15**. | Entrée **12**, ou ouvrir la session. Mot de passe changé : le ressaisir dans `services.msc` (toi-même, aucun script ne le fait). |

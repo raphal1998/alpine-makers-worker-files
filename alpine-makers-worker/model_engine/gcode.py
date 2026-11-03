@@ -260,9 +260,14 @@ def _bool(value) -> bool:
 
 
 def extrusion_area_mm2(width_mm: float, height_mm: float) -> float:
-    """Section d'un cordon à bouts arrondis : (w − h)·h + π·h²/4 (§6.1)."""
+    """Section d'un cordon : largeur × hauteur (modèle rectangulaire).
+
+    Intégration (vague B) : murs et remplissages sont espacés de leur largeur de ligne ; avec la section à bouts arrondis
+    de la spécification §6.1, un plein n'était rempli qu'à ≈ 90 % (−10 % de filament sur l'oracle MERDE1). Le rectangle
+    rend Σ largeur·hauteur·longueur = aire de coupe × hauteur et rejoint le plafond volumique du planificateur (w·h).
+    """
     w, h = float(width_mm), float(height_mm)
-    return max(w - h, 0.0) * h + math.pi * h * h / 4.0
+    return w * h
 
 
 def _config_value(value) -> str | None:
@@ -515,16 +520,9 @@ class Emitter:
         first = layers[0]
         first_extruder = next((int(m.extruder) for m in first.moves if m.kind == "extrude"), 1)
         ctx.extruder = ctx.previous_extruder = ctx.next_extruder = first_extruder
-        ctx.nozzle_temperature_initial_layer = self._nozzle_temp(first_extruder, True)
-        ctx.nozzle_temperature = self._nozzle_temp(first_extruder, False)
         ctx.bed_temperature_initial_layer = self._bed_temp(True)
         ctx.bed_temperature = self._bed_temp(False)
-        ctx.nozzle_standby_temperature = self.machine.clamp_nozzle_temp(float(self._f("nozzle_standby_temperature", first_extruder)))
-        ctx.filament_type = str(self._f("filament_type", first_extruder))
-        ctx.filament_diameter_mm = float(self._f("filament_diameter", first_extruder))
-        ctx.flow_ratio = float(self._f("filament_flow_ratio", first_extruder))
-        ctx.retraction_length_mm = float(self._f("retraction_length", first_extruder))
-        ctx.retraction_speed_mm_s = float(self._f("retraction_speed", first_extruder))
+        self._filament_context(ctx, first_extruder)
         ctx.travel_speed_mm_s = min(float(s["travel_speed"]), self.machine.max_speed.x)
         ctx.z_speed_mm_s = min(float(s["travel_speed_z"]), self.machine.max_speed.z)
         ctx.default_acceleration = max(100.0, min(float(s["default_acceleration"]) or self.machine.max_accel.x, self.machine.max_accel.x))
@@ -552,6 +550,18 @@ class Emitter:
             names.setdefault(i, f"Objet {i}")
         ctx.object_ids = names if names else {1: "Objet 1"}
         return ctx
+
+    def _filament_context(self, ctx: PrintContext, extruder: int) -> None:
+        """Champs filament du contexte pour un extrudeur (démarrage, et retour au premier filament pour la séquence de
+        démarrage définitive après un changement de filament en multi-matériau)."""
+        ctx.nozzle_temperature_initial_layer = self._nozzle_temp(extruder, True)
+        ctx.nozzle_temperature = self._nozzle_temp(extruder, False)
+        ctx.nozzle_standby_temperature = self.machine.clamp_nozzle_temp(float(self._f("nozzle_standby_temperature", extruder)))
+        ctx.filament_type = str(self._f("filament_type", extruder))
+        ctx.filament_diameter_mm = float(self._f("filament_diameter", extruder))
+        ctx.flow_ratio = float(self._f("filament_flow_ratio", extruder))
+        ctx.retraction_length_mm = float(self._f("retraction_length", extruder))
+        ctx.retraction_speed_mm_s = float(self._f("retraction_speed", extruder))
 
     # --- émission -------------------------------------------------------------------------------------------------------
     def emit(self, layers: list) -> GcodeResult:
@@ -614,6 +624,8 @@ class Emitter:
         total_s = self.est.total_s
         ctx.estimated_minutes = int(math.ceil(total_s / 60.0))
         ctx.layer_index, ctx.z_mm, ctx.retracted, ctx.extruder = 1, int(layers[0].z_um) / SCALE, False, layers_first_extruder(layers)
+        ctx.previous_extruder = ctx.next_extruder = ctx.extruder
+        self._filament_context(ctx, ctx.extruder)   # multi-matériau : le démarrage concerne le premier filament
         final_start = self.machine.start_gcode(ctx)
         if (final_start.position_mm, final_start.retracted, round(final_start.extruded_mm, 6)) != \
                 (start.position_mm, start.retracted, round(start.extruded_mm, 6)):

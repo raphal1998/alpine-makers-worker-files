@@ -56,6 +56,7 @@ DEFAULTS = {
     "resolution": 0.012,
 }
 MIN_AREA_UM2 = 1_000_000          # 1 mm² : en dessous, une zone de support ou de surplomb est ignorée
+CLOSING_RINGS = 3                 # au-delà de ce nombre de rings, le support d'une couche subit une fermeture (w/2)
 ARC_TOLERANCE_UM = 20.0           # flèche maximale des arcs de la dilatation brute
 _EMPTY = []
 LAST_STATS = {}                   # compteurs de la dernière exécution de build_supports
@@ -264,7 +265,7 @@ def _layer_regions(layer, resolution_um: int = 0) -> list:
     if layer.all_regions:
         paths = list(layer.all_regions)
     else:
-        groups = [list(p) for p in layer.regions.values() if p]
+        groups = [list(p) for k, p in layer.regions.items() if p and int(k) > 0]
         if not groups:
             return []
         if len(groups) == 1:
@@ -285,7 +286,7 @@ def _layer_regions(layer, resolution_um: int = 0) -> list:
 
 
 def _raw_regions(layer) -> list:
-    return list(layer.all_regions) if layer.all_regions else [r for p in layer.regions.values() for r in p]
+    return list(layer.all_regions) if layer.all_regions else [r for k, p in layer.regions.items() if int(k) > 0 for r in p]
 
 
 def _all_regions(layers, resolution_um: int) -> list:

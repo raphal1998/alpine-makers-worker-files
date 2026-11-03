@@ -103,7 +103,7 @@ else:
     import job_limits
     import resource_limits
 
-AGENT_VERSION = "1.54.0"
+AGENT_VERSION = "1.54.2"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -243,7 +243,7 @@ AGENT_CAPABILITIES += ("guard_v1",)  # littéral : le site lit ces lignes sans i
 # Agent 1.53.0 : Alpine Tools. Un outil par composant atool-<id> (Python isolé numpy + Pillow), un processus par job
 # (runners/alpine-tool.py), code dans alpine_tools/<paquet>/ ; contrat docs/ALPINE_TOOLS.md.
 AGENT_CAPABILITIES += ("alpine_tools_v1",)  # littéral : le site lit ces lignes sans importer l'agent
-# Agent 1.54.0 : Alpine Model Engine, trancheur FDM d'Alpine Makers (model_engine/, composant « alpine-slicer » Python
+# Agent 1.54.2 : Alpine Model Engine, trancheur FDM d'Alpine Makers (model_engine/, composant « alpine-slicer » Python
 # isolé numpy + Pillow, un processus par job : runners/alpine-slicer.py). Remplace OrcaSlicer et son pont (orca /
 # orca-bridge restent connus uniquement pour la désinstallation) ; contrat docs/MODEL_ENGINE_ARCHITECTURE.md.
 AGENT_CAPABILITIES += ("model_engine_v1",)  # littéral : le site lit ces lignes sans importer l'agent
@@ -265,7 +265,7 @@ ENVIRONMENT_MAINTENANCE_PREFIX = "environment-maintenance-"   # identifiant inte
 DISCONNECT_EXIT_CODE = 64
 # Moteurs qui possèdent un processus à arrêter. Le convertisseur FreeCAD est un
 # simple interrupteur logique (un processus par conversion) : le couper
-# changerait son réglage au lieu d'arrêter quoi que ce soit. Model Studio (agent 1.54.0) n'a plus de moteur
+# changerait son réglage au lieu d'arrêter quoi que ce soit. Model Studio (agent 1.54.2) n'a plus de moteur
 # résident : le trancheur Alpine est un processus par job, comme les Alpine Tools.
 DISCONNECT_RUNTIMES = ("image_generation", "ai3d", "printguard")
 # Un moteur démarré depuis le site et dont le processus disparaît (plantage du
@@ -390,7 +390,7 @@ TOOL_HANDLERS = {
     "image-generation": "comfyui", "image_generation": "comfyui",
     "3d-generation": "hunyuan3d", "ai3d": "hunyuan3d",
     "converter": "freecad", "printguard": "printguard",
-    # Alpine Model Studio (agent 1.54.0) : trancheur Alpine Model Engine (runners/alpine-slicer.py), un processus par job.
+    # Alpine Model Studio (agent 1.54.2) : trancheur Alpine Model Engine (runners/alpine-slicer.py), un processus par job.
     "model-studio": "alpine-slicer",
     # Alpine Laser Studio : moteur de parcours (runners/laser-engine.py), un processus par job.
     "laser-studio": "laser-engine",
@@ -1929,7 +1929,7 @@ class Agent:
                 }
         freecad = self._freecad_executable()
         if freecad: tools["converter"] = {"tool_id": "converter", "engine_id": "freecad", "status": "online" if self._runtime_running("converter") else "ready", "version": "installed"}
-        # Trancheur Alpine Model Engine (agent 1.54.0) : même logique que les moteurs laser / CNC / toile, composant
+        # Trancheur Alpine Model Engine (agent 1.54.2) : même logique que les moteurs laser / CNC / toile, composant
         # « alpine-slicer » (Python isolé numpy + Pillow), aucun processus résident. OrcaSlicer et son pont ne sont
         # plus le moteur : encore présents, ils sont remontés comme modules retirés (désinstallables, jamais réinstallés).
         slicer_root = self.root / "components" / "alpine-slicer"
@@ -2007,7 +2007,7 @@ class Agent:
                     # Surveillance IA (agent 1.34.0) : une installation commencée ou interrompue se voit.
                     modules[module] = fire_watch_status(module_root)
                 elif module == "orca":
-                    # Retiré (agent 1.54.0) : OrcaSlicer n'est plus utilisé ; le site ne le propose que pour le désinstaller.
+                    # Retiré (agent 1.54.2) : OrcaSlicer n'est plus utilisé ; le site ne le propose que pour le désinstaller.
                     module_root = orca_root
                     modules[module] = ("installed" if orca and component_ready("orca", orca_root)
                                        else "incomplete" if orca_root.is_dir() and any((orca_root / name).exists() for name in ("orca-slicer.exe", "resources", ".alpine-managed.json"))
@@ -2128,7 +2128,7 @@ class Agent:
         return str(python_in(root / ".venv").resolve())
 
     def _alpine_slicer_python(self):
-        """Python isolé du composant alpine-slicer quand le trancheur Alpine est prêt, sinon None (agent 1.54.0)."""
+        """Python isolé du composant alpine-slicer quand le trancheur Alpine est prêt, sinon None (agent 1.54.2)."""
         if __package__:
             from .installers.component_installer import component_ready, python_in
         else:
@@ -2279,7 +2279,7 @@ class Agent:
             if not executable:
                 raise AgentError("PrintGuard n’est pas installé sur ce worker.")
             return executable.parent.resolve(), [str(executable)]
-        # Model Studio (agent 1.54.0) : plus de moteur résident ; le trancheur Alpine est un processus par job.
+        # Model Studio (agent 1.54.2) : plus de moteur résident ; le trancheur Alpine est un processus par job.
         raise AgentError("Ce moteur ne possède pas de commande marche/arrêt contrôlée.")
 
     def _runtime_matches(self, pid, root):
@@ -4769,7 +4769,7 @@ class Agent:
                         raise AgentError("FreeCAD n’est pas installé sur ce Worker.")
                     environment["FREECAD_CMD"] = freecad
                 if tool_id == "model-studio":
-                    # Trancheur Alpine Model Engine (agent 1.54.0) : le calcul tourne dans le Python isolé du composant
+                    # Trancheur Alpine Model Engine (agent 1.54.2) : le calcul tourne dans le Python isolé du composant
                     # alpine-slicer (numpy + Pillow), jamais dans celui de l'agent ; aucun moteur résident, aucun port.
                     slicer_python = self._alpine_slicer_python()
                     if not slicer_python:

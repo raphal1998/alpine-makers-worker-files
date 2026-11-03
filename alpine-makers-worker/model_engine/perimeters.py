@@ -808,7 +808,7 @@ def build_layer_walls(layer: Layer, settings: dict | None, previous_layer: Layer
                 merged.extend(paths)
             previous_regions = merged or None
     cur = None
-    for object_id in sorted(layer.regions):
+    for object_id in sorted(k for k in layer.regions if int(k) > 0):   # clés négatives = volumes non imprimés
         walls = build_walls(layer.regions[object_id], settings, layer_index=layer.index, previous_seams=previous_seams,
                             object_id=object_id, previous_regions=previous_regions, start_xy=cur)
         layer.walls[object_id] = walls

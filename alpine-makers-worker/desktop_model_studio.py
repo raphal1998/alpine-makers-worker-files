@@ -2,7 +2,7 @@
 
 Tout ce qui calcule tourne sur CE Worker, avec les moteurs déjà installés et les MÊMES lanceurs que les jobs du site
 (``runners/alpine-slicer.py``, ``runners/freecad.py``, ``runners/mesh_repair.py``), dans un dossier de travail du runtime.
-Depuis l'agent 1.54.0, le tranchage est fait par Alpine Model Engine (``model_engine/``, composant « alpine-slicer »,
+Depuis l'agent 1.54.2, le tranchage est fait par Alpine Model Engine (``model_engine/``, composant « alpine-slicer »,
 docs/MODEL_ENGINE_ARCHITECTURE.md) : plus d'OrcaSlicer ni de pont résident, un processus Python isolé par tranchage.
 Les clés ``orca_installed`` / ``bridge`` / ``bridge_version`` restent servies (mêmes valeurs que le trancheur) pour
 worker.exe 1.53.x ; les codes ``ORCA_MISSING`` / ``BRIDGE_*`` deviennent ``ENGINE_MISSING`` / ``ENGINE_*``.
@@ -85,7 +85,7 @@ FILES_MAX = 16
 SEALED_MAIN = "model.3mf"
 SEAL_OFFLINE = ("Projet Alpine scellé : le site scelle le fichier, connecte ce Worker au site. Hors ligne, enregistre la "
                 "scène en 3MF ou STL (non scellé).")
-# Codes d'erreur de cet outil (agent 1.54.0). Les anciens codes du pont OrcaSlicer restent connus de worker.exe 1.53.x :
+# Codes d'erreur de cet outil (agent 1.54.2). Les anciens codes du pont OrcaSlicer restent connus de worker.exe 1.53.x :
 # ils sont listés ici en alias, jamais émis.
 ERROR_CODES = ("ENGINE_MISSING", "ENGINE_UNREACHABLE", "ENGINE_REFUSED", "ENGINE_SCHEMA", "ENGINE_FAILED", "RUNNER_MISSING",
                "NO_OUTPUT", "BAD_OUTPUT", "TIMEOUT", "WORKER_BUSY", "INVALID_MESH", "IMPORT_FAILED", "EXPORT_FAILED",
@@ -933,7 +933,7 @@ DESKTOP_ACTIONS = {
     "slice": {"handler": _slice, "read": True, "params": {
         "files": v_slice_files, "settings": v_settings, "process_settings": v_process_settings}},
     "export-3mf": {"handler": _export_3mf, "read": True, "params": {"staged": v_hex(32), "name": v_file_name}},
-    # Agent 1.54.0 : Projet Alpine Model Studio scellé (.amsproj) par le site (aucune clé ici), comme « seal » du CNC Studio.
+    # Agent 1.54.2 : Projet Alpine Model Studio scellé (.amsproj) par le site (aucune clé ici), comme « seal » du CNC Studio.
     "save-amsproj": {"handler": _save_amsproj, "read": True, "params": {
         "session_token": v_session, "staged": v_hex(32), "name": v_file_name, "title": v_text(120),
         "hints": v_object(depth=3, keys=40)}},
