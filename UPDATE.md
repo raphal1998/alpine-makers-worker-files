@@ -1,5 +1,22 @@
 # Historique des mises à jour
 
+## Version 1.54.3 — 2026-11-04
+
+**Arrêter le Worker ferme vraiment tout : plus aucun programme orphelin (Windows)**
+
+### Ajouté
+- Groupe de processus Windows de tout le Worker (worker_scope.py) : l'agent y entre au démarrage et tout ce qu'il lance y naît, orphelins compris. Le superviseur run_worker.ps1 en garde une copie : le groupe survit aux redémarrages de l'agent (mise à jour), et Windows ferme tout ce qu'il contient quand le Worker s'arrête (service arrêté, « Éteindre le Worker », déconnexion), sans droits administrateur.
+- Groupe propre à chaque moteur (ComfyUI, Hunyuan3D, PrintGuard), imbriqué dans celui du Worker : « Arrêter » un module coupe aussi ses programmes dont le parent est mort, que taskkill /T ne voyait plus (orphans_stopped dans le résultat).
+
+### Modifié
+- Une mise à jour de l'agent garde les moteurs et les jobs en cours comme avant ; un moteur ouvert avant la mise à jour entre dans le groupe à son prochain démarrage.
+
+### Corrigé
+- Après « Éteindre le Worker » (service), un programme du Worker devenu orphelin restait ouvert en arrière-plan, invisible sans droits administrateur, et empêchait de supprimer un dossier du Worker (components\orca, constaté le 04.11.2026) alors que le menu annonçait « tout fermé ».
+
+### Technique
+- Empreinte du paquet publié : `c14e5a2101c60421…` (dossier du paquet).
+
 ## Version 1.54.2 — 2026-11-04
 
 ### Technique

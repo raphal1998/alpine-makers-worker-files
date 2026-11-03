@@ -81,7 +81,7 @@ if __package__:
     from .installers import environment_maintenance
     from . import comfyui_assets
     from .checkpoint_baseline import checkpoint_architecture
-    from . import host_stability, job_limits, resource_limits
+    from . import host_stability, job_limits, resource_limits, worker_scope
 else:
     import worker_legal as legal_compliance
     import local_sandbox
@@ -102,8 +102,9 @@ else:
     import host_stability
     import job_limits
     import resource_limits
+    import worker_scope
 
-AGENT_VERSION = "1.54.2"
+AGENT_VERSION = "1.54.3"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -2967,8 +2968,10 @@ class Agent:
         if action == "stop":
             self._runtime_progress(25, "Vérification du processus appartenant à ce Worker…")
             if not self._pid_alive(pid):
+                # Lanceur déjà mort : ses descendants restés dans le groupe du moteur sont arrêtés quand même.
+                leftovers = self._stop_engine_group(tool_id)
                 record_path.unlink(missing_ok=True)
-                return {"stopped": False, "already_stopped": True}
+                return {"stopped": False, "already_stopped": True, "orphans_stopped": leftovers}
             root_value = str(record.get("root") or "").strip()
             expected_identity = str(record.get("process_identity") or "").strip()
             if expected_identity:
@@ -3021,8 +3024,9 @@ class Agent:
                 raise AgentError("Arrêt non confirmé : le processus est encore actif.")
             if self._runtime_endpoint_ready(tool_id):
                 raise AgentError("Arrêt non confirmé : le service du moteur répond encore.")
+            leftovers = self._stop_engine_group(tool_id)
             record_path.unlink(missing_ok=True)
-            return {"stopped": True}
+            return {"stopped": True, "orphans_stopped": leftovers}
         root_value = str(record.get("root") or "").strip()
         if self._runtime_running(tool_id):
             return {"started": False, "already_running": True, "pid": int(pid)}
@@ -3117,7 +3121,10 @@ class Agent:
             identity = process_identity(process.pid)
         except (PermissionError, OSError, TypeError, ValueError):
             identity = None
-        started_record = {"pid": process.pid, "root": str(root), "started_at": time.time(), "process_identity": identity}
+        # Agent 1.54.3 : groupe Windows propre à ce moteur ; « Arrêter » coupe aussi ses descendants devenus orphelins.
+        engine_group = worker_scope.attach_engine(self.root, tool_id, process)
+        started_record = {"pid": process.pid, "root": str(root), "started_at": time.time(), "process_identity": identity,
+                          "engine_group": engine_group}
         if resource_settings is not None:
             started_record["resource_settings"] = resource_settings
         record_path.write_text(json.dumps(started_record), encoding="utf-8")
@@ -3134,6 +3141,13 @@ class Agent:
             detail = f" (code de sortie {exit_code})" if exit_code is not None else ""
             raise AgentError(f"Le moteur s’est arrêté au démarrage{detail}. Consulte {log_path.name}.")
         return {"started": True, "pid": process.pid}
+
+    def _stop_engine_group(self, tool_id):
+        """Processus restés dans le groupe Windows du moteur (descendants dont le parent est mort) : arrêtés."""
+        try:
+            return worker_scope.stop_engine(self.root, tool_id)
+        except OSError as error:
+            raise AgentError(f"Arrêt non confirmé : des processus du moteur restent actifs ({error.args[-1] if error.args else error}).") from None
 
     @staticmethod
     def _remove_readonly(function, path, _error):
@@ -5072,6 +5086,12 @@ def main():
             os.chmod(config_path, 0o600)
         print("Identité migrée ; ID et associations conservés. Relance le Worker.")
         return 0
+    if not args.pair:
+        # Agent 1.54.3 : avant tout lancement de processus, l'agent entre dans le groupe Windows de tout le Worker ;
+        # l'arrêt du service ou « Éteindre le Worker » ferme alors tout ce qu'il a lancé, orphelins compris.
+        scope = worker_scope.adopt(Path(__file__).resolve().parent)
+        if scope["status"] in {"active", "unavailable"}:
+            print(f"Groupe des processus du Worker : {scope['status']} ({scope['detail']})", flush=True)
     agent = Agent(Path(args.config))
     if args.gpu_optional and not args.pair:
         parser.error("--gpu-optional s’utilise uniquement avec --pair")
