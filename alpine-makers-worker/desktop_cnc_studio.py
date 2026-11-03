@@ -21,6 +21,14 @@ tourner la broche. ARRÊT, pause, état et annulation d'un jog n'en demandent pa
 pour un retour de connexion.
 
 Toutes les actions du site exigent ``session_token`` (connexion du propriétaire dans worker.exe) et ouvrent une tâche.
+
+Projet Alpine CNC Studio scellé (agent 1.53.6, docs/FORMATS_ALPINE.md) : ``seal`` remet le programme du cache
+(``program.nc``) et ses indications (``hints`` : unités lues dans le G-code, brut, outil et origine du projet Alpine
+ouvert) au SITE, qui scelle le .acsproj avec sa clé (route signée ``self/alpine-formats/seal``, par
+``desktop_library.sealed_seal`` : AUCUNE clé ici, le dépôt du Worker est public). Le fichier scellé est écrit dans
+``runtime/desktop/cache/alpine-out/<tâche>/`` ; worker.exe le copie sur ce PC ou l'importe dans la bibliothèque CNC.
+Hors ligne : refus clair, rien n'est écrit. Les « formats optimisés pour… » (.nc, .gcode, .ngc, .tap : le même G-code,
+seule l'extension change) sont copiés par worker.exe lui-même, sans l'agent.
 """
 import base64
 import hashlib
@@ -39,11 +47,13 @@ from pathlib import Path
 
 if __package__:
     from . import desktop_actions as desk
+    from . import desktop_library as library
     from .desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_object, v_session, v_text
     from .local_control import checked
     from .safety import is_link, protect_credentials
 else:
     import desktop_actions as desk
+    import desktop_library as library
     from desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_object, v_session, v_text
     from local_control import checked
     from safety import is_link, protect_credentials
@@ -69,6 +79,11 @@ SETTING_KEYS = ("work_area_mm", "max_feed_mm_min", "spindle_max_rpm", "spindle_m
                 "coolant_mist", "tool_change", "probe_plate_mm", "spindle_warmup_s", "spindle_s_max", "model")
 # Commandes qui ne bougent rien ou qui arrêtent : pas de confirmation exigée (ARRÊT doit rester immédiat).
 UNCONFIRMED = ("stop", "hold", "status", "info", "jog_cancel")
+# Projet Alpine CNC Studio scellé (.acsproj) : fichier principal et outil du manifeste, comme le CNC Studio du site.
+SEALED_MAIN = "program.nc"
+SEAL_OFFLINE = ("Projet Alpine scellé : le site scelle le fichier, connecte ce Worker au site. Hors ligne, enregistre le "
+                "programme en G-code (« Formats optimisés pour… »).")
+_UNITS = re.compile(r"G0*2([01])(?![0-9.])")
 
 
 # --- validateurs ------------------------------------------------------------------------------------------------
@@ -651,6 +666,94 @@ def _supervision_program(agent, params):
     return _task(agent, "Programme archivé", work)
 
 
+# --- Projet Alpine CNC Studio scellé (.acsproj) : scellé par le SITE, aucune clé ici ----------------------------------
+
+def detect_units(text):
+    """Unités du programme : premier G20 (pouces) ou G21 (mm) hors commentaires, comme detectUnits du site ; "" sinon."""
+    for raw in str(text or "").splitlines():
+        match = _UNITS.search(re.sub(r"\([^)]*\)", "", raw).split(";")[0].upper())
+        if match:
+            return "mm" if match.group(1) == "1" else "inch"
+    return ""
+
+
+def _positive(value):
+    return type(value) in (int, float) and value == value and value not in (float("inf"), float("-inf")) and value > 0
+
+
+def _short(value, limit):
+    return " ".join(value.split())[:limit] if isinstance(value, str) else ""
+
+
+def program_hints(text, given=None):
+    """Indications du manifeste (jamais des ordres machine), comme programHints du CNC Studio du site : unités lues dans
+    le programme (sinon celles du projet Alpine ouvert), brut, outil et origine du projet ouvert s'ils sont connus.
+    Le site les réduit de nouveau aux champs du contrat (alpine_formats_routes.clean_hints)."""
+    given = given if isinstance(given, dict) else {}
+    hints = {}
+    units = detect_units(text) or (given.get("units") if given.get("units") in ("mm", "inch") else "")
+    if units:
+        hints["units"] = units
+    stock = given.get("stock") if isinstance(given.get("stock"), dict) else {}
+    stock = {axis: stock[axis] for axis in ("x", "y", "z") if _positive(stock.get(axis))}
+    if stock:
+        hints["stock"] = stock
+    tool = given.get("tool") if isinstance(given.get("tool"), dict) else {}
+    tool = {key: value for key, value in (("type", _short(tool.get("type"), 40)),
+                                          ("diameter", tool.get("diameter") if _positive(tool.get("diameter")) else None))
+            if value not in (None, "")}
+    if tool:
+        hints["tool"] = tool
+    origin = _short(given.get("origin"), 40)
+    if origin:
+        hints["origin"] = origin
+    return hints
+
+
+def program_stem(name):
+    """Nom du fichier sans l'extension d'un programme ni .acsproj (« plaque.nc » → « plaque »)."""
+    base = os.path.basename(str(name or "")).strip()
+    root, extension = os.path.splitext(base)
+    if extension.lower() in PROGRAM_EXTENSIONS + (".acsproj",):
+        base = root.strip()
+    return base or "programme"
+
+
+def _seal(agent, params):
+    """Programme du cache → Projet Alpine CNC Studio scellé (.acsproj) par le site (clé du site, jamais ici)."""
+    session = params.pop("session_token")
+    source = program_path(agent, params["program"])   # vérifié tout de suite : un refus n'ouvre pas de tâche
+    size = source.stat().st_size
+    if size <= 0:
+        raise ValueError("Programme vide : rien à enregistrer.")
+    if size > library.SEAL_CONTENT_MAX:
+        raise ValueError(f"Programme trop volumineux pour un scellement depuis worker.exe ({library.SEAL_CONTENT_MAX // 1024 // 1024} "
+                         "Mo au plus) : enregistre-le en G-code ou scelle-le depuis le CNC Studio du site.")
+    stem = program_stem(params["name"])
+    title = _short(params.get("title"), 120) or stem
+    given = params.get("hints") or {}
+    target = stem + ".acsproj"
+
+    def work(task):
+        try:
+            data = source.read_bytes()
+        except OSError:
+            raise TaskError("Programme introuvable dans le cache : rouvre-le.", "PROGRAM_MISSING") from None
+        hints = program_hints(data.decode("utf-8-sig", errors="replace"), given)
+        manifest = {"main": SEALED_MAIN, "title": title, "tool": TOOL, "hints": hints}
+        task.update(None, "Scellement du programme par le site")
+        try:
+            sealed = library.sealed_seal(agent, session, "acsproj", manifest, {SEALED_MAIN: data}, target)
+        except TaskError as error:
+            if error.code == "SEALED_OFFLINE":
+                raise TaskError(SEAL_OFFLINE, "SEALED_OFFLINE") from None
+            raise
+        view = library.write_sealed(agent, sealed, target, "acsproj")
+        view.update(title=title, hints=hints)
+        return view
+    return desk.start_task(agent, TOOL, "Sceller le programme " + stem, work)
+
+
 # --- table des actions ------------------------------------------------------------------------------------------
 
 _S = {"session_token": v_session}
@@ -733,6 +836,9 @@ DESKTOP_ACTIONS = {
     "supervision-program": {"handler": _supervision_program, "read": True, "params": {**_S, "equipment": v_ref, "run": v_int(1, 10**9)}},
     "command": {"handler": _command, "read": False,
                 "params": {**_S, "equipment": v_ref, "body": v_object(depth=3, keys=30), "program": v_program, "confirmed": v_bool}},
+    # Agent 1.53.6 : Projet Alpine CNC Studio scellé (.acsproj) par le site (aucune clé ici).
+    "seal": {"handler": _seal, "read": True,
+             "params": {**_S, "program": v_program, "name": v_file_name, "title": v_text(120), "hints": v_object(depth=2, keys=12)}},
 }
 REQUIRED = {
     "stage": ("staged", "name"), "analyze": ("program",), "project-open": ("project",), "project-duplicate": ("project",),
@@ -745,7 +851,7 @@ REQUIRED = {
     "cam-project-rename": ("project", "name"), "cam-project-delete": ("project", "confirm"), "cam-compute": ("project",),
     "cam-job": ("job",), "cam-accept": ("job", "acknowledged"), "cam-cancel": ("job",), "cam-artifact": ("job", "name"),
     "cam-load": ("job",), "check": ("controller",), "supervision": ("equipment",), "supervision-program": ("equipment", "run"),
-    "command": ("equipment", "body"),
+    "command": ("equipment", "body"), "seal": ("program", "name"),
 }
 LOCAL = ("machines", "stage", "analyze")
 

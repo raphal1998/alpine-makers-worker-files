@@ -1,5 +1,19 @@
 # Historique des mises à jour
 
+## Version 1.53.6 — 2026-11-03
+
+**CNC Studio de worker.exe : enregistrement au Format Alpine (.acsproj scellé par le site) ou en G-code**
+
+### Ajouté
+- CNC Studio de worker.exe : « ↓ Enregistrer sous… » (ce PC) et « ↑ Ma bibliothèque CNC » proposent « Format Alpine (pour nos studios) », un Projet Alpine CNC Studio scellé (.acsproj) par le site avec le programme courant et ses indications (unités lues dans le G-code, brut, outil et origine du projet Alpine ouvert), ou « Formats optimisés pour… » : le même G-code en .nc (UGS, Candle, gSender, bCNC), .gcode, .ngc (LinuxCNC) ou .tap (Mach3), seule l'extension change.
+- Le .acsproj n'est proposé qu'au propriétaire connecté dans worker.exe ; hors ligne ou en cas de refus du site, un message clair s'affiche et rien n'est écrit ni importé. Dans la bibliothèque CNC, un nom déjà présent n'est remplacé qu'après confirmation.
+
+### Modifié
+- Aucune clé des formats Alpine dans le Worker ni dans worker.exe : le programme est scellé par la route signée du site déjà utilisée par Laser Studio, avec les mêmes contrôles.
+
+### Technique
+- Empreinte du paquet publié : `d85df13c0ac8c48b…` (dossier du paquet).
+
 ## Version 1.53.5 — 2026-11-03
 
 **Projets Alpine scellés dans worker.exe : ouverts et scellés par le site**
