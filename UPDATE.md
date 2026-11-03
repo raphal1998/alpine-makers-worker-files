@@ -1,5 +1,24 @@
 # Historique des mises à jour
 
+## Version 1.53.2 — 2026-11-03
+
+**Alpine Tools : cinq outils de plus (Lithophanie en volume, Dessin d'enfant, Puzzle photo, Ciel étoilé, Alpine Chutes)**
+
+### Ajouté
+- Lithophanie en volume (Alpine Gift) : la photo devient une lithophanie cylindre, abat-jour, globe, cœur ou boîte, maillage fermé (STL, 3MF, OBJ).
+- Dessin d'enfant (Alpine Gift) : la photo d'un dessin sur la feuille de repères A4 devient emporte-pièce, porte-clés, magnet ou tampon ; l'emporte-pièce est mis en miroir pour que le biscuit ait le sens du dessin une fois le moule retourné.
+- Puzzle photo (Alpine Gift) : la photo en puzzle, gravure et découpe laser (Alpine Laser Studio, SVG) ou impression 3D, avec une pièce prénom.
+- Ciel étoilé (Alpine Gift) : la carte du ciel d'une date, d'une heure et d'un lieu (étoiles du Yale Bright Star Catalogue précessées à la date, constellations, Lune et sa phase, planètes), en gravure laser (Alpine Laser Studio, SVG, PNG) ou en plaque 3D multicolore.
+- Alpine Chutes : la photo d'une chute de matière posée sur la feuille de repères (ou une chute saisie à la main) devient un plan de découpe : mesure à l'échelle, placement automatique des pièces (fichier SVG/DXF, rectangles, disques, texte au trait), taux d'utilisation, exports SVG, DXF R12, Alpine Laser Studio et G-code GRBL facultatif.
+- Chaque outil s'installe séparément dans Mes Workers → Installations (composants atool-lithophanie-volume, atool-dessin-enfant, atool-puzzle-photo, atool-ciel-etoile, atool-chutes), dans le Python isolé des Alpine Tools (numpy, Pillow) : aucun programme, modèle ni police tiers.
+
+### Modifié
+- Version d'agent minimale par outil : les cinq nouveaux outils demandent un Worker 1.53.2 (leur code arrive avec le paquet Worker), les douze premiers restent utilisables dès la 1.53.0.
+- Formulaire des Alpine Tools (site et application) : un outil à plusieurs entrées (Alpine Chutes : photo ou fichier de pièces) laisse choisir le fichier envoyé.
+
+### Technique
+- Empreinte du paquet publié : `812a64bc3dd83196…` (dossier du paquet).
+
 ## Version 1.53.1 — 2026-11-02
 
 **Application Android Alpine Worker : surveillance Alpine Guard des impressions 3D**
