@@ -62,19 +62,32 @@ def hatch(bbox, angle_rad: float, spacing_um: float, phase_um: float = 0) -> np.
 
 
 def _pairs_parallel(seg, edges):
-    """Candidats (segment, arête) pour une famille de segments parallèles : arêtes dont la plage transversale
-    contient la position du segment (± 2 µm)."""
-    m = len(seg)
+    """Candidats (segment, arête) pour une famille de segments parallèles (à 0,02 rad près, sens libre) : arêtes
+    dont la plage transversale rencontre celle de la droite support du segment, évaluée sur toute l'étendue des
+    arêtes (un segment court ou légèrement désaligné voit sa droite dériver : les traversées lointaines comptent
+    pour l'enroulement au départ du segment)."""
     d = (seg[:, 1] - seg[:, 0]).astype(np.float64)
-    ang = math.atan2(float(d[:, 1].sum()), float(d[:, 0].sum()))
+    ref = d[0] / math.hypot(d[0, 0], d[0, 1])
+    sign = np.where(d @ ref < 0, -1.0, 1.0)  # segments antiparallèles ramenés dans le même sens
+    ang = math.atan2(float((d[:, 1] * sign).sum()), float((d[:, 0] * sign).sum()))
     c, s = math.cos(ang), math.sin(ang)
-    sy = -seg[:, :, 0] * s + seg[:, :, 1] * c
-    smin, smax = sy.min(axis=1), sy.max(axis=1)
-    ey = -edges[:, :, 0] * s + edges[:, :, 1] * c
-    emin, emax = ey.min(axis=1) - 2.0, ey.max(axis=1) + 2.0
+    su = seg[:, :, 0] * c + seg[:, :, 1] * s        # abscisse le long de la famille
+    sv = -seg[:, :, 0] * s + seg[:, :, 1] * c       # ordonnée transversale
+    eu = edges[:, :, 0] * c + edges[:, :, 1] * s
+    ev = -edges[:, :, 0] * s + edges[:, :, 1] * c
+    u0, u1 = float(eu.min()), float(eu.max())
+    du = su[:, 1] - su[:, 0]
+    du = np.where(np.abs(du) < 1e-9, 1e-9, du)
+    slope = (sv[:, 1] - sv[:, 0]) / du
+    v_at_u0 = sv[:, 0] + (u0 - su[:, 0]) * slope
+    v_at_u1 = sv[:, 0] + (u1 - su[:, 0]) * slope
+    smin = np.minimum(sv.min(axis=1), np.minimum(v_at_u0, v_at_u1)) - 2.0
+    smax = np.maximum(sv.max(axis=1), np.maximum(v_at_u0, v_at_u1)) + 2.0
+    extent = float((smax - smin).max())
+    emin, emax = ev.min(axis=1) - 2.0, ev.max(axis=1) + 2.0
     order = np.argsort(smin, kind="stable")
     smin_s = smin[order]
-    lo = np.searchsorted(smin_s, emin - 4.0, side="left")
+    lo = np.searchsorted(smin_s, emin - extent, side="left")
     hi = np.searchsorted(smin_s, emax, side="right")
     cnt = hi - lo
     tot = int(cnt.sum())
@@ -98,8 +111,13 @@ def _is_parallel_family(seg) -> bool:
     return bool(cross.max() < 0.02)
 
 
+_PAIR_CHUNK = 2_000_000
+
+
 def clip_segments(segments, paths) -> np.ndarray:
-    """Parties des segments situées à l'intérieur des Paths (règle positive). Segments int64 ``(k, 2, 2)``."""
+    """Parties des segments situées à l'intérieur des Paths (règle positive). Segments int64 ``(k, 2, 2)``,
+    dans l'ordre des segments d'entrée puis le long de chacun. Famille parallèle : candidats par balayage ;
+    sinon toutes les paires, par blocs de segments pour borner la mémoire (temps O(m·n))."""
     seg = np.asarray(segments, dtype=INT).reshape(-1, 2, 2)
     seg = seg[(seg[:, 0] != seg[:, 1]).any(axis=1)]
     edges = segments_of_paths(paths)
@@ -107,10 +125,22 @@ def clip_segments(segments, paths) -> np.ndarray:
         return _EMPTY_SEG
     if _is_parallel_family(seg):
         si, ei = _pairs_parallel(seg, edges)
-    else:
-        m = len(seg)
-        si = np.repeat(np.arange(m), len(edges))
-        ei = np.tile(np.arange(len(edges)), m)
+        return _clip_pairs(seg, edges, si, ei)
+    m, n = len(seg), len(edges)
+    block = max(1, _PAIR_CHUNK // n)
+    parts = []
+    for start in range(0, m, block):
+        stop = min(m, start + block)
+        si = np.repeat(np.arange(start, stop), n)
+        ei = np.tile(np.arange(n), stop - start)
+        part = _clip_pairs(seg, edges, si, ei)
+        if len(part):
+            parts.append(part)
+    return np.vstack(parts) if parts else _EMPTY_SEG
+
+
+def _clip_pairs(seg, edges, si, ei) -> np.ndarray:
+    """Traversées exactes des droites support des segments par les arêtes candidates, puis tronçons à enroulement > 0."""
     if not len(si):
         return _EMPTY_SEG
     p = seg[si, 0]

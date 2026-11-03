@@ -9,7 +9,7 @@ import math
 import numpy as np
 
 from .boolean import difference, union
-from .poly import INT, area2, as_ring, clean, from_polytree, perimeter_um, to_polytree
+from .poly import INT, area2, as_ring, bbox, clean, from_polytree, perimeter_um, to_polytree
 
 JOINS = ("round", "miter", "square")
 
@@ -31,7 +31,7 @@ def _band(ring: np.ndarray, delta: float, side: int, join: str, miter_limit: flo
     # Coins voisins (fin du quad i, début du quad i+1) à ≤ 2 µm : un seul point partagé exact, sinon l'arrondi
     # crée des recouvrements sub-micrométriques entre quads voisins (cascade d'intersections).
     oa_next_f = np.roll(oa_f, -1, axis=0)
-    close = np.abs(ob_f - oa_next_f).max(axis=1) <= 2.0
+    close = np.abs(ob_f - oa_next_f).max(axis=1) <= min(2.0, delta / 2.0)  # jamais plus que la demi-largeur
     shared = np.rint((ob_f + oa_next_f) / 2.0).astype(INT)
     oa = np.rint(oa_f).astype(INT)
     ob = np.rint(ob_f).astype(INT)
@@ -128,6 +128,8 @@ def offset(paths, delta_um, join: str = "round", miter_limit: float = 2.0, arc_t
     if join not in JOINS:
         raise ValueError(f"jointure inconnue : {join}")
     delta = float(delta_um)
+    if not math.isfinite(delta):
+        raise ValueError("delta_um doit être un nombre fini")
     rings = []
     for r in paths:
         c = clean(as_ring(r), 0)
@@ -139,8 +141,12 @@ def offset(paths, delta_um, join: str = "round", miter_limit: float = 2.0, arc_t
         rings = union(rings)
         if not rings or abs(delta) < 0.5:
             return rings
-    mag = abs(delta)
+    mag = max(1.0, abs(delta))  # sous le µm, la bande arrondie dégénère : largeur minimale 1 µm
     side = 1 if delta > 0 else -1
+    if side < 0:
+        x0, y0, x1, y1 = bbox(rings)
+        if 2.0 * mag >= min(x1 - x0, y1 - y0):
+            return []  # plus étroit que 2·|delta| dans une direction : vide, sans calcul
     band = []
     for r in rings:
         band.extend(_band(r, mag, side, join, max(1.0, float(miter_limit)), max(0.5, float(arc_tolerance_um))))
@@ -159,6 +165,8 @@ def inset_rounds(paths, delta_um, count=None, join: str = "round", **kw):
     """Décalages successifs vers l'intérieur de |delta| : liste de Paths, s'arrête quand le résultat est vide
     (ou après ``count`` tours)."""
     step = -abs(float(delta_um))
+    if not (step <= -0.5):
+        raise ValueError("delta_um doit valoir au moins 0,5 µm (sinon la série ne s'arrête jamais)")
     rounds = []
     current = paths
     while count is None or len(rounds) < count:

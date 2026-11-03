@@ -2,8 +2,10 @@
 
 Méthode (code Alpine Makers) :
 1. toutes les arêtes des opérandes (un « tag » par opérande) sont découpées à leurs intersections mutuelles,
-   calculées exactement en entiers (produits vectoriels int64) et arrondies au µm ; les passes se répètent tant
-   qu'un arrondi crée une nouvelle intersection (grille de hachage spatial pour les candidats) ;
+   calculées exactement en entiers (produits vectoriels int64) et arrondies au µm, et à tout nœud dont le pixel
+   unité (± 0,5 µm) est traversé par l'arête (arrondi par pixels chauds, « snap rounding » itéré : sans cette
+   règle, un croisement près d'un pic très fin se déplace d'1 µm à chaque passe sans jamais converger) ; les
+   passes se répètent tant qu'un arrondi crée une découpe (grille de hachage spatial pour les candidats) ;
 2. le graphe planaire (nœuds = points uniques, arêtes non orientées fusionnées, contribution d'enroulement par tag)
    est parcouru par demi-arêtes (ordre angulaire par nœud, « tourner le plus à gauche ») pour obtenir les faces ;
 3. l'indice d'enroulement de chaque face est propagé face par face depuis la face extérieure de chaque composante
@@ -12,6 +14,7 @@ Méthode (code Alpine Makers) :
    trous CW, sans sommet répété, sans point aligné).
 Robuste aux segments colinéaires superposés, sommets confondus, arêtes horizontales, trous tangents, opérandes
 identiques et résultats vides. Coordonnées acceptées : |x|, |y| ≤ 524 288 µm (52 cm, borne int64 des produits)."""
+import warnings
 from bisect import bisect_left
 
 import numpy as np
@@ -19,7 +22,7 @@ import numpy as np
 from .poly import INT, _remove_collinear, area2, as_ring
 
 LIMIT_UM = 1 << 19
-MAX_PASSES = 6
+MAX_PASSES = 64
 _OFF = 1 << 21
 _KEY = 1 << 23
 _MAX_GROUPS_MULTI = 12
@@ -145,7 +148,8 @@ def _candidate_pairs(P, Q, fresh=None, chunk=3_000_000):
 
 
 def _split_points(P, Q, I, J):
-    """Points de découpe (indice d'arête, point arrondi) pour chaque paire candidate."""
+    """Points de découpe (indice d'arête, point arrondi) pour chaque paire candidate, et les points d'intersection
+    propres arrondis (pixels chauds de la passe)."""
     p = P[I]
     r = Q[I] - p
     q = P[J]
@@ -155,6 +159,7 @@ def _split_points(P, Q, I, J):
     tn = qp[:, 0] * s[:, 1] - qp[:, 1] * s[:, 0]
     un = qp[:, 0] * r[:, 1] - qp[:, 1] * r[:, 0]
     out_e, out_x = [], []
+    hot = _EMPTY2
     proper = denom != 0
     if proper.any():
         idx = np.flatnonzero(proper)
@@ -178,6 +183,7 @@ def _split_points(P, Q, I, J):
             out_x.append(X[in_i])
             out_e.append(J[idx][in_j])
             out_x.append(X[in_j])
+            hot = X[in_i & in_j]
     col = (~proper) & (un == 0)
     if col.any():
         idx = np.flatnonzero(col)
@@ -195,8 +201,8 @@ def _split_points(P, Q, I, J):
             out_e.append(J[idx][m])
             out_x.append(X[m])
     if not out_e:
-        return np.zeros(0, dtype=INT), _EMPTY2
-    return np.concatenate(out_e), np.vstack(out_x)
+        return np.zeros(0, dtype=INT), _EMPTY2, hot
+    return np.concatenate(out_e), np.vstack(out_x), hot
 
 
 def _apply_splits(P, Q, tag, se, sx):
@@ -219,20 +225,78 @@ def _apply_splits(P, Q, tag, se, sx):
     return a[nz], b[nz], tag[src[nz]], had[src[nz]]
 
 
+def _hot_pixel_splits(P, Q, pix, I, K):
+    """Découpes (arête I, pixel K) des arêtes qui traversent le pixel ouvert ``]k − ½, k + ½[²`` d'un point qui n'est
+    pas une de leurs extrémités (test exact par axes séparateurs, en coordonnées doublées ; le pixel ouvert évite
+    les ping-pongs d'une arête passant exactement par un coin)."""
+    if not len(I):
+        return np.zeros(0, dtype=INT), _EMPTY2
+    p, q, n = P[I], Q[I], pix[K]
+    m = (p != n).any(axis=1) & (q != n).any(axis=1)
+    m &= (n >= np.minimum(p, q)).all(axis=1) & (n <= np.maximum(p, q)).all(axis=1)
+    if not m.any():
+        return np.zeros(0, dtype=INT), _EMPTY2
+    I, p, q, n = I[m], p[m], q[m], n[m]
+    d = (q - p) * 2
+    base = (n - p) * 2
+    smin = np.full(len(I), np.iinfo(INT).max, dtype=INT)
+    smax = np.full(len(I), np.iinfo(INT).min, dtype=INT)
+    for ex, ey in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        s = d[:, 0] * (base[:, 1] + ey) - d[:, 1] * (base[:, 0] + ex)
+        smin = np.minimum(smin, s)
+        smax = np.maximum(smax, s)
+    hit = (smin < 0) & (smax > 0)
+    return I[hit], n[hit]
+
+
+def _point_keys(pts):
+    return (pts[:, 0] + _OFF) * _KEY + (pts[:, 1] + _OFF)
+
+
 def _subdivide(P, Q, tag):
-    """Passes de découpe jusqu'à ce qu'aucun arrondi ne crée de nouvelle intersection."""
+    """Passes de découpe jusqu'à convergence (arrondi par pixels chauds itéré) : à chaque passe, (1) les paires
+    d'arêtes candidates sont découpées à leurs intersections arrondies, (2) toute arête traversant le pixel d'un
+    nœud existant ou d'un point d'intersection frais y est routée aussi. Après la première passe, seules les paires
+    contenant une arête ou un nœud frais sont retestées."""
     fresh = None
+    prev_keys = None
     for _ in range(MAX_PASSES):
-        I, J = _candidate_pairs(P, Q, fresh)
-        if not len(I):
+        E = len(P)
+        allpts = np.vstack([P, Q])
+        ukeys, first = np.unique(_point_keys(allpts), return_index=True)
+        nodes = allpts[first]
+        fr = None if prev_keys is None else np.concatenate([fresh, ~np.isin(ukeys, prev_keys, assume_unique=True)])
+        prev_keys = ukeys
+        A, B = _candidate_pairs(np.vstack([P, nodes]), np.vstack([Q, nodes]), fr)
+        if not len(A):
             break
-        se, sx = _split_points(P, Q, I, J)
+        ee = B < E                       # A < B : une paire mixte a toujours le nœud en B
+        en = (A < E) & ~ee
+        se1, sx1, hot = _split_points(P, Q, A[ee], B[ee])
+        se2, sx2 = _hot_pixel_splits(P, Q, nodes, A[en], B[en] - E)
+        se, sx = [se1, se2], [sx1, sx2]
+        if len(hot):
+            hk = np.unique(_point_keys(hot))
+            hk = hk[~np.isin(hk, ukeys, assume_unique=True)]
+            if len(hk):
+                hot = np.column_stack([hk // _KEY - _OFF, hk % _KEY - _OFF]).astype(INT)
+                fr2 = np.concatenate([np.zeros(E, dtype=bool), np.ones(len(hot), dtype=bool)])
+                A2, B2 = _candidate_pairs(np.vstack([P, hot]), np.vstack([Q, hot]), fr2)
+                m = (A2 < E) & (B2 >= E)
+                se3, sx3 = _hot_pixel_splits(P, Q, hot, A2[m], B2[m] - E)
+                se.append(se3)
+                sx.append(sx3)
+        se = np.concatenate(se)
         if not len(se):
             break
+        sx = np.vstack(sx)
         n_before = len(P)
         P, Q, tag, fresh = _apply_splits(P, Q, tag, se, sx)
         if len(P) == n_before:
             break
+    else:
+        warnings.warn(f"découpe des arêtes non convergée après {MAX_PASSES} passes : résultat approché", RuntimeWarning,
+                      stacklevel=3)
     return P, Q, tag
 
 
@@ -240,22 +304,54 @@ def _subdivide(P, Q, tag):
 # 2. Graphe planaire, faces, enroulements
 # ---------------------------------------------------------------------------------------------------------------
 
-def _winding_left_of(nodes, eu, ev, c, x0, y0):
-    """Enroulement (par tag) juste à gauche du point (x0, y0) : arêtes coupant la demi-droite vers −x."""
+def _winding_left_of(nodes, eu, ev, c, pts, chunk=2_000_000):
+    """Enroulements (par tag) juste à gauche de chaque point de ``pts`` (K, 2) : arêtes coupant la demi-droite vers
+    −x (règle demi-ouverte en y). Groupé : bandes horizontales de l'arrangement, chaque bande traitée en bloc
+    numpy pour tous ses points (coût ≈ K × arêtes de la bande, et non K × toutes les arêtes)."""
+    K, T = len(pts), c.shape[1]
+    out = np.zeros((K, T), dtype=np.int64)
+    if K == 0 or len(eu) == 0:
+        return out
     xu, yu = nodes[eu, 0], nodes[eu, 1]
     xv, yv = nodes[ev, 0], nodes[ev, 1]
     ymin = np.minimum(yu, yv)
     ymax = np.maximum(yu, yv)
-    spans = (ymin <= y0) & (y0 < ymax)
-    if not spans.any():
-        return np.zeros(c.shape[1], dtype=np.int64)
-    idx = np.flatnonzero(spans)
-    xu, yu, xv, yv = xu[idx], yu[idx], xv[idx], yv[idx]
-    val = (xu - x0) * (yv - yu) + (y0 - yu) * (xv - xu)
-    down = yv < yu
-    left = np.where(down, val > 0, val < 0)
-    sgn = np.where(down, 1, -1)[left]
-    return (c[idx[left]].astype(np.int64) * sgn[:, None]).sum(axis=0)
+    keep = np.flatnonzero(ymax > ymin)  # les arêtes horizontales ne coupent jamais la demi-droite
+    if not len(keep):
+        return out
+    lo_all = int(ymin[keep].min())
+    hi_all = int(ymax[keep].max())
+    nb = int(min(4096, max(16, K)))
+    h = max(1, -(-(hi_all - lo_all) // nb))
+    b0 = (ymin[keep] - lo_all) // h
+    b1 = (ymax[keep] - 1 - lo_all) // h
+    cnt = b1 - b0 + 1
+    tot = int(cnt.sum())
+    band = np.repeat(b0, cnt) + (np.arange(tot) - np.repeat(np.cumsum(cnt) - cnt, cnt))
+    edge = np.repeat(keep, cnt)
+    order = np.argsort(band, kind="stable")
+    band, edge = band[order], edge[order]
+    y0 = pts[:, 1]
+    inside = (y0 >= lo_all) & (y0 < hi_all)
+    sb = (y0 - lo_all) // h
+    down = (yv < yu)
+    sgn = np.where(down, 1, -1).astype(np.int64)
+    c64 = c.astype(np.int64)
+    for b in np.unique(sb[inside]).tolist():
+        s_idx = np.flatnonzero(inside & (sb == b))
+        e_idx = edge[np.searchsorted(band, b, side="left"):np.searchsorted(band, b, side="right")]
+        if not len(e_idx):
+            continue
+        step = max(1, chunk // len(e_idx))
+        for start in range(0, len(s_idx), step):
+            s = s_idx[start:start + step]
+            x0 = pts[s, 0][:, None]
+            yy = y0[s][:, None]
+            spans = (ymin[e_idx][None, :] <= yy) & (yy < ymax[e_idx][None, :])
+            val = (xu[e_idx][None, :] - x0) * (yv[e_idx] - yu[e_idx])[None, :] + (yy - yu[e_idx][None, :]) * (xv[e_idx] - xu[e_idx])[None, :]
+            left = np.where(down[e_idx][None, :], val > 0, val < 0) & spans
+            out[s] = (left.astype(np.int64) * sgn[e_idx][None, :]) @ c64[e_idx]
+    return out
 
 
 def _arrangement(P, Q, tag, T):
@@ -324,18 +420,17 @@ def _arrangement(P, Q, tag, T):
     fo = np.argsort(label, kind="stable")
     fstart = np.searchsorted(label[fo], np.arange(F), side="left")
     fcount = np.bincount(label, minlength=F)
-    # Enroulement des faces : BFS par niveaux depuis chaque face extérieure (aire < 0).
+    # Enroulement des faces : lancer de rayon groupé depuis la face extérieure (aire < 0) de chaque composante
+    # (son nœud le plus à gauche), puis BFS multi-sources par niveaux (les composantes sont disjointes).
     w = np.zeros((F, T), dtype=np.int64)
     assigned = np.zeros(F, dtype=bool)
     face_min_node = np.full(F, N, dtype=INT)
     np.minimum.at(face_min_node, label, tail)
-    for f0 in np.flatnonzero(face_area < 0).tolist():
-        if assigned[f0]:
-            continue
-        n0 = int(face_min_node[f0])
-        w[f0] = _winding_left_of(nodes, eu, ev, c, int(nodes[n0, 0]), int(nodes[n0, 1]))
-        assigned[f0] = True
-        frontier = np.array([f0], dtype=INT)
+    seeds = np.flatnonzero(face_area < 0).astype(INT)
+    if len(seeds):
+        w[seeds] = _winding_left_of(nodes, eu, ev, c, nodes[face_min_node[seeds]])
+        assigned[seeds] = True
+        frontier = seeds
         while len(frontier):
             counts = fcount[frontier]
             tot = int(counts.sum())

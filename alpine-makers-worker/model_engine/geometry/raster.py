@@ -16,6 +16,8 @@ from .poly import area2, as_ring
 
 
 def _grid(px_per_mm: float, bbox_mm):
+    if not px_per_mm > 0:
+        raise ValueError("px_per_mm doit être > 0")
     xmin, ymin, xmax, ymax = (float(v) for v in bbox_mm)
     width = max(1, int(round((xmax - xmin) * px_per_mm)))
     height = max(1, int(round((ymax - ymin) * px_per_mm)))
@@ -109,5 +111,5 @@ def iou(a, b) -> float:
 
 def to_image(mask) -> Image.Image:
     """Image Pillow « L » (blanc = plein), ligne du haut = ymax, pour une vignette."""
-    arr = (np.asarray(mask, dtype=bool)[::-1] * 255).astype(np.uint8)
-    return Image.fromarray(arr, mode="L")
+    arr = np.ascontiguousarray(np.asarray(mask, dtype=bool)[::-1]) * np.uint8(255)
+    return Image.fromarray(arr)  # uint8 2D → mode « L » déduit (le paramètre mode est déprécié après Pillow 11.2)

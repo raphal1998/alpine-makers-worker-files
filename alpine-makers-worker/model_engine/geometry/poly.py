@@ -56,6 +56,8 @@ def bbox(shape):
     """Boîte ``(xmin, ymin, xmax, ymax)`` d'un ring ou d'un Paths ; None si vide."""
     if isinstance(shape, np.ndarray):
         rings = [shape] if len(shape) else []
+    elif len(shape) and np.ndim(shape[0]) == 1:
+        rings = [as_ring(shape)]  # ring donné en liste de points
     else:
         rings = [as_ring(r) for r in shape if len(r)]
     if not rings:
@@ -221,25 +223,31 @@ def point_in_paths(paths, x, y) -> bool:
     return sum(point_in_ring(r, x, y) for r in paths) > 0
 
 
-def _sample_point(ring: np.ndarray):
-    """Un point du ring (son premier sommet) : suffisant pour l'imbrication de contours propres."""
-    return int(ring[0, 0]), int(ring[0, 1])
+def _on_boundary(ring: np.ndarray, x: int, y: int) -> bool:
+    """Vrai si le point est sur une arête du ring (sommet compris), test exact en entiers."""
+    x1, y1 = ring[:, 0], ring[:, 1]
+    x2, y2 = np.roll(x1, -1), np.roll(y1, -1)
+    cross = (x2 - x1) * (y - y1) - (x - x1) * (y2 - y1)
+    within = (np.minimum(x1, x2) <= x) & (x <= np.maximum(x1, x2)) & (np.minimum(y1, y2) <= y) & (y <= np.maximum(y1, y2))
+    return bool(np.any((cross == 0) & within))
 
 
-def _contains_vertex(outer: np.ndarray, ring: np.ndarray) -> bool:
-    """Le ring est dans outer si un de ses sommets qui n'est pas un sommet d'outer est dedans ;
-    à défaut (tous les sommets communs), on teste le milieu de sa première arête."""
-    outer_set = None
-    for i in range(min(len(ring), 8)):
+def _ring_inside(outer: np.ndarray, ring: np.ndarray) -> bool:
+    """Le ring est dans outer si un de ses points qui n'est pas sur le bord d'outer est dedans. Sommets puis
+    milieux d'arêtes (les rings peuvent se toucher par un sommet ou en T) ; à défaut, le centre de gravité."""
+    n = len(ring)
+    for i in range(min(n, 8)):
         x, y = int(ring[i, 0]), int(ring[i, 1])
-        if outer_set is None:
-            outer_set = set(map(tuple, outer.tolist()))
-        if (x, y) in outer_set:
-            continue
-        return point_in_ring(outer, x, y) != 0
-    mx = (int(ring[0, 0]) + int(ring[1, 0])) // 2
-    my = (int(ring[0, 1]) + int(ring[1, 1])) // 2
-    return point_in_ring(outer, mx, my) != 0
+        if not _on_boundary(outer, x, y):
+            return point_in_ring(outer, x, y) != 0
+    for i in range(min(n, 8)):
+        j = (i + 1) % n
+        x = (int(ring[i, 0]) + int(ring[j, 0])) // 2
+        y = (int(ring[i, 1]) + int(ring[j, 1])) // 2
+        if not _on_boundary(outer, x, y):
+            return point_in_ring(outer, x, y) != 0
+    cx, cy = centroid(ring)
+    return point_in_ring(outer, int(round(cx)), int(round(cy))) != 0
 
 
 def to_polytree(paths):
@@ -247,34 +255,36 @@ def to_polytree(paths):
     Les rings de profondeur paire deviennent des extérieurs, les impairs des trous de leur parent."""
     rings = [as_ring(r) for r in paths if len(r) >= 3]
     rings = [r for r in rings if area2(r) != 0]
-    order = sorted(range(len(rings)), key=lambda i: -abs(area2(rings[i])))
-    parent = [-1] * len(rings)
-    depth = [0] * len(rings)
-    bboxes = [bbox(rings[i]) for i in range(len(rings))]
-    processed = []
-    for i in order:
-        bx = bboxes[i]
-        best = -1
-        for j in reversed(processed):  # du plus petit au plus grand déjà placé
-            bj = bboxes[j]
-            if bx[0] < bj[0] or bx[1] < bj[1] or bx[2] > bj[2] or bx[3] > bj[3]:
-                continue
-            if _contains_vertex(rings[j], rings[i]):
-                best = j
-                break
-        parent[i] = best
-        depth[i] = 0 if best < 0 else depth[best] + 1
-        processed.append(i)
+    R = len(rings)
+    if R == 0:
+        return []
+    areas = np.array([abs(area2(r)) for r in rings], dtype=INT)
+    order = np.argsort(-areas, kind="stable")
+    boxes = np.array([bbox(r) for r in rings], dtype=INT)
+    parent = np.full(R, -1, dtype=INT)
+    depth = np.zeros(R, dtype=INT)
+    for k in range(R):
+        i = int(order[k])
+        if k:
+            prev = order[:k]
+            pb = boxes[prev]
+            bx = boxes[i]
+            cand = (bx[0] >= pb[:, 0]) & (bx[1] >= pb[:, 1]) & (bx[2] <= pb[:, 2]) & (bx[3] <= pb[:, 3])
+            for j in prev[cand][::-1].tolist():  # du plus petit au plus grand déjà placé
+                if _ring_inside(rings[j], rings[i]):
+                    parent[i] = j
+                    depth[i] = depth[j] + 1
+                    break
     polygons = {}
-    for i in order:
+    for i in order.tolist():
         if depth[i] % 2 == 0:
             outer = rings[i] if area2(rings[i]) > 0 else reverse(rings[i])
             polygons[i] = (outer, [])
-    for i in order:
+    for i in order.tolist():
         if depth[i] % 2 == 1:
             hole = rings[i] if area2(rings[i]) < 0 else reverse(rings[i])
-            polygons[parent[i]][1].append(hole)
-    return [polygons[i] for i in order if i in polygons]
+            polygons[int(parent[i])][1].append(hole)
+    return [polygons[i] for i in order.tolist() if i in polygons]
 
 
 def from_polytree(tree):

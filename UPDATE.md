@@ -4,6 +4,12 @@
 
 ### Technique
 - Révision du paquet : contenu du paquet modifié sans changement de numéro de version.
+- Empreinte du paquet publié : `2dbee5f3d6e6026a…` (dossier du paquet).
+
+## Version 1.53.6 — 2026-11-03
+
+### Technique
+- Révision du paquet : contenu du paquet modifié sans changement de numéro de version.
 - Empreinte du paquet publié : `6efbb4da74175323…` (dossier du paquet).
 
 ## Version 1.53.6 — 2026-11-03
