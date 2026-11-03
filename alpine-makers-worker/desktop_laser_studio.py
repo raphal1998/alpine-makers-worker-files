@@ -9,6 +9,12 @@ faire au Worker par les jobs laser : il appelle le MOTEUR LASER DU WORKER (compo
   ``desktop_laser_studio_dxf``, puis analysé par le moteur, comme un import du studio web) ;
 - ``compute``   : projet déposé (.alsproj) → aperçu du parcours (``preview``), G-code + simulation + durée estimée
   (``gcode``) ou G-code de cadrage laser coupé (``frame``). Fichiers dans ``runtime/desktop/cache/laser-studio/<job>``.
+- ``open`` (1.53.5) : projet déposé ; un .alsproj v1 (JSON) est rendu tel quel, hors ligne ; un .alsproj v2 (scellé)
+  est remis au SITE, qui rend son ``project.json`` (hors ligne : « Projet Alpine scellé : connecte ce Worker au site
+  pour l'ouvrir ») ;
+- ``seal`` (1.53.5) : projet v1 déposé → .alsproj v2 scellé par le SITE (clé du site ; aucune clé dans le Worker), écrit
+  dans ``runtime/desktop/cache/alpine-out/<tâche>/`` ; worker.exe le copie là où l'utilisateur l'a choisi. Le v1
+  lisible reste enregistré par worker.exe lui-même (hors ligne, compatibilité).
 
 Ce qui part vers une machine passe par le SITE, jamais par une voie locale : routes signées
 ``/api/worker-protocol/self/laser-studio`` (worker_desktop_laser_studio.py) qui appellent la route du site
@@ -35,6 +41,7 @@ if __package__:
     from . import desktop_actions as desk
     from . import desktop_laser_studio_dxf as dxf
     from . import desktop_laser_studio_project as project
+    from . import desktop_library as library
     from .desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_session, v_text
     from .desktop_library import v_file_name
     from .local_control import checked
@@ -43,6 +50,7 @@ else:
     import desktop_actions as desk
     import desktop_laser_studio_dxf as dxf
     import desktop_laser_studio_project as project
+    import desktop_library as library
     from desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_session, v_text
     from desktop_library import v_file_name
     from local_control import checked
@@ -460,6 +468,58 @@ def _operations(agent, params):
     return desk.start_task(agent, TOOL, "Suivi des commandes", lambda task: _site(agent, "operations", args, session))
 
 
+# --- projet .alsproj v1 (lisible, ici) ou v2 (scellé : ouvert et scellé par le site, aucune clé dans le Worker) -------
+
+SEALED_LOGIN = ("Projet Alpine scellé : connecte-toi dans worker.exe (propriétaire du Worker) pour l'ouvrir par le site.")
+
+
+def _open(agent, params):
+    """Projet déposé par worker.exe : v1 rendu tel quel (hors ligne) ; v2 remis au site, qui rend son project.json."""
+    name = params["name"]
+    if os.path.splitext(name.lower())[1] not in (".alsproj", ".json"):
+        raise ValueError("Projet Laser Studio attendu (.alsproj).")
+    data = library.staged_bytes(agent, params["staged"], name, library.SEALED_OPEN_MAX)
+    if not project.is_sealed(data):
+        if len(data) > INPUT_MAX:
+            raise ValueError(f"Projet trop gros ({INPUT_MAX // 1024 // 1024} Mio au plus).")
+        if project.read_project_v1(data) is None:
+            raise ValueError("Projet illisible (.alsproj attendu).")
+        text = data.decode("utf-8-sig")
+        return desk.start_task(agent, TOOL, "Ouvrir le projet " + name,
+                               lambda task: desk.result_file(agent, {"version": 1, "sealed": False, "project": text}))
+    session = params.get("session_token")
+    if not session:
+        raise ValueError(SEALED_LOGIN)
+
+    def work(task):
+        task.update(None, "Ouverture du projet scellé par le site")
+        opened, files = library.sealed_open(agent, session, data, "alsproj", name)
+        content = files.get(project.SEALED_MAIN)
+        if opened.get("main") != project.SEALED_MAIN or content is None or project.read_project_v1(content) is None:
+            raise TaskError("Un .alsproj contient « project.json », un projet Laser Studio valide.", "SEALED_PROJECT")
+        return desk.result_file(agent, {"version": 2, "sealed": True, "project": content.decode("utf-8-sig"),
+                                        "title": str(opened.get("title") or "")[:120], "app": str(opened.get("app") or "")[:60],
+                                        "origin": str(opened.get("origin") or "")[:30], "label": library.SEALED_LABEL})
+    return desk.start_task(agent, TOOL, "Ouvrir le projet scellé " + name, work)
+
+
+def _seal(agent, params):
+    """Projet v1 déposé par worker.exe → .alsproj v2 scellé par le site (clé du site), écrit dans le cache de l'agent."""
+    name = params["name"]
+    data = library.staged_bytes(agent, params["staged"], name, INPUT_MAX)
+    if project.is_sealed(data) or project.read_project_v1(data) is None:
+        raise ValueError("Projet illisible (.alsproj attendu).")
+    manifest = project.sealed_manifest(name, params.get("title", ""))
+    session = params["session_token"]
+    target = os.path.splitext(name)[0] + ".alsproj"
+
+    def work(task):
+        task.update(None, "Scellement du projet par le site")
+        sealed = library.sealed_seal(agent, session, "alsproj", manifest, {project.SEALED_MAIN: data}, target)
+        return library.write_sealed(agent, sealed, target, "alsproj")
+    return desk.start_task(agent, TOOL, "Sceller le projet " + name, work)
+
+
 _SESSION = {"session_token": v_session}
 DESKTOP_ACTIONS = {
     "info": {"handler": _etat, "read": True, "params": {}},
@@ -477,8 +537,12 @@ DESKTOP_ACTIONS = {
              "params": {**_SESSION, "equipment_id": v_equipment, "job": v_hex(32), "name": v_text(100),
                         "checklist": v_checklist, "dry_run": v_bool, "confirm": v_true}},
     "operations": {"handler": _operations, "read": True, "params": {**_SESSION, "equipment_id": v_equipment}},
+    # Agent 1.53.5 : .alsproj v2 (scellé) ouvert et scellé par le site ; v1 toujours lu ici, hors ligne.
+    "open": {"handler": _open, "read": True, "params": {**_SESSION, "staged": v_hex(32), "name": v_file_name}},
+    "seal": {"handler": _seal, "read": True, "params": {**_SESSION, "staged": v_hex(32), "name": v_file_name, "title": v_text(120)}},
 }
 REQUIRED = {"info": (), "import": ("staged", "name"), "compute": ("staged", "name", "op"), "machines": ("session_token",),
+            "open": ("staged", "name"), "seal": ("session_token", "staged", "name"),
             "machine": ("session_token", "equipment_id", "command"),
             "frame": ("session_token", "equipment_id", "job", "confirm"),
             "send": ("session_token", "equipment_id", "job", "checklist", "confirm"),

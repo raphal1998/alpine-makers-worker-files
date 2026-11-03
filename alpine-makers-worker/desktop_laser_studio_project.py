@@ -8,8 +8,11 @@ conversions pures (aucun fichier, aucun réseau, aucun moteur) :
   ``raster_sources``, ``offset_mm``) — celui que le navigateur envoyait aux jobs laser du site ;
 - ``machine_to_doc`` / ``doc_to_machine`` : passage repère machine ↔ document (aperçu et simulation dessinés sur le plan) ;
 - ``objects_from_parse`` : résultat de l'analyse d'un SVG par le moteur → objets « path » du projet (import) ;
-- ``MATERIALS``, ``SAFETY_ITEMS`` : bibliothèque de matériaux intégrée et rappels de la check-list, comme le web.
+- ``MATERIALS``, ``SAFETY_ITEMS`` : bibliothèque de matériaux intégrée et rappels de la check-list, comme le web ;
+- ``project_version`` / ``read_project_v1`` / ``sealed_manifest`` (agent 1.53.5) : un .alsproj v1 (JSON) se lit ici,
+  un .alsproj v2 (scellé, « ALPINE\\0 ») ne s'ouvre et ne se scelle que par le site (aucune clé dans le Worker).
 """
+import json
 import math
 import re
 import secrets
@@ -105,6 +108,47 @@ MATERIALS = [
 
 class ProjectError(ValueError):
     """Projet illisible ou hors bornes : message pour l'interface."""
+
+
+# --- versions du fichier .alsproj (docs/FORMATS_ALPINE.md) ---------------------------------------------------------
+# v1 : le JSON du projet, lisible, lu ici hors ligne. v2 : projet Alpine SCELLÉ (commence par « ALPINE\0 ») ; le Worker
+# n'a aucune clé (dépôt public) : seul le site l'ouvre ou le scelle (routes signées self/alpine-formats/*).
+SEALED_MAGIC = b"ALPINE\x00"
+SEALED_OFFLINE = "Projet Alpine scellé : connecte ce Worker au site pour l'ouvrir."
+SEALED_MAIN = "project.json"           # fichier principal d'un .alsproj scellé = le contenu exact d'un .alsproj v1
+PROJECT_TOOL = "laser-studio"          # outil inscrit au manifeste d'un projet scellé par Laser Studio Desktop
+
+
+def is_sealed(data):
+    """Vrai pour un fichier Alpine scellé (v2) : seul le site sait l'ouvrir."""
+    return isinstance(data, (bytes, bytearray)) and bytes(data[:len(SEALED_MAGIC)]) == SEALED_MAGIC
+
+
+def project_version(data):
+    """1 (JSON lisible) ou 2 (scellé) ; ProjectError pour un fichier qui n'est ni l'un ni l'autre."""
+    if is_sealed(data):
+        return 2
+    if read_project_v1(data) is not None:
+        return 1
+    raise ProjectError("Projet illisible (.alsproj attendu).")
+
+
+def read_project_v1(data):
+    """Projet v1 (objet JSON avec « objects ») lu tel quel, ou None. Le studio le valide ensuite comme tout import."""
+    if not isinstance(data, (bytes, bytearray, str)) or (not isinstance(data, str) and is_sealed(data)):
+        return None
+    try:
+        text = bytes(data).decode("utf-8-sig") if not isinstance(data, str) else data.lstrip("﻿")
+        value = json.loads(text)
+    except ValueError:          # UnicodeDecodeError compris
+        return None
+    return value if isinstance(value, dict) and isinstance(value.get("objects"), list) else None
+
+
+def sealed_manifest(name, title=""):
+    """Manifeste remis au site pour sceller un projet Laser Studio (le site complète et vérifie le reste)."""
+    label = " ".join(str(title or name or "").split())[:120] or "sans-titre"
+    return {"main": SEALED_MAIN, "title": label, "tool": PROJECT_TOOL}
 
 
 # --- petites conversions ------------------------------------------------------------------------------------------

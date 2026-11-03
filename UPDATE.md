@@ -1,5 +1,49 @@
 # Historique des mises à jour
 
+## Version 1.53.5 — 2026-11-03
+
+**Projets Alpine scellés dans worker.exe : ouverts et scellés par le site**
+
+### Ajouté
+- Laser Studio de worker.exe : ouverture d'un .alsproj scellé (v2), que le site ouvre pour le Worker. Le .alsproj lisible (v1) reste ouvert hors ligne, sur ce PC.
+- Laser Studio de worker.exe : « Enregistrer sous… » et « ↑ Ma bibliothèque » proposent « Format Alpine (pour nos studios) », un .alsproj scellé par le site, ou « Formats optimisés pour… » : le .alsproj lisible, enregistrable hors ligne, et le G-code GRBL calculé.
+- Bibliothèque de worker.exe : les projets scellés sont marqués « scellé ». Un .amsproj s'ouvre dans Model Studio (son modèle 3MF), un .acsproj dans CNC Studio (son G-code), avec les indications du projet (filaments, brut, outil) affichées sans rien envoyer à une machine.
+- Model Studio et CNC Studio de worker.exe ouvrent aussi un .amsproj ou un .acsproj choisi sur ce PC.
+
+### Modifié
+- Aucune clé des formats Alpine dans le Worker ni dans worker.exe : le site ouvre et scelle par deux routes signées, avec la connexion du propriétaire dans worker.exe et les mêmes contrôles que ses studios.
+- Hors connexion, un projet scellé affiche « Projet Alpine scellé : connecte ce Worker au site pour l'ouvrir. » au lieu d'une erreur de lecture.
+
+### Corrigé
+- Un .alsproj scellé ouvert dans le Laser Studio de worker.exe était refusé (« Ouverture impossible »), faute de pouvoir le lire.
+
+### Technique
+- Empreinte du paquet publié : `2c5f5c537f30418b…` (dossier du paquet).
+
+## Version 1.53.4 — 2026-11-03
+
+**Alpine Tools, Toile Creator, Alpine Guard et CNC Studio : les installations se terminent sans échec**
+
+### Ajouté
+- Notices documentaires livrées avec l'agent pour 23 composants qui n'en avaient pas : les 17 outils Alpine Tools, Alpine Toile Creator, Alpine Guard, Alpine CNC Studio, le détecteur Obico (facultatif) d'Alpine Guard, le détourage BiRefNet de Toile Creator et le LoRA 3D Render Style XL.
+
+### Modifié
+- Le site demande l'agent 1.53.4 avant d'installer un outil Alpine Tools, au lieu de lancer une installation qui échouerait sur un Worker 1.53.3.
+
+### Corrigé
+- Installation des outils Alpine Tools : l'outil était posé puis l'opération échouait (« Notice documentaire absente pour ce composant ») et le premier échec interrompait tout le lot.
+- Alpine Toile Creator, Alpine Guard et Alpine CNC Studio s'installaient mais l'opération se terminait en échec pour la même raison ; leurs licences n'étaient pas enregistrées sur le Worker.
+
+## Version 1.53.3 — 2026-11-03
+
+**Alpine Tools : les outils s'installent de nouveau depuis le site et l'appli Alpine Worker**
+
+### Modifié
+- Le site refuse clairement d'installer un outil Alpine Tools sur un Worker 1.53.0 à 1.53.2 et demande la mise à jour vers 1.53.3, au lieu de lancer une installation vouée à l'échec.
+
+### Corrigé
+- Installation, réparation et désinstallation des 17 outils Alpine Tools : l'agent transmettait le lanceur commun « alpine-tool » à l'installateur au lieu de l'outil choisi ; chaque installation échouait (« Composant ou action non autorisé ») et le premier échec interrompait tout le lot.
+
 ## Version 1.53.2 — 2026-11-03
 
 **Alpine Tools : cinq outils de plus (Lithophanie en volume, Dessin d'enfant, Puzzle photo, Ciel étoilé, Alpine Chutes)**

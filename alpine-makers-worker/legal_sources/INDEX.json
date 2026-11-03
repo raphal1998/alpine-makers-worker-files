@@ -5449,6 +5449,236 @@
       "bytes": 2558,
       "revision": null,
       "retrieved_at": "2026-10-26T23:27:54.000Z"
+    },
+    {
+      "name": "NOTICE--alpine-guard",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--alpine-guard.txt",
+      "sha256": "b46639c31124da01441167ebae3a799cf2bdd019972cfe16f069381633470d0e",
+      "bytes": 1347,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-chutes",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-chutes.txt",
+      "sha256": "94e798410bb3faf718e0fe02bee9ee77e9546bad8f7e13b1cedc685c6d4a2563",
+      "bytes": 1630,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-ciel-etoile",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-ciel-etoile.txt",
+      "sha256": "016d97db6d056df4ebb18f1a27dc9c4ae96dea09389a044fd87c32d3f49196ab",
+      "bytes": 1635,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-contour",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-contour.txt",
+      "sha256": "0d92f29f5e116cdf17da04c3d444e67782f7ab856d3bcd07e0dd87b8c28638bb",
+      "bytes": 1631,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-dessin-enfant",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-dessin-enfant.txt",
+      "sha256": "fcddc0832e4bc8b737405ccc53288cf5537319a0094d1ca74b664e8dc0b9b40d",
+      "bytes": 1637,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-estimation-cnc",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-estimation-cnc.txt",
+      "sha256": "48808c6885800e316818c748cdf2e07a98f01e057ae9e63a405c3b6e647d538b",
+      "bytes": 1638,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-estimation-decoupe",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-estimation-decoupe.txt",
+      "sha256": "0baee371e2e21c1211401516edce5879b2b773437a726c2b3182b6ed0ba04ad4",
+      "bytes": 1642,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-estimation-filament",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-estimation-filament.txt",
+      "sha256": "ae864eced23c3c3dcfa822a57a2ef2531296a988674801e1d2b41e3746281815",
+      "bytes": 1643,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-estimation-gravure",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-estimation-gravure.txt",
+      "sha256": "0b02ac402892e86925bc0b2ad2b0f278aab5de7f439e4d99a7a0f6bfda1f51d8",
+      "bytes": 1642,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-estimation-resine",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-estimation-resine.txt",
+      "sha256": "6c5a42df81672e5452a8e7e1f97be82c25d7584bbad0163e83d1a3084d7f1d1d",
+      "bytes": 1641,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-gravure-photo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-gravure-photo.txt",
+      "sha256": "19076f81f5f7d1929742b6de15d43ae3f32607d0ba777ece11057569e653c327",
+      "bytes": 1637,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-image-annonce",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-image-annonce.txt",
+      "sha256": "9c8ac79297f217503514caf52ee2c866059e3971ebdb9d0426065ca4615fa952",
+      "bytes": 1637,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-lithophanie",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-lithophanie.txt",
+      "sha256": "ec349f1f6153fa056aff211d66b8d763e3408e90dbfdfe5bb3f40a76f654b306",
+      "bytes": 1635,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-lithophanie-volume",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-lithophanie-volume.txt",
+      "sha256": "a041dbadcc3bee95eebb7211cc42b83fc5fac3fc83690ffe56c20825c3f4e248",
+      "bytes": 1642,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-porte-cles",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-porte-cles.txt",
+      "sha256": "7292241bb2e5012a1cdb7a378dc0fcb8bcfb654113be9e922479155523532c12",
+      "bytes": 1634,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-puzzle-photo",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-puzzle-photo.txt",
+      "sha256": "b35a542c22e4fc9efe63c92a7a3185c2504036f339fcaf2c42a9523171eed4e7",
+      "bytes": 1636,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-relief-souvenir",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-relief-souvenir.txt",
+      "sha256": "5bc9c5b265701c68ab54a616dda477177505108ec8fd1902d50559cec00860b0",
+      "bytes": 1639,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--atool-tableau-couleur",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--atool-tableau-couleur.txt",
+      "sha256": "c9f931b1f2009ac134228fde796875d782eae005e6466f4110f458a32f106c50",
+      "bytes": 1639,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--cnc-studio",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--cnc-studio.txt",
+      "sha256": "85d60622ce6c2609692f1cdcae256394d6d5e82094d1fe858d407d1e2b55e4d1",
+      "bytes": 1064,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--guard-obico",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--guard-obico.txt",
+      "sha256": "3490c6e4ffb2b565e937e178f0b3c46ec79ee0955615e409fee9836185a68207",
+      "bytes": 1539,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--lora-3d-render-style-xl",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--lora-3d-render-style-xl.txt",
+      "sha256": "4b37211a92ba860b995ea0c49885ba62d09f519f719090ea572bc5db79aad74a",
+      "bytes": 1043,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--toile-detourage",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--toile-detourage.txt",
+      "sha256": "510a3a163cb2ff9dec1fbc7364119165e063ba372ef237b4641127573a43b75b",
+      "bytes": 1601,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
+    },
+    {
+      "name": "NOTICE--toile-studio",
+      "kind": "generated_attribution_notice",
+      "url": "alpine-makers:generated-notice",
+      "local_path": "legal_sources/NOTICE--toile-studio.txt",
+      "sha256": "95752737257ae46aa0643d6c73cb45107dbfa0bdd30cccb9f86aca0abce1e8fc",
+      "bytes": 1242,
+      "revision": null,
+      "retrieved_at": "2026-11-03T17:11:18.000Z"
     }
   ]
 }

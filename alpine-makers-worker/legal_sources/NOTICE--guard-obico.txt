@@ -1,0 +1,17 @@
+Alpine Makers — notice documentaire : guard-obico
+Auteur/éditeur : Obico (The Spaghetti Detective) ; ONNX Runtime (Microsoft)
+Attribution : Obico (The Spaghetti Detective) ; ONNX Runtime (Microsoft)
+Licence : AGPL-3.0 (dépôt obico-server qui publie et référence les poids) ; ONNX Runtime MIT
+Source officielle : https://github.com/TheSpaghettiDetective/obico-server
+État : documentation_pending
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Modèle facultatif d'Alpine Guard : fichier ONNX téléchargé par chaque Worker à l'adresse publiée par Obico, vérifié par taille (202 223 918 octets) et SHA-256 publié par Obico ; aucune redistribution par Alpine Makers. Valider les obligations AGPL-3.0 (poids sans licence distincte déclarée, référencés par le dépôt AGPL).
+Ce n'est pas le modèle de PrintGuard. Aucune image n'est envoyée à Obico ni à un tiers : calcul local sur le processeur du Worker.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Dossier généré sans téléchargement : textes de licence officiels à collecter et à joindre. Dossier documentaire, pas certification juridique ni permission supplémentaire.
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

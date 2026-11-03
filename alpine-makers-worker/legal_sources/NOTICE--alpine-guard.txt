@@ -1,0 +1,17 @@
+Alpine Makers — notice documentaire : alpine-guard
+Auteur/éditeur : Alpine Makers / dépendances tierces
+Attribution : Alpine Makers / dépendances tierces
+Licence : Code d'Alpine Makers ; OpenCV Apache-2.0, numpy BSD-3-Clause
+Source officielle : voir catalogue
+État : documentation_pending
+
+
+Conserver les licences et attributions de chaque composant.
+Téléchargement direct chez l'éditeur ≠ droit de redistribution du paquet Alpine Makers ; qualifier séparément les actes réels.
+Moteur d'Alpine Guard (vision classique) installé dans un Python isolé du Worker : conserver les notices d'OpenCV (Apache-2.0) et de numpy (BSD-3-Clause). Code original : aucun code, modèle ni service PrintGuard n'est repris.
+Protection supplémentaire : une alerte n'est pas une garantie, un défaut peut passer inaperçu ; la pause ou l'arrêt ne sont confirmés que par l'état réel de l'imprimante.
+
+Références et notices documentaires ; sources correspondantes de tous les binaires et poids non incluses.
+Code Alpine Makers et dépendances tierces : vérifier séparément les titulaires, bibliothèques et wheels embarqués. Aucune licence tierce globale inventée.
+
+Cette notice n'accorde aucun droit supplémentaire, ne remplace pas les licences originales et n'atteste pas la fourniture des sources correspondantes des binaires distribués.

@@ -103,7 +103,7 @@ else:
     import job_limits
     import resource_limits
 
-AGENT_VERSION = "1.53.2"
+AGENT_VERSION = "1.53.5"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -4086,11 +4086,17 @@ class Agent:
         parts = command.split(".", 1); kind, action = parts
         identifier = str(payload.get(f"{kind}_id") or "")
         known = TOOL_HANDLERS.get(identifier, identifier) if kind == "tool" else identifier
+        if known == "alpine-tool":
+            # Alpine Tools (agent 1.53.3) : « alpine-tool » est le lanceur commun des jobs ; le composant installé
+            # porte l'identifiant de l'outil (components/atool-*), comme dans discover_components.
+            known = identifier
         manual_model_removal = kind == "model" and action == "uninstall" and payload.get("tool_id") == "image_generation"
         if not known or len(known) > 160 or (not manual_model_removal and any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for ch in known)):
             raise AgentError("Identifiant de composant invalide.")
         tool_id = str(payload.get("tool_id") or "")
         engine = TOOL_HANDLERS.get(tool_id)
+        if engine == "alpine-tool":
+            engine = tool_id
         storage = WorkerStorage(self.root, self.config)
         ownership = storage.component_ownership(engine) if engine else None
         adopt_managed = False
