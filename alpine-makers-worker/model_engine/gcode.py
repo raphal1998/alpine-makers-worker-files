@@ -591,6 +591,7 @@ class Emitter:
         self.e_exact = 0.0
         self.e_emitted = 0.0
         self.last_extrusion: np.ndarray | None = None
+        self.wipe_origin: tuple | None = None   # position d'avant le dernier essuyage (le planificateur la croit courante)
         self.last_speed = float(self.settings["default_print_speed"])
         self.layer_index = 1
         self.max_z_um = 0
@@ -846,6 +847,7 @@ class Emitter:
             self.est.add("retract", estimate.retraction_time_s(before, speed, self.machine.max_accel.e), layer_index)
         if wipe:
             points, lengths = wipe_path
+            origin = self.pos
             remaining = length - before
             total = float(lengths.sum())
             wipe_speed = max(1.0, min(float(self.last_speed), self.machine.max_speed.x))
@@ -861,6 +863,7 @@ class Emitter:
             self.feed = wipe_feed
             out.append("; WIPE_END")
             self.pos = (int(points[-1][0]), int(points[-1][1]))
+            self.wipe_origin = origin
             self.est.add("retract", total / SCALE / wipe_speed, layer_index)
         self.retracted = True
         self.retracted_mm = length
@@ -934,7 +937,10 @@ class Emitter:
         """Déplacement sans extrusion. ``close_object`` : le déplacement quitte l'objet courant → rétraction (toujours,
         pour qu'un objet sauté laisse la buse rétractée et levée), fermeture du bloc M624/M625, puis déplacement."""
         targets = pts
-        if self.pos is not None and int(pts[0][0]) == self.pos[0] and int(pts[0][1]) == self.pos[1]:
+        first = (int(pts[0][0]), int(pts[0][1]))
+        # Le premier point d'un déplacement planifié est la position d'où il part : déjà atteinte, ou quittée par un
+        # essuyage (le planificateur ne connaît pas l'essuyage : sans ce test, la buse y retournait avant de repartir).
+        if self.pos is not None and (first == self.pos or (self.wipe_origin is not None and first == self.wipe_origin)):
             targets = pts[1:]
         if targets.shape[0] == 0:
             if close_object:
@@ -975,6 +981,7 @@ class Emitter:
             else:
                 out.append(f"G1 X{_mm(x)} Y{_mm(y)}")
         self.pos = (int(targets[-1][0]), int(targets[-1][1]))
+        self.wipe_origin = None
         if path is None:
             self.est.add("travel", estimate.axis_move_time_s(length_mm, speed, accel), layer_index)
         elif path.shape[0] >= 2:
@@ -1068,6 +1075,7 @@ class Emitter:
         self.est.add_filament(self.extruder, total_length * e_per_mm)
         self.est.add("extrude", seconds, layer_index, move.feature)
         self.pos = (int(pts[-1][0]), int(pts[-1][1]))
+        self.wipe_origin = None
         self.last_extrusion = pts
 
     # --- finalisation ----------------------------------------------------------------------------------------------------

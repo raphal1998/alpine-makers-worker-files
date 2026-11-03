@@ -1,5 +1,11 @@
 # Historique des mises à jour
 
+## Version 1.54.2 — 2026-11-04
+
+### Technique
+- Révision du paquet : contenu du paquet modifié sans changement de numéro de version.
+- Empreinte du paquet publié : `09d21fd29bdbe58b…` (dossier du paquet).
+
 ## Version 1.54.2 — 2026-11-03
 
 **Alpine Model Engine : Alpine Model Studio tranche sans OrcaSlicer, sur Windows et Linux**
