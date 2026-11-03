@@ -484,7 +484,7 @@ try {
         Write-Cadre -Titre 'WORKER RÉASSOCIÉ' -Couleur Green -Lignes @(
             'Il apparaît comme un NOUVEAU Worker dans « Mes Workers ».',
             'À faire maintenant dans le site :',
-            '  1. vérifier que ses outils (images, 3D, Orca, PrintGuard) sont bien listés ;',
+            '  1. vérifier que ses outils (images, 3D, trancheur Alpine, PrintGuard) sont bien listés ;',
             '  2. rattacher les équipements (imprimantes, caméras) à ce nouveau Worker ;',
             '  3. refaire les partages avec les autres comptes, s''il y en avait.'
         )

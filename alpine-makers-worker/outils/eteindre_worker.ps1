@@ -98,7 +98,7 @@ function Invoke-PhasePrivilegiee {
         if ($taches.Echecs.Count -gt 0) { $tacheRestante = $true }
     }
     # Balayage complet (agent 1.50.33) : ce qui était reconnu avant + tout ce qui se reconnaît encore (agent resté
-    # seul, moteurs, calculs FreeCAD ou OrcaSlicer, installateurs, orphelins), en trois passes au plus.
+    # seul, moteurs, calculs FreeCAD ou trancheur Alpine, installateurs, orphelins), en trois passes au plus.
     $vivantsAvant = @(@($avant.Processus) | Where-Object { $_ -and (Test-MemeProcessus -Entree $_) })
     if ($vivantsAvant.Count -gt 0) { Write-Info ('Processus du Worker encore vivants : ' + $vivantsAvant.Count + '. Arrêt par PID, jusqu''à trois passes.') }
     $bilan = Stop-ToutLeWorker -Racine $Racine -Outil $NomOutil -Deja @($avant.Processus)
@@ -134,10 +134,10 @@ try {
     # ------------------------------------------------------------ explication
     Write-Explication -Titre 'ÉTEINDRE CE WORKER (ET RIEN D''AUTRE)' -Fait @(
         'Vérifie d''abord qu''aucun travail (image, 3D, conversion) n''est en cours.',
-        'Demande à l''agent d''arrêter proprement ses moteurs : ComfyUI, Hunyuan3D, PrintGuard, bridge Orca.',
+        'Demande à l''agent d''arrêter proprement ses moteurs : ComfyUI, Hunyuan3D, PrintGuard.',
         'Arrête ensuite le Worker lui-même et coupe son démarrage automatique :',
         '   service Windows passé en démarrage Manuel, ou tâche planifiée désactivée puis arrêtée.',
-        'Arrête TOUS ses processus (agent, moteurs, calculs FreeCAD ou OrcaSlicer, installateurs, orphelins), en trois passes au plus.',
+        'Arrête TOUS ses processus (agent, moteurs, calculs FreeCAD ou trancheur Alpine, installateurs, orphelins), en trois passes au plus.',
         'Vérifie qu''il ne reste AUCUN processus du Worker, que ses ports sont fermés, et que le service est arrêté ou la tâche bien désactivée.',
 ((Get-NomEntree 12) + ' remet ce démarrage automatique. Si la coupure échoue, l''outil le dit en rouge.')
     ) -NeFaitPas @(

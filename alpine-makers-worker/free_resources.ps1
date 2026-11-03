@@ -51,7 +51,7 @@ $reServicesNonEssentiels = '^(wsearch|sysmain|diagtrack|dmwappushservice|dps|wdi
 # Alpine Makers : agent Worker, moteurs IA, dashboard, boutique, messagerie, tunnels.
 $reAlpine = '^(mongod|cloudflared|stalwart|stalwart-mail|mosquitto|nginx|dockerd|vpnkit|com\.docker\.backend|com\.docker\.build|docker|node|php|php-cgi|httpd)$'
 $reCheminAlpine = '\\alpine-makers-worker\\|\\p1s_local_dashboard\\|\\lockyourdrink|\\alpine-mail\\|\\alpine-makers\\|\\snappymail|\\stalwart|\\mongodb|\\cloudflared|\\mosquitto'
-$reCommandeAlpine = 'agent\.py|app\.py|alpine-?makers|lockyourdrink|alpine-mail|snappymail|stalwart|next[\\/]dist|index\.js|npm-cli|orca_core_bridge|comfyui|hunyuan|printguard|freecad|lancer-api|demarrer-site|start_dashboard|start_mail|run_worker|reconnect worker'
+$reCommandeAlpine = 'agent\.py|app\.py|alpine-?makers|lockyourdrink|alpine-mail|snappymail|stalwart|next[\\/]dist|index\.js|npm-cli|model_engine|alpine-slicer|comfyui|hunyuan|printguard|freecad|lancer-api|demarrer-site|start_dashboard|start_mail|run_worker|reconnect worker'
 # Socle qui fait tourner les sites Alpine Makers : conteneurs (messagerie, webmail),
 # base de données, tunnels. Les fermer couperait le webmail et la boutique.
 $reInfraAlpine = '^(docker desktop|docker|dockerd|docker-agent|docker-index|docker-credential-[a-z]+|wsl|wslhost|wslrelay|wslservice|wslg|vpnkit|mongod|cloudflared|stalwart|stalwart-mail|mosquitto|nginx|httpd|git-sync|git-sync-tauri|gitsync)$'

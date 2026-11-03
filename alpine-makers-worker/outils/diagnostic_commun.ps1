@@ -56,8 +56,6 @@ function Get-JournauxConnus {
         @('images',         'ComfyUI (images)',                 (Join-Path $Racine 'logs\image_generation.log')),
         @('3d',             'Hunyuan3D (3D)',                   (Join-Path $Racine 'logs\ai3d.log')),
         @('printguard',     'PrintGuard',                       (Join-Path $Racine 'logs\printguard.log')),
-        @('orca',           'Bridge Orca (moteur)',             (Join-Path $Racine 'logs\model-studio.log')),
-        @('orca-bridge',    'Bridge Orca (détail)',             (Join-Path $Racine 'workspace\orca_bridge.log')),
         @('outils',         'Actions faites avec ces outils',   (Join-Path $Racine 'logs\outils-worker.log')),
         @('agent',          'Agent (tâche planifiée, session)', (Join-Path $Racine 'logs\agent.log')),
         @('service',        'Service AlpineWorker (sortie)',    (Join-Path $commun 'logs\AlpineWorker.log')),

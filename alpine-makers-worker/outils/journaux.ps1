@@ -7,12 +7,13 @@
         journaux.ps1 -Fichier printguard -Mode erreurs -SansPause
         journaux.ps1 -Fichier service -Mode suivre     défilement en direct (Ctrl+C pour sortir)
 
-    Clés : images, 3d, printguard, orca, orca-bridge, outils, service, service-erreurs,
+    Clés : images, 3d, printguard, outils, service, service-erreurs,
            service-precedent, service-erreurs-precedent, supervision.
            « service-precedent » et « service-erreurs-precedent » = le dernier journal daté non
            vide du service : après un plantage suivi d'une relance, la cause est LÀ, car le
            journal courant repart vide à chaque redémarrage du service.
-    Le nom technique d'un moteur est accepté aussi : image_generation, ai3d, model-studio.
+    Le nom technique d'un moteur est accepté aussi : image_generation, ai3d. (Le tranchage Alpine
+    n'a pas de journal de moteur : chaque job écrit runner.log dans son dossier jobs\<id>.)
     Modes : fin (60 dernières lignes), erreurs (lignes d'erreur des 2000 dernières),
             ouvrir (Bloc-notes), suivre (en direct).
 
@@ -76,7 +77,7 @@ if ($presents.Count -eq 0) {
 # --- Choix du journal -------------------------------------------------------
 $choisi = $null
 # Le nom technique d'un moteur (celui qu'affichent le dashboard et l'état du Worker) vaut sa clé.
-$aliasJournaux = @{ 'image_generation' = 'images'; 'ai3d' = '3d'; 'model-studio' = 'orca'; 'orca_bridge' = 'orca-bridge' }
+$aliasJournaux = @{ 'image_generation' = 'images'; 'ai3d' = '3d' }
 if ($Fichier -and $aliasJournaux.ContainsKey($Fichier.Trim().ToLower())) { $Fichier = $aliasJournaux[$Fichier.Trim().ToLower()] }
 if ($Fichier) {
     $choisi = @($journaux | Where-Object { $_.Cle -ieq $Fichier.Trim() }) | Select-Object -First 1

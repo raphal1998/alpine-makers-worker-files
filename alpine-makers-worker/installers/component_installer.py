@@ -59,8 +59,15 @@ CATALOG = {
         "url": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2.git",
         "ref": "f8db63096c8282cb27354314d896feba5ba6ff8a",
     },
-    "orca": {"kind": "orca-portable"},
-    "orca-bridge": {"kind": "dashboard-file"},
+    # Retirés (agent 1.54.0) : OrcaSlicer et son pont ne sont plus utilisés par Alpine Model Studio. Connus uniquement
+    # pour la désinstallation (libérer l'espace) ; install / update / repair refusés (voir RETIRED_MESSAGE).
+    "orca": {"kind": "orca-portable", "retired": True},
+    "orca-bridge": {"kind": "dashboard-file", "retired": True},
+    # Trancheur Alpine Model Engine (agent 1.54.0, docs/MODEL_ENGINE_ARCHITECTURE.md) : le code (model_engine/ et
+    # runners/alpine-slicer.py) arrive avec le paquet Worker ; Python isolé avec numpy et Pillow épinglés (mêmes roues
+    # que les Alpine Tools). CPU seulement, aucun programme ni profil tiers, aucun processus résident.
+    "alpine-slicer": {"kind": "python-venv", "packages": ("numpy==2.5.3", "Pillow==11.0.0"),
+                      "license": "Code d'Alpine Makers ; numpy BSD-3-Clause, Pillow MIT-CMU"},
     "cuda-toolkit": {"kind": "cuda-toolkit"},
     "freecad": {"kind": "system-freecad"},
     # OpenCAMLib (ocl) pour les opérations Surface et Waterline de l'atelier CAM : installé par pip DANS le Python
@@ -146,6 +153,8 @@ for _tool_id in alpine_registry.TOOL_IDS:
     CATALOG[_tool_id] = {"kind": "python-venv", "packages": alpine_registry.PACKAGES_PIP,
                          "license": alpine_registry.LICENSE, "alpine_tool": alpine_registry.PACKAGES[_tool_id]}
 BACKEND_MODULES = ("hunyuan3d-21", "open3d-lab")
+# Composants retirés du catalogue (agent 1.54.0) : désinstallation seulement.
+RETIRED_MESSAGE = "OrcaSlicer n'est plus utilisé par Alpine Model Studio : désinstalle-le pour libérer l'espace."
 # Installed only with the PBR paint model, never for shape-only users.
 HUNYUAN3D_21_PAINT_PACKAGES = ("realesrgan==0.3.0", "basicsr==1.4.2", "pytorch-lightning", "timm", "open3d", "cupy-cuda12x")
 # The dashboard's Hunyuan3D adapter loads the HunyuanDiT tokenizer, which the
@@ -388,11 +397,17 @@ def installed_version(component, root, *, hardware=None, executable=None):
         # Le bridge est aussi livré avec le paquet de l'agent : il suit la version du Worker.
         return {"source": "agent"}
     if kind == "python-venv":
-        pins = _installed_pins((_read_json_marker(root / ".raphal-ready") or {}).get("packages"))
+        marker = _read_json_marker(root / ".raphal-ready") or {}
+        pins = _installed_pins(marker.get("packages"))
         # Même règle que laser_engine_outdated : un moteur installé avant les bibliothèques actuelles est à compléter.
         value = {"source": "marker", "outdated": pins is None or not set(spec["packages"]) <= set(pins)}
         if pins is not None:
             value["packages"] = pins[:INSTALLED_VERSION_MAX_PINS]
+        if component == "alpine-slicer":
+            # Version du trancheur : celle consignée à l'installation, sinon model_engine.VERSION du paquet livré.
+            version = _marker_version({"version": marker.get("engine_version")}) or model_engine_version()
+            if version:
+                value["version"] = version
         return value
     if kind == "fire-watch":
         marker = fire_watch_marker(root)
@@ -686,7 +701,8 @@ CUDA_TORCH_PROBE = (
 
 def selected_profile(component):
     tool = {"comfyui": "image_generation", "hunyuan3d": "ai3d", "cuda-toolkit": "ai3d", "hunyuan3d-21": "ai3d", "open3d-lab": "ai3d",
-            "orca": "model-studio", "orca-bridge": "model-studio", "freecad": "converter", "opencamlib": "converter",
+            "orca": "model-studio", "orca-bridge": "model-studio", "alpine-slicer": "model-studio",
+            "freecad": "converter", "opencamlib": "converter",
             "laser-engine": "laser-studio", "fire-watch": "laser-studio", "cnc-engine": "cnc-studio",
             "toile-engine": "toile-studio", "toile-detourage": "toile-studio",
             "guard-engine": "alpine-guard", "guard-obico": "alpine-guard"}.get(
@@ -1075,39 +1091,6 @@ def install_git(component, root, spec):
     return f"{component} installé sur la révision vérifiée {spec['ref']}.{ecart}"
 
 
-def install_orca(worker_root, root):
-    progress(5, "Recherche de la dernière version d’OrcaSlicer…")
-    if os.name != "nt":
-        raise RuntimeError("Le paquet OrcaSlicer Worker est actuellement disponible uniquement sous Windows.")
-    architecture = "arm64" if "arm" in platform.machine().lower() else "x64"
-    api_request = urllib.request.Request(
-        "https://api.github.com/repos/SoftFever/OrcaSlicer/releases/latest",
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "Raphal-Worker-Orca-Installer/1.0"},
-    )
-    with urllib.request.urlopen(api_request, timeout=45) as response:
-        release = json.loads(response.read(10 * 1024 * 1024).decode("utf-8"))
-    assets = release.get("assets") if isinstance(release, dict) else []
-    asset = next((item for item in assets or [] if isinstance(item, dict)
-                  and str(item.get("name") or "").lower().startswith("orcaslicer_windows_")
-                  and f"_{architecture}_portable.zip" in str(item.get("name") or "").lower()), None)
-    if not asset or not str(asset.get("browser_download_url") or "").startswith("https://"):
-        raise RuntimeError(f"La distribution officielle OrcaSlicer {architecture} est introuvable.")
-    with tempfile.TemporaryDirectory(prefix="orca-install-", dir=WorkerStorage(worker_root).path("temp")) as temporary:
-        temporary_path = Path(temporary)
-        archive = temporary_path / "orca.zip"
-        extracted = temporary_path / "extracted"
-        extracted.mkdir()
-        download(asset["browser_download_url"], archive, {"User-Agent": "Raphal-Worker-Orca-Installer/1.0"})
-        safe_extract(archive, extracted)
-        progress(82, "Archive téléchargée, vérification du moteur…")
-        executable = next(extracted.rglob("orca-slicer.exe"), None)
-        if not executable or not (executable.parent / "resources" / "profiles" / "BBL").is_dir():
-            raise RuntimeError("Le paquet OrcaSlicer ne contient pas le moteur et les profils BBL attendus.")
-        # Version de la publication installée (« v2.3.1 » → 2.3.1), consignée pour l'inventaire (installed_versions_v1).
-        replace_component(root, executable.parent, {"version": str(release.get("tag_name") or "").strip().removeprefix("v")})
-    return f"OrcaSlicer {release.get('tag_name') or ''} installé. Le bridge est un module séparé."
-
-
 def worker_server_config(worker_root):
     try:
         config = json.loads((worker_root / "config.json").read_text(encoding="utf-8"))
@@ -1128,22 +1111,6 @@ def worker_server_config(worker_root):
         "User-Agent": "Alpine-Worker-Component-Installer/1.0",
     }
     return server, headers
-
-
-def install_orca_bridge(worker_root, root):
-    progress(12, "Téléchargement du bridge Orca depuis le dashboard…")
-    server, headers = worker_server_config(worker_root)
-    root.mkdir(parents=True, exist_ok=True)
-    temporary = root / "orca_core_bridge.ps1.download"
-    destination = worker_root / "orca_core_bridge.ps1"
-    download(f"{server}/api/worker-protocol/components/orca-bridge", temporary, headers)
-    if temporary.stat().st_size < 1000:
-        temporary.unlink(missing_ok=True)
-        raise RuntimeError("Le bridge Orca téléchargé est incomplet.")
-    os.replace(temporary, destination)
-    (root / ".raphal-ready").write_text(str(destination), encoding="utf-8")
-    progress(99, "Bridge Orca installé et vérifié.")
-    return "Bridge Orca installé depuis le dashboard authentifié."
 
 
 def find_cuda(version="12.8"):
@@ -1639,6 +1606,77 @@ def install_alpine_tool(worker_root, root, component, spec, upgrade=False):
                                  "numpy": str(report.get("numpy") or ""), "pillow": str(report.get("pillow") or "")}), encoding="utf-8")
     progress(99, f"{nom} prêt.")
     return f"{nom} installé : Python isolé, numpy {report.get('numpy')} et Pillow {report.get('pillow')} prêts sur ce Worker."
+
+
+# ---------------------------------------------------------------- Alpine Model Engine (agent 1.54.0)
+ALPINE_SLICER_NAME = "Trancheur Alpine (Alpine Model Engine)"
+# Fichiers livrés par le paquet Worker sans lesquels le composant ne sert à rien (le reste de model_engine/ suit).
+ALPINE_SLICER_SHIPPED = ("model_engine/__init__.py", "model_engine/cli.py", "runners/alpine-slicer.py")
+# Sonde lancée dans le .venv du composant (cwd = dossier du Worker) : charge le paquet, numpy et Pillow, rend un JSON
+# {"ok", "engine_version", "numpy", "pillow"} (dernière ligne, avec ou sans le marqueur RAPHAL_SLICER_RESULT=).
+ALPINE_SLICER_PROBE = ("-m", "model_engine.cli", "probe")
+_SLICER_RESULT_MARKER = "RAPHAL_SLICER_RESULT="
+_ENGINE_VERSION = re.compile(r'^VERSION\s*=\s*"(\d{1,4}\.\d{1,4}\.\d{1,6})"', re.M)
+
+
+def model_engine_version():
+    """``model_engine.VERSION`` du paquet livré, lu dans le fichier (sans l'importer : numpy n'est pas requis), ou ""."""
+    try:
+        text = (Path(__file__).resolve().parents[1] / "model_engine" / "__init__.py").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    match = _ENGINE_VERSION.search(text)
+    return match.group(1) if match else ""
+
+
+def _slicer_probe_report(output):
+    """JSON de la sonde du trancheur : dernière ligne utile, marqueur RAPHAL_SLICER_RESULT= accepté."""
+    for line in reversed(str(output or "").strip().splitlines()):
+        line = line.strip()
+        if line.startswith(_SLICER_RESULT_MARKER):
+            line = line[len(_SLICER_RESULT_MARKER):]
+        if line.startswith("{"):
+            return json.loads(line)
+    raise ValueError("aucun résultat JSON")
+
+
+def install_alpine_slicer(worker_root, root, spec, upgrade=False):
+    """Composant « alpine-slicer » : Python isolé, numpy et Pillow épinglés, sonde ``python -m model_engine.cli probe``
+    depuis le dossier du Worker ; marqueur .raphal-ready (avec engine_version) écrit seulement après la sonde.
+    ``upgrade`` : trancheur prêt que l'on complète (paquets changés), marqueur conservé jusqu'à la sonde."""
+    nom = ALPINE_SLICER_NAME
+    progress(5, f"Préparation du {nom} (Python isolé)…")
+    worker_dir = Path(__file__).resolve().parents[1]
+    shipped = [worker_dir / relative for relative in ALPINE_SLICER_SHIPPED]
+    if not all(path.is_file() and not is_link(path) for path in shipped):
+        raise RuntimeError(f"Le {nom} manque au paquet Worker. Mets à jour le Worker puis relance l’installation.")
+    if shutil.disk_usage(root.parent).free < 1024 ** 3:
+        raise RuntimeError(f"Au moins 1 Gio libre est nécessaire sur le disque du Worker pour le {nom}.")
+    root.mkdir(parents=True, exist_ok=True)
+    ready = root / ".raphal-ready"
+    if is_link(ready):
+        raise RuntimeError(f"Marqueur du {nom} sous forme de lien ; installation refusée.")
+    if not upgrade:
+        ready.unlink(missing_ok=True)
+    py = engine_environment(root)
+    progress(30, "Environnement Python prêt, installation de numpy et Pillow…")
+    call([py, "-m", "pip", "install", "--upgrade", "pip"], cwd=root, timeout=900,
+         progress_value=30, progress_label="Préparation de pip")
+    call([py, "-m", "pip", "install", "--upgrade", *PIP_WHEEL_PREFERENCE, *spec["packages"]], cwd=root, timeout=1800,
+         progress_value=50, progress_label="Installation de " + ", ".join(spec["packages"]))
+    progress(88, f"Vérification du {nom} dans son environnement…")
+    try:
+        report = _slicer_probe_report(call([py, *ALPINE_SLICER_PROBE], cwd=worker_dir, timeout=180))
+    except (RuntimeError, ValueError) as error:
+        raise RuntimeError(f"Le {nom} ne démarre pas dans son environnement Python : " + str(error)[-800:]) from error
+    if not isinstance(report, dict) or not report.get("ok"):
+        raise RuntimeError(f"Vérification du {nom} échouée.")
+    engine_version = str(report.get("engine_version") or "") or model_engine_version()
+    ready.write_text(json.dumps({"component": "alpine-slicer", "packages": list(spec["packages"]), "engine_version": engine_version,
+                                 "numpy": str(report.get("numpy") or ""), "pillow": str(report.get("pillow") or "")}), encoding="utf-8")
+    progress(99, f"{nom} prêt.")
+    return (f"{nom} {engine_version} installé : Python isolé, numpy {report.get('numpy')} et Pillow {report.get('pillow')} "
+            "prêts sur ce Worker (tranchage sans OrcaSlicer).")
 
 
 # ---------------------------------------------------------------- Alpine Guard (agent 1.52.0)
@@ -2403,7 +2441,7 @@ def install_fire_watch(worker_root, root, upgrade=False):
 
 
 def component_ready(component, root):
-    if component in {"laser-engine", "cnc-engine", "toile-engine", "guard-engine"} or component in alpine_registry.PACKAGES:
+    if component in {"laser-engine", "cnc-engine", "toile-engine", "guard-engine", "alpine-slicer"} or component in alpine_registry.PACKAGES:
         return (root / ".raphal-ready").is_file() and python_in(root / ".venv").is_file()
     if component == "toile-detourage":
         return toile_detourage_ready(root)
@@ -2479,6 +2517,9 @@ def _manage(component, action):
     root = components / component
     if is_link(root) or root.resolve().parent != components:
         raise RuntimeError("Le répertoire du composant est un lien ou sort de l’espace Worker.")
+    if action != "uninstall" and CATALOG[component].get("retired"):
+        # OrcaSlicer et son pont (agent 1.54.0) : jamais réinstallés, réparés ni mis à jour ; seule la désinstallation reste.
+        raise RuntimeError(RETIRED_MESSAGE)
     if action != "uninstall":
         # Detect the actual target machine, not a profile supplied by a browser.
         profile = selected_profile(component)
@@ -2553,6 +2594,8 @@ def _manage(component, action):
             return install_guard(worker_root, root, component, CATALOG[component], upgrade=True)
         if component in alpine_registry.PACKAGES and laser_engine_outdated(root, CATALOG[component]):
             return install_alpine_tool(worker_root, root, component, CATALOG[component], upgrade=True)
+        if component == "alpine-slicer" and laser_engine_outdated(root, CATALOG[component]):
+            return install_alpine_slicer(worker_root, root, CATALOG[component], upgrade=True)
         if component == "fire-watch" and fire_watch_outdated(root):
             # Nouveau modèle ou paquet au catalogue, ou GPU devenu compatible : on complète, marqueur conservé.
             return install_fire_watch(worker_root, root, upgrade=True)
@@ -2588,10 +2631,6 @@ def _manage(component, action):
         return install_git(component, root, spec)
     if spec["kind"] == "git-backend":
         return install_git_backend(component, root, spec)
-    if spec["kind"] == "orca-portable":
-        return install_orca(worker_root, root)
-    if spec["kind"] == "dashboard-file":
-        return install_orca_bridge(worker_root, root)
     if spec["kind"] == "cuda-toolkit":
         return install_cuda_toolkit(worker_root, root)
     if spec["kind"] == "system-freecad":
@@ -2607,6 +2646,8 @@ def _manage(component, action):
             return install_guard(worker_root, root, component, spec)
         if component in alpine_registry.PACKAGES:
             return install_alpine_tool(worker_root, root, component, spec)
+        if component == "alpine-slicer":
+            return install_alpine_slicer(worker_root, root, spec)
         return install_laser_engine(worker_root, root, spec)
     if spec["kind"] == "fire-watch":
         return install_fire_watch(worker_root, root)

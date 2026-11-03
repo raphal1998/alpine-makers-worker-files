@@ -5,7 +5,7 @@
 Cette copie ajoute un précontrôle avant installation/mise à jour/réparation,
 et avant un nouveau démarrage/calcul des composants soumis à restrictions.
 Les contrôles d'arrêt, désinstallation et nettoyage ne dépendent pas d'un accord
-juridique. ComfyUI/Orca déjà installés ne reçoivent pas de contrôle réseau global
+juridique. ComfyUI déjà installé ne reçoit pas de contrôle réseau global
 au démarrage. Les téléchargements et chemins techniques ne sont pas réécrits.
 
 Les fichiers `licenses/<identifiant>/NOTICE.txt` et `provenance.json`
@@ -24,7 +24,7 @@ son `config.json`. Son lanceur fournit aussi `ALPINE_LOCAL_SANDBOX=1`,
 `ALPINE_SANDBOX_WORKER_ROOT` (chemin exact de CE Worker) et
 `ALPINE_TEST_DASHBOARD_PORT=5157`. La seule adresse dashboard admise est
 `http://127.0.0.1:5157`. Il n'adopte ni moteurs ni caches externes ; les ports
-ComfyUI/Hunyuan/Orca réservés sont 28188/28189/25064. PrintGuard utilise 28000,
+ComfyUI/Hunyuan réservés sont 28188/28189. PrintGuard utilise 28000,
 et son MediaMTX une configuration privée sur 29997/28554/21935/28888 ; un port
 occupé ou une configuration non reconnue refuse seulement ce démarrage.
 Les calculs et commandes matérielles restent disponibles après les contrôles
@@ -82,7 +82,7 @@ commande machine ; fermer la fenêtre n'arrête rien. Réservée au propriétair
 **◆ Alpine Makers Desktop** (agent 1.50.22 ; bouton vert de l'état du Worker dans `worker.exe`, ou
 `worker.exe --desktop [--outil files-3d]`) : fenêtre native, sans page web, qui regroupe la Salle de contrôle,
 Alpine Studio et la Bibliothèque du compte. Alpine Studio est natif et calcule sur ce PC avec les moteurs du Worker :
-**Model Studio** (aperçu 3D, primitives, réparation, tranchage OrcaSlicer, impression par le site après confirmation),
+**Model Studio** (aperçu 3D, primitives, réparation, tranchage par le trancheur Alpine Model Engine, impression par le site après confirmation),
 **Laser Studio** (dessin, calques, moteur laser, cadrage et lancement par le site avec check-list), **CNC Studio**
 (analyse et aperçu du G-code, projets, CAM FreeCAD, commandes GRBL par le site avec check-list), **Labo image** (les
 15 outils, moteurs ComfyUI / cartes de ce PC) et **Convertisseur 2D/3D** (formats, réparation, « Préparer pour une
@@ -158,7 +158,7 @@ Sommaire : [1 Ce qu'est le Worker](#1-ce-quest-le-worker) ·
 
 - Le Worker est un petit programme (`agent.py`) qui prête la puissance de ce PC au site
   Alpine Makers : génération d'images (ComfyUI), modèles 3D (Hunyuan3D), conversion
-  (FreeCAD), tranchage (OrcaSlicer, « Alpine Model Studio »), surveillance d'impression
+  (FreeCAD), tranchage (Alpine Model Engine, le trancheur d'Alpine Makers, « Alpine Model Studio »), surveillance d'impression
   (PrintGuard), et relais vers les imprimantes et caméras **de son réseau local**.
 - C'est **lui** qui appelle le site, en **HTTPS sortant** uniquement. Il n'ouvre **aucun
   port** vers Internet, n'expose aucun terminal distant, et tu n'as rien à régler sur ta box.
@@ -188,22 +188,22 @@ reste ouverte et le journal est `%TEMP%\alpine-makers-worker-installation.log`. 
 
 | Dossier ou fichier | Ce qu'il contient | À ne jamais déplacer ? |
 | --- | --- | --- |
-| `components\` | Les moteurs installés : `comfyui`, `hunyuan3d`, `orca`, `orca-bridge`, `printguard`, `printer-link`, et les marqueurs `freecad`, `cuda-toolkit`. Environnements Python et **modèles** compris. C'est l'essentiel du poids (des dizaines à des centaines de Gio). | **Jamais.** Un environnement Python déplacé ne fonctionne plus. |
+| `components\` | Les moteurs installés : `comfyui`, `hunyuan3d`, `alpine-slicer` (trancheur Alpine, Python isolé), `printguard`, `printer-link`, et les marqueurs `freecad`, `cuda-toolkit` (`orca` et `orca-bridge` : anciens composants retirés, à désinstaller depuis le site pour libérer l'espace). Environnements Python et **modèles** compris. C'est l'essentiel du poids (des dizaines à des centaines de Gio). | **Jamais.** Un environnement Python déplacé ne fonctionne plus. |
 | `cache\` | Caches Hugging Face, Torch, pip, CUDA, compilation. Évite de retélécharger. | Jamais. |
 | `data\` | Données durables des outils (réglages PrintGuard, etc.). | Jamais. |
 | `jobs\` | Un sous-dossier par travail reçu : entrées, résultats, état de reprise. | Jamais. |
 | `outputs\` | Résultats produits par les moteurs (géométries, textures…). | Jamais. |
-| `workspace\` | Fichiers de travail 3D et de tranchage, reçus Orca (`_worker_jobs`). | Jamais. |
+| `workspace\` | Fichiers de travail 3D et de tranchage (restes de l'ancien bridge Orca : `_worker_jobs`). | Jamais. |
 | `runtime\` | État vivant : `worker-journal.sqlite3` (journal durable), une fiche `<outil>.json` par moteur lancé, `local-control\` (boîte aux lettres des outils locaux), `identity-deps\`, éventuel `python-3.12\` privé. | **Jamais, et ne rien y supprimer.** |
 | `config\` | Secrets locaux : `identity\` (clé privée du PC, chiffrée), jetons internes des moteurs. | **Jamais. Ne pas ouvrir, ne pas copier.** |
-| `logs\` | Journaux des moteurs (`image_generation.log`, `ai3d.log`, `printguard.log`, `model-studio.log`), journal des outils du menu (`outils-worker.log`) et, quand le Worker démarre par la tâche planifiée ou l'entrée de démarrage de session, journal de l'agent (`agent.log` : sa sortie, ses arrêts et la trace d'un plantage ; MENU-WORKER > 3, clé « agent »). En service Windows, cette sortie va dans `C:\ProgramData\AlpineMakers\logs\AlpineWorker.log`. | Jamais (tu peux les lire). |
+| `logs\` | Journaux des moteurs (`image_generation.log`, `ai3d.log`, `printguard.log` ; le tranchage Alpine écrit `runner.log` dans le dossier de chaque job), journal des outils du menu (`outils-worker.log`) et, quand le Worker démarre par la tâche planifiée ou l'entrée de démarrage de session, journal de l'agent (`agent.log` : sa sortie, ses arrêts et la trace d'un plantage ; MENU-WORKER > 3, clé « agent »). En service Windows, cette sortie va dans `C:\ProgramData\AlpineMakers\logs\AlpineWorker.log`. | Jamais (tu peux les lire). |
 | `temp\` | Fichiers temporaires des installations et mises à jour. | Jamais (le nettoyage léger du menu sait quoi y retirer). |
 | `storage.json` | Réglages des emplacements de cache et de temporaires. | Jamais. |
 | `config.json` | Adresse du site, identifiant du Worker, nom, réglages. **Secret.** | **Jamais. Ne pas partager.** |
 | `python_path.txt`, `git_path.txt` | Chemin du Python et du Git utilisés par l'agent. | Jamais. |
 | `supervisor.lock` | Verrou qui empêche deux superviseurs dans le même dossier. | Jamais. |
 | `agent_manifest.json` | Liste et empreintes des fichiers livrés par la dernière mise à jour, et version. | Jamais. |
-| Scripts de la racine (`agent.py`, `run_worker.ps1`, `worker_tools.ps1`, `local_control.py`, `install_windows.*`, `configure_autostart.ps1`, `free_resources.ps1`, `orca_core_bridge.ps1`, les `.bat` historiques…) | Le programme lui-même. | **On ne les déplace pas et on ne les renomme pas** : ils sont référencés par le manifeste, par le service Windows ou la tâche planifiée, et par la mise à jour. |
+| Scripts de la racine (`agent.py`, `run_worker.ps1`, `worker_tools.ps1`, `local_control.py`, `install_windows.*`, `configure_autostart.ps1`, `free_resources.ps1`, les `.bat` historiques…) | Le programme lui-même. | **On ne les déplace pas et on ne les renomme pas** : ils sont référencés par le manifeste, par le service Windows ou la tâche planifiée, et par la mise à jour. |
 | `runners\`, `installers\`, `ai3d_backends\` | Modules du programme (exécution des jobs, installateurs, adaptateurs 3D). | Jamais. |
 | `MENU-WORKER.bat` | Le menu des outils. | Reste à la racine. |
 | `outils\` | **Tous les nouveaux outils** du menu : un script `.ps1` et son lanceur `.bat` par outil, plus le socle commun `commun.ps1`. | Reste tel quel. |
@@ -331,7 +331,7 @@ service AlpineWorker (nssm)        ou        tâche planifiée
                     ├─ python.exe  ComfyUI       (moteur images)
                     ├─ python.exe  Hunyuan3D     (moteur 3D)
                     ├─ PrintGuard
-                    └─ powershell.exe  orca_core_bridge.ps1   (bridge Orca)
+                    └─ python.exe  runners\alpine-slicer.py  (un processus par tranchage, le temps du job)
 ```
 
 Ces processus s'appellent `python.exe` et `powershell.exe`… **comme ceux du dashboard, de
@@ -347,7 +347,7 @@ les identifier ni les arrêter**. Les outils concernés demandent donc l'éléva
 | ComfyUI (images) | `image_generation` | `127.0.0.1:8188` | |
 | Hunyuan3D (3D) | `ai3d` | `127.0.0.1:8189` | **Pas 18080** : 18080 est le moteur 3D local du dashboard, autre programme. |
 | PrintGuard | `printguard` | `0.0.0.0:8000` | |
-| Bridge Orca (Model Studio) | `model-studio` | `127.0.0.1:15064` | Servi par **HTTP.sys** : le port apparaît tenu par le **PID 4 (System)**. C'est **normal**. On ne touche jamais au PID 4. |
+| Trancheur Alpine (Model Studio) | `model-studio` | aucun port | Pas de moteur résident depuis l'agent 1.54.0 : un processus Python (composant `alpine-slicer`) par tranchage, arrêté avec le job. |
 | Relais caméra | — | `127.0.0.1:1984` | Servi **par l'agent lui-même**. Présent = l'agent vit (et un relais est configuré). |
 | FreeCAD (conversion) | `converter` | aucun | Pas de processus permanent : lancé à chaque conversion. |
 
@@ -496,7 +496,7 @@ Mes Workers, sur la fiche du Worker.
 - **Résultat attendu** : les dernières lignes utiles à l'écran.
 - **Si ça échoue** : journal absent = ce moteur n'a jamais été lancé sur ce PC.
 - **Lancement direct** : `outils\journaux.bat -Fichier <clé> -Mode fin|erreurs|ouvrir|suivre`.
-  Clés : `images`, `3d`, `printguard`, `orca`, `orca-bridge`, `outils`, `service`,
+  Clés : `images`, `3d`, `printguard`, `outils`, `service`,
   `service-erreurs`, `supervision`. `-Liste` montre les journaux présents, `-Lignes N`
   change le nombre de lignes de « fin » (60 par défaut). « suivre » se quitte par Ctrl+C.
 
@@ -624,7 +624,7 @@ Mes Workers, sur la fiche du Worker.
 
 - **Quand** : libérer la carte graphique pour autre chose sans éteindre le Worker ; relancer
   les moteurs ensuite ; voir ce qui tourne.
-- **Fait** : demande à **l'agent** d'arrêter PrintGuard, le bridge Orca, Hunyuan3D et
+- **Fait** : demande à **l'agent** d'arrêter PrintGuard, Hunyuan3D et
   ComfyUI. C'est un arrêt **PROPRE** : l'agent enregistre l'intention « arrêté », arrête le
   moteur et **vérifie**. « Démarrer » relance ceux qui tournaient avant (sinon ceux qui sont
   installés et prêts) ; l'avancement se lit ensuite dans « état ». **Sans administrateur.**
@@ -680,9 +680,9 @@ Mes Workers, sur la fiche du Worker.
   dashboard ni le courrier.
 - **Fait** : arrête les moteurs **proprement**, arrête l'agent et son superviseur, passe le
   service `AlpineWorker` en démarrage **Manuel** pour que la supervision ne le relance pas
-  sous 30 secondes, puis **vérifie que les ports** 8188, 8189, 8000, 15064 et 1984 sont libres.
+  sous 30 secondes, puis **vérifie que les ports** 8188, 8189, 8000 et 1984 sont libres.
   Depuis l'agent 1.50.33, il arrête **tous** les processus du Worker (agent resté seul,
-  moteurs, calculs FreeCAD ou OrcaSlicer, installateurs, orphelins) en trois passes au plus,
+  moteurs, calculs FreeCAD ou trancheur Alpine, installateurs, orphelins) en trois passes au plus,
   puis vérifie qu'il n'en reste **aucun** : un survivant est nommé (rôle, PID, programme),
   avec la marche à suivre. L'état « éteint volontairement » est gardé pour l'entrée 12.
 - **Ne fait PAS** : ne touche à **aucun autre** service Alpine Makers ; ne crée **pas** le
@@ -794,7 +794,7 @@ Mes Workers, sur la fiche du Worker.
 - **Fait** : **depuis le menu, uniquement une simulation.** Il liste les petits fichiers
   temporaires de **plus de 7 jours** qu'il pourrait retirer : réponses de la boîte aux
   lettres locale (`runtime\local-control\*.result.json`), restes d'installation
-  (`temp\pip-*`), traces Orca / FreeCAD de `workspace\`. **Rien n'est supprimé.**
+  (`temp\pip-*`), traces de l'ancien bridge Orca / FreeCAD de `workspace\`. **Rien n'est supprimé.**
 - **Pour supprimer réellement** : lance toi-même `outils\nettoyage_leger.bat -Appliquer`.
   L'outil refait la liste, vérifie qu'aucun travail ni maintenance n'est en cours, puis te
   demande confirmation. `-Jours N` change l'âge minimal (7 au minimum) ; `-Simulation`
@@ -1010,7 +1010,8 @@ Retiens : **tant que la fiche existe → entrée 7. Fiche supprimée → entrée
   sous `.venv-preserved-…` : il occupe de la place et n'est pas effacé tout seul.
 - Un badge « compatible » est une **estimation**, pas un test de génération.
 - FreeCAD et CUDA Toolkit sont des logiciels **Windows** installés hors du Worker (winget) ;
-  le Worker n'en garde qu'un marqueur. OrcaSlicer et PrintGuard sont fournis pour Windows.
+  le Worker n'en garde qu'un marqueur. PrintGuard est fourni pour Windows ; le trancheur Alpine
+  (Model Studio) est du code Alpine Makers en Python isolé, Windows et Linux.
 
 ### Images : moteur, architectures et modèles (agent 1.41.0)
 
@@ -1092,7 +1093,7 @@ Les cas **(a) à (j)** sont réels (le cas (i), propre au PC du propriétaire, n
 | **(d)** | « Récupérer une inscription » (7) avec `-PairingCode …` : « N'utilise pas -PairingCode ni -Name ». | La récupération veut un **code de MIGRATION** et une **fiche encore présente**. | Le message de l'outil. | Fiche présente → code de migration, entrée **7**. Sinon entrée **8**. |
 | **(e)** | « Code d'association invalide ou expiré », ou « trop de tentatives ». | Un code vit **10 minutes**, sert **une fois**, est stocké **haché** (le site ne peut pas te le relire), **20 par jour** par compte. | Message du site ou de l'outil. | Crée un code neuf **juste avant** de lancer l'outil. Si quota atteint : attendre. |
 | **(f)** | Tu cherches le moteur 3D sur le port 18080 : rien. | Le moteur 3D **du Worker** écoute sur **8189**. 18080 est le moteur local **du dashboard**. | Entrées **1** et **9**. | Regarder 8189. |
-| **(g)** | Le port **15064** est « tenu par le PID 4 (System) ». | Normal : le bridge Orca passe par **HTTP.sys**, composant de Windows. | Entrée **9** (l'outil lit la file HTTP.sys). | Rien à faire. **Ne jamais viser le PID 4.** |
+| **(g)** | Le port **15064** est « tenu par le PID 4 (System) ». | Reste d'un ancien bridge Orca (avant l'agent 1.54.0) passé par **HTTP.sys**, composant de Windows. | Entrée **9**. | Désinstaller OrcaSlicer et son pont depuis le site (Mes Workers → Installations). **Ne jamais viser le PID 4.** |
 | **(h)** | Worker hors ligne, **toutes** les requêtes refusées, alors que le réseau marche. | **Horloge** du PC décalée de plus de **60 secondes**. | Entrée **1** (contrôle de l'horloge). | Paramètres Windows → Heure → **Synchroniser maintenant**, puis entrée **5**. |
 | **(j)** | Une erreur à chaque ouverture de session ; tâche « **Alpine Makers Worker <identifiant>** ». | Tâche planifiée **orpheline** : elle vise un ancien dossier du Worker (par exemple `C:\Users\Public\AlpineMakersWorker`), **disparu**. | Entrée **15**. | Entrée **15** : retirer l'orpheline. Sans danger : le service `AlpineWorker` assure le démarrage. |
 | | **Hors ligne après un redémarrage du PC.** | Mode tâche : il faut **ouvrir la session** Windows. Mode service : service en **Manuel** (entrée 11 faite, entrée 12 oubliée) ou mot de passe du compte changé. | Entrées **1** et **15**. | Entrée **12**, ou ouvrir la session. Mot de passe changé : le ressaisir dans `services.msc` (toi-même, aucun script ne le fait). |
@@ -1125,7 +1126,7 @@ Les cas **(a) à (j)** sont réels (le cas (i), propre au PC du propriétaire, n
   ```
 
 - La clé est protégée par les permissions du compte de service (fichier en 600).
-- OrcaSlicer et PrintGuard ne sont distribués que pour Windows. Un CUDA Toolkit manquant
+- PrintGuard n'est distribué que pour Windows. Un CUDA Toolkit manquant
   s'installe à la main.
 
 ---
@@ -1137,7 +1138,7 @@ Les cas **(a) à (j)** sont réels (le cas (i), propre au PC du propriétaire, n
 - **Supervision** : le service `AlpineSupervisor` du PC d'atelier, qui surveille **toutes**
   les sources Alpine Makers. À ne pas confondre avec le superviseur.
 - **Moteur** : un programme de calcul piloté par l'agent (ComfyUI, Hunyuan3D, PrintGuard,
-  bridge Orca). **Module** / **modèle** : ce qu'un moteur charge pour travailler.
+  trancheur Alpine). **Module** / **modèle** : ce qu'un moteur charge pour travailler.
 - **Heartbeat** : le signal de présence, toutes les 20 secondes.
 - **Job** : un travail confié par le site (une image, un modèle 3D, un tranchage…).
 - **Job « uncertain »** : job dont on ne sait pas s'il s'est vraiment arrêté. Il bloque la
@@ -1150,7 +1151,7 @@ Les cas **(a) à (j)** sont réels (le cas (i), propre au PC du propriétaire, n
 - **Association** / **migration** : voir le tableau des deux codes, section 7.
 - **Révoquer** : couper l'accès en gardant la fiche.
 - **VRAM** : la mémoire de la carte graphique. **CUDA** : la couche NVIDIA dont PyTorch a besoin.
-- **HTTP.sys** : composant de Windows qui sert le port du bridge Orca (d'où le PID 4).
+- **HTTP.sys** : composant de Windows qui servait le port de l'ancien bridge Orca (d'où le PID 4).
 - **nssm** : le petit outil qui transforme un programme en service Windows.
 - **Élévation / [ADMIN]** : la fenêtre Windows qui demande les droits administrateur.
 - **Tâche orpheline** : tâche planifiée qui vise un dossier qui n'existe plus.

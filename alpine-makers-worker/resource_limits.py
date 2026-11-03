@@ -263,10 +263,10 @@ def settings_summary(max_jobs, stored, hw):
 
 # --------------------------------------------------------------------------------------------------- estimation
 
-ENGINE_KINDS = ("comfyui", "hunyuan3d", "orca")
-IN_TREE_KINDS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine")
-# Besoins prudents par type de calcul, en Mio : (VRAM, RAM).
-DEFAULT_NEEDS = {"comfyui": (6144, 8192), "hunyuan3d": (12288, 12288), "orca": (0, 4096), "freecad": (0, 3072),
+ENGINE_KINDS = ("comfyui", "hunyuan3d")
+IN_TREE_KINDS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine", "alpine-slicer")
+# Besoins prudents par type de calcul, en Mio : (VRAM, RAM). Trancheur Alpine (agent 1.54.0) : CPU seulement, numpy.
+DEFAULT_NEEDS = {"comfyui": (6144, 8192), "hunyuan3d": (12288, 12288), "alpine-slicer": (0, 4096), "freecad": (0, 3072),
                  "mesh_repair": (0, 2048), "face_restore": (1536, 3072), "image_maps": (0, 2048),
                  "laser-engine": (0, 1536), "cnc-engine": (0, 1536),
                  "toile-engine": (0, 3072), "other": (0, 2048)}
@@ -294,7 +294,7 @@ def job_kind(tool_id, parameters=None):
         return "hunyuan3d"
     if tool_id == "converter":
         return "mesh_repair" if parameters.get("task") == "mesh_repair" else "freecad"
-    return {"model-studio": "orca", "laser-studio": "laser-engine", "cnc-studio": "cnc-engine",
+    return {"model-studio": "alpine-slicer", "laser-studio": "laser-engine", "cnc-studio": "cnc-engine",
             "toile-studio": "toile-engine"}.get(tool_id, "other")
 
 
@@ -858,7 +858,7 @@ class ResourceRuntime:
         else:
             from process_control import descendants
         found = {}
-        for tool_id in ("image_generation", "ai3d", "model-studio"):
+        for tool_id in ("image_generation", "ai3d"):
             try:
                 record = self.agent._runtime_record(tool_id)
             except Exception:  # noqa: BLE001
@@ -932,19 +932,19 @@ class ResourceRuntime:
                         peak[name] = max(int(peak.get(name) or 0), int(item[name]))
             jobs_view.append(item)
         engine_rows = []
-        for tool_id in ("image_generation", "ai3d", "model-studio"):
+        for tool_id in ("image_generation", "ai3d"):
             if tool_id not in engines:
                 continue
             pids, applied = engines[tool_id]
             vram = sum(per_pid.get(pid, 0) for pid in pids) if isinstance(per_pid, dict) else None
             # VRAM d'un moteur résident pendant un job : attribuée au job seulement s'il est seul sur ce moteur.
             users = [job_id for job_id, item in reservations.items()
-                     if {"image_generation": "comfyui", "ai3d": "hunyuan3d", "model-studio": "orca"}[tool_id] == item.get("kind")]
+                     if {"image_generation": "comfyui", "ai3d": "hunyuan3d"}[tool_id] == item.get("kind")]
             if vram and len(users) == 1:
                 with self.lock:
                     peak = self.peaks.setdefault(users[0], {})
                     peak["vram_mb"] = max(int(peak.get("vram_mb") or 0), int(vram))
-            row = {"tool_id": tool_id, "name": ENGINE_NAMES.get(tool_id, "OrcaSlicer"), "running": True, "vram_mb": vram}
+            row = {"tool_id": tool_id, "name": ENGINE_NAMES.get(tool_id, tool_id), "running": True, "vram_mb": vram}
             if tool_id in ENGINE_TOOLS:
                 wanted = self.engine_settings(tool_id, vram_total)
                 row.update(applied={key: (applied or {}).get(key) for key in ("vram_limit_mb", "reserve_vram_gb", "torch_fraction", "threads")},
@@ -978,9 +978,9 @@ class ResourceRuntime:
             else:
                 from job_limits import private_memory_mb
             rows = []
-            for tool_id in ("image_generation", "ai3d", "model-studio"):
+            for tool_id in ("image_generation", "ai3d"):
                 if tool_id in engines:
-                    rows.append((ENGINE_NAMES.get(tool_id, "OrcaSlicer"), private_memory_mb(list(engines[tool_id][0]))))
+                    rows.append((ENGINE_NAMES.get(tool_id, tool_id), private_memory_mb(list(engines[tool_id][0]))))
             self.journal.append(host_stability.journal_line(system, host_stability.commit_mb(), rows))
             self.relief.check(system)
         except Exception as error:  # noqa: BLE001 - le journal et le filet ne coupent jamais la mesure

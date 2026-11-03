@@ -103,7 +103,7 @@ else:
     import job_limits
     import resource_limits
 
-AGENT_VERSION = "1.53.6"
+AGENT_VERSION = "1.54.0"
 # Commandes GRBL exécutées hors de la file de leur machine (1.50.34) : un ARRÊT n'attend jamais un homing, un palpage,
 # un lancement en préparation ni un ARRÊT précédent ; l'annulation du jog n'est qu'un octet temps réel.
 EQUIPMENT_URGENT_GRBL = frozenset({"stop", "jog_cancel"})
@@ -243,6 +243,10 @@ AGENT_CAPABILITIES += ("guard_v1",)  # littéral : le site lit ces lignes sans i
 # Agent 1.53.0 : Alpine Tools. Un outil par composant atool-<id> (Python isolé numpy + Pillow), un processus par job
 # (runners/alpine-tool.py), code dans alpine_tools/<paquet>/ ; contrat docs/ALPINE_TOOLS.md.
 AGENT_CAPABILITIES += ("alpine_tools_v1",)  # littéral : le site lit ces lignes sans importer l'agent
+# Agent 1.54.0 : Alpine Model Engine, trancheur FDM d'Alpine Makers (model_engine/, composant « alpine-slicer » Python
+# isolé numpy + Pillow, un processus par job : runners/alpine-slicer.py). Remplace OrcaSlicer et son pont (orca /
+# orca-bridge restent connus uniquement pour la désinstallation) ; contrat docs/MODEL_ENGINE_ARCHITECTURE.md.
+AGENT_CAPABILITIES += ("model_engine_v1",)  # littéral : le site lit ces lignes sans importer l'agent
 # La libération de mémoire s'appuie sur un script PowerShell : Windows seulement.
 if os.name == "nt":
     AGENT_CAPABILITIES += ("resource_release_v1",)
@@ -261,8 +265,9 @@ ENVIRONMENT_MAINTENANCE_PREFIX = "environment-maintenance-"   # identifiant inte
 DISCONNECT_EXIT_CODE = 64
 # Moteurs qui possèdent un processus à arrêter. Le convertisseur FreeCAD est un
 # simple interrupteur logique (un processus par conversion) : le couper
-# changerait son réglage au lieu d'arrêter quoi que ce soit.
-DISCONNECT_RUNTIMES = ("image_generation", "ai3d", "printguard", "model-studio")
+# changerait son réglage au lieu d'arrêter quoi que ce soit. Model Studio (agent 1.54.0) n'a plus de moteur
+# résident : le trancheur Alpine est un processus par job, comme les Alpine Tools.
+DISCONNECT_RUNTIMES = ("image_generation", "ai3d", "printguard")
 # Un moteur démarré depuis le site et dont le processus disparaît (plantage du
 # pilote graphique, mémoire) est relancé par l'agent : au plus trois fois par
 # heure, jamais dans les 30 s qui suivent (le pilote peut encore se remettre).
@@ -384,7 +389,9 @@ def site_assistant_journal_response(response):
 TOOL_HANDLERS = {
     "image-generation": "comfyui", "image_generation": "comfyui",
     "3d-generation": "hunyuan3d", "ai3d": "hunyuan3d",
-    "converter": "freecad", "printguard": "printguard", "model-studio": "orca",
+    "converter": "freecad", "printguard": "printguard",
+    # Alpine Model Studio (agent 1.54.0) : trancheur Alpine Model Engine (runners/alpine-slicer.py), un processus par job.
+    "model-studio": "alpine-slicer",
     # Alpine Laser Studio : moteur de parcours (runners/laser-engine.py), un processus par job.
     "laser-studio": "laser-engine",
     # Alpine CNC Studio (agent 1.50.15) : moteur d'analyse du G-code (runners/cnc-engine.py), un processus par job.
@@ -398,10 +405,11 @@ TOOL_HANDLERS = {
 # aucun service résident à démarrer, surveiller ou arrêter.
 # Alpine Tools (agent 1.53.0) : un lanceur commun (runners/alpine-tool.py), composant = identifiant de l'outil.
 TOOL_HANDLERS.update({tool_id: "alpine-tool" for tool_id in alpine_registry.TOOL_IDS})
-ON_DEMAND_TOOLS = ("converter", "laser-studio", "cnc-studio", "toile-studio", "alpine-guard", *alpine_registry.TOOL_IDS)
-# Lanceurs dont le moteur tourne DANS leur arbre de processus (FreeCADCmd, Python du moteur laser, CNC ou de toile,
-# script Pillow) : arrêter cet arbre prouve que plus rien ne calcule pour le job (agent 1.50.33, arrêt forcé).
-IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine", "alpine-tool")
+ON_DEMAND_TOOLS = ("converter", "model-studio", "laser-studio", "cnc-studio", "toile-studio", "alpine-guard", *alpine_registry.TOOL_IDS)
+# Lanceurs dont le moteur tourne DANS leur arbre de processus (FreeCADCmd, Python du moteur laser, CNC, de toile ou du
+# trancheur Alpine, script Pillow) : arrêter cet arbre prouve que plus rien ne calcule pour le job (agent 1.50.33).
+IN_TREE_RUNNERS = ("freecad", "mesh_repair", "face_restore", "image_maps", "laser-engine", "cnc-engine", "toile-engine", "alpine-tool",
+                   "alpine-slicer")
 HUNYUAN_MODELS = {model_id: (folder, *HUNYUAN_REQUIREMENTS[model_id]) for model_id, (_, folder) in HUNYUAN_CATALOG.items()}
 
 
@@ -1921,12 +1929,16 @@ class Agent:
                 }
         freecad = self._freecad_executable()
         if freecad: tools["converter"] = {"tool_id": "converter", "engine_id": "freecad", "status": "online" if self._runtime_running("converter") else "ready", "version": "installed"}
+        # Trancheur Alpine Model Engine (agent 1.54.0) : même logique que les moteurs laser / CNC / toile, composant
+        # « alpine-slicer » (Python isolé numpy + Pillow), aucun processus résident. OrcaSlicer et son pont ne sont
+        # plus le moteur : encore présents, ils sont remontés comme modules retirés (désinstallables, jamais réinstallés).
+        slicer_root = self.root / "components" / "alpine-slicer"
+        if component_ready("alpine-slicer", slicer_root):
+            tools["model-studio"] = {"tool_id": "model-studio", "engine_id": "alpine-slicer", "status": "online" if self._runtime_running("model-studio") else "ready", "version": "local"}
+        elif slicer_root.is_dir() and any((slicer_root / name).exists() for name in (".venv", ".raphal-ready", ".alpine-managed.json")):
+            tools["model-studio"] = {"tool_id": "model-studio", "engine_id": "alpine-slicer", "status": "incomplete", "version": "local"}
         orca = self._orca_executable()
         orca_root = orca.parent if orca else self.root / "components" / "orca"
-        if orca and component_ready("orca", orca_root):
-            tools["model-studio"] = {"tool_id": "model-studio", "engine_id": "orca", "status": "online" if self._runtime_running("model-studio") else "ready", "version": "installed"}
-        elif orca_root.is_dir() and any((orca_root / name).exists() for name in ("orca-slicer.exe", "resources", ".alpine-managed.json")):
-            tools["model-studio"] = {"tool_id": "model-studio", "engine_id": "orca", "status": "incomplete", "version": "local"}
         printguard = self._printguard_executable()
         printguard_root = printguard.parent if printguard else self.root / "components" / "printguard"
         if printguard and component_ready("printguard", printguard_root):
@@ -1987,13 +1999,19 @@ class Agent:
             engine_status = "installed" if installed else "incomplete" if item["status"] in {"ready", "online", "incomplete"} else "missing"
             modules = {}
             module_sizes = {}
-            for module in ({"ai3d": ("cuda-toolkit", "hunyuan3d-21", "open3d-lab"), "model-studio": ("orca-bridge",),
+            for module in ({"ai3d": ("cuda-toolkit", "hunyuan3d-21", "open3d-lab"), "model-studio": ("orca", "orca-bridge"),
                             "laser-studio": ("fire-watch",), "converter": ("opencamlib",),
                             "toile-studio": ("toile-detourage",), "alpine-guard": ("guard-obico",)}.get(tool_id, ())):
                 module_root = self.root / "components" / module
                 if module == "fire-watch":
                     # Surveillance IA (agent 1.34.0) : une installation commencée ou interrompue se voit.
                     modules[module] = fire_watch_status(module_root)
+                elif module == "orca":
+                    # Retiré (agent 1.54.0) : OrcaSlicer n'est plus utilisé ; le site ne le propose que pour le désinstaller.
+                    module_root = orca_root
+                    modules[module] = ("installed" if orca and component_ready("orca", orca_root)
+                                       else "incomplete" if orca_root.is_dir() and any((orca_root / name).exists() for name in ("orca-slicer.exe", "resources", ".alpine-managed.json"))
+                                       else "missing")
                 else:
                     modules[module] = "installed" if component_ready(module, module_root) else "missing"
                 if modules[module] in {"installed", "incomplete"}:
@@ -2109,6 +2127,17 @@ class Agent:
             return None
         return str(python_in(root / ".venv").resolve())
 
+    def _alpine_slicer_python(self):
+        """Python isolé du composant alpine-slicer quand le trancheur Alpine est prêt, sinon None (agent 1.54.0)."""
+        if __package__:
+            from .installers.component_installer import component_ready, python_in
+        else:
+            from installers.component_installer import component_ready, python_in
+        root = self.root / "components" / "alpine-slicer"
+        if not component_ready("alpine-slicer", root):
+            return None
+        return str(python_in(root / ".venv").resolve())
+
     def _toile_detourage(self):
         """(Python isolé, modèle ONNX) du module toile-detourage quand il est prêt, sinon None (agent 1.51.0)."""
         if __package__:
@@ -2155,6 +2184,8 @@ class Agent:
             return record.get("enabled") is True and bool(self._cnc_engine_python())
         if tool_id == "toile-studio":
             return record.get("enabled") is True and bool(self._toile_engine_python())
+        if tool_id == "model-studio":
+            return record.get("enabled") is True and bool(self._alpine_slicer_python())
         if tool_id in alpine_registry.PACKAGES:
             return record.get("enabled") is True and bool(self._alpine_tool_python(tool_id))
         pid = record.get("pid")
@@ -2174,7 +2205,6 @@ class Agent:
             "image_generation": 8188,
             "ai3d": 8189,
             "printguard": 8000,
-            "model-studio": int(self.config.get("orca_port") or 15064),
         }
         return ports.get(tool_id)
 
@@ -2249,27 +2279,7 @@ class Agent:
             if not executable:
                 raise AgentError("PrintGuard n’est pas installé sur ce worker.")
             return executable.parent.resolve(), [str(executable)]
-        if tool_id == "model-studio":
-            if os.name != "nt":
-                raise AgentError("Le bridge OrcaSlicer Worker est actuellement disponible uniquement sous Windows.")
-            executable = self._orca_executable()
-            bridge = self.root / "orca_core_bridge.ps1"
-            if not executable:
-                raise AgentError("OrcaSlicer n’est pas installé sur ce worker.")
-            if not bridge.is_file():
-                raise AgentError("Le bridge Alpine Model Studio est absent. Mets à jour l’agent Worker.")
-            workspace = self.root / "workspace"
-            workspace.mkdir(parents=True, exist_ok=True)
-            try:
-                port = int(self._runtime_port(tool_id))
-            except (TypeError, ValueError):
-                port = 15064
-            if not 1024 <= port <= 65535:
-                raise AgentError("Le port du bridge OrcaSlicer est invalide.")
-            return executable.parent.resolve(), [
-                "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(bridge),
-                "-Workspace", str(workspace), "-OrcaDir", str(executable.parent), "-Port", str(port),
-            ]
+        # Model Studio (agent 1.54.0) : plus de moteur résident ; le trancheur Alpine est un processus par job.
         raise AgentError("Ce moteur ne possède pas de commande marche/arrêt contrôlée.")
 
     def _runtime_matches(self, pid, root):
@@ -2663,9 +2673,6 @@ class Agent:
         logs = self.root / "logs"
         # agent.log (1.49.1) est la propre sortie de l'agent : la relayer ferait boucler ses messages sur eux-mêmes.
         files = sorted(path for path in logs.glob("*.log") if path.name.casefold() != "agent.log") if logs.is_dir() else []
-        bridge = self.root / "workspace" / "orca_bridge.log"
-        if bridge.is_file():
-            files.append(bridge)
         return files
 
     def _log_watch_once(self):
@@ -2931,7 +2938,7 @@ class Agent:
         self._assert_no_active_jobs()
         tool_id = str(tool_id or "").strip()
         action = str(action or "").strip().lower()
-        if tool_id not in {"image_generation", "ai3d", "printguard", "model-studio", *ON_DEMAND_TOOLS} or action not in {"start", "stop"}:
+        if tool_id not in {"image_generation", "ai3d", "printguard", *ON_DEMAND_TOOLS} or action not in {"start", "stop"}:
             raise AgentError("Commande de moteur local invalide.")
         if action == "start":
             if self.environment_maintenance_refreshing_python:
@@ -2948,9 +2955,11 @@ class Agent:
                 raise AgentError("Le moteur CNC n’est pas installé. Installe ou répare Alpine CNC Studio (Mes Workers → Installations).")
             if action == "start" and tool_id == "toile-studio" and not self._toile_engine_python():
                 raise AgentError("Le moteur de toile n’est pas installé. Installe ou répare Alpine Toile Creator (Mes Workers → Installations).")
+            if action == "start" and tool_id == "model-studio" and not self._alpine_slicer_python():
+                raise AgentError("Le trancheur Alpine n’est pas installé. Installe ou répare Alpine Model Studio (Mes Workers → Installations).")
             if action == "start" and tool_id in alpine_registry.PACKAGES and not self._alpine_tool_python(tool_id):
                 raise AgentError(f"{alpine_registry.NAMES[tool_id]} n’est pas installé. Installe-le depuis Mes Workers → Installations.")
-            # FreeCADCmd, the laser, CNC and toile engines are per-job processes, not persistent servers.
+            # FreeCADCmd, the laser, CNC, toile and Alpine slicer engines are per-job processes, not persistent servers.
             atomic_json(record_path, {"enabled": action == "start", "updated_at": time.time()})
             return {"started": action == "start", "stopped": action == "stop", "on_demand": True}
         record = self._runtime_record(tool_id)
@@ -3140,7 +3149,7 @@ class Agent:
 
     def purge_managed_components(self):
         """Stop engines and remove only components installed below the agent root."""
-        for tool_id in ("image_generation", "ai3d", "printguard", "model-studio"):
+        for tool_id in ("image_generation", "ai3d", "printguard"):
             self.control_runtime(tool_id, "stop")
         # Le moteur de surveillance IA tient des fichiers de components/fire-watch : arrêté avant la suppression.
         self._stop_fire_watch()
@@ -3483,7 +3492,7 @@ class Agent:
     def _engine_runtimes_running(self):
         """Moteurs qui tiennent des fichiers du Python isolé : tant qu'un seul tourne, le runtime n'est pas échangé."""
         running = []
-        for tool_id in ("image_generation", "ai3d", "printguard", "model-studio"):
+        for tool_id in ("image_generation", "ai3d", "printguard"):
             try:
                 # Un moteur qui démarre (processus vivant, port pas encore ouvert) charge déjà ce Python :
                 # le processus enregistré compte, pas seulement le port prêt.
@@ -4550,7 +4559,7 @@ class Agent:
         tool_id = str(payload.get("tool_id") or "")
         if not self._valid_execution_id(job_id):
             raise AgentError("Identifiant du job invalide.")
-        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "orca", "laser-engine", "cnc-engine", "toile-engine", "alpine-tool"}:
+        if tool_id not in TOOL_HANDLERS or TOOL_HANDLERS[tool_id] not in {"comfyui", "hunyuan3d", "freecad", "alpine-slicer", "laser-engine", "cnc-engine", "toile-engine", "alpine-tool"}:
             raise AgentError("Outil de job non autorisé par le Worker.")
         with self.maintenance_lock:
             existing = self.journal.get("jobs", job_id)
@@ -4620,7 +4629,7 @@ class Agent:
         outcome = terminate_process_tree(pid, identity)
         report.update(stopped=bool(outcome["stopped"]), killed=int(outcome["killed"]), survivors=list(outcome["survivors"]))
         # Le moteur de ces lanceurs tourne DANS leur arbre : l'arbre arrêté prouve que plus rien ne calcule. Pour
-        # ComfyUI, Hunyuan3D et Orca, le moteur est un serveur à part : son arrêt n'est pas prouvé par celui du lanceur.
+        # ComfyUI et Hunyuan3D, le moteur est un serveur à part : son arrêt n'est pas prouvé par celui du lanceur.
         report["confirmed"] = report["stopped"] and runner in IN_TREE_RUNNERS
         if report["confirmed"]:
             self.forced_stops.add(str(job_id))
@@ -4760,7 +4769,12 @@ class Agent:
                         raise AgentError("FreeCAD n’est pas installé sur ce Worker.")
                     environment["FREECAD_CMD"] = freecad
                 if tool_id == "model-studio":
-                    environment["WORKER_ORCA_PORT"] = str(self._runtime_port(tool_id))
+                    # Trancheur Alpine Model Engine (agent 1.54.0) : le calcul tourne dans le Python isolé du composant
+                    # alpine-slicer (numpy + Pillow), jamais dans celui de l'agent ; aucun moteur résident, aucun port.
+                    slicer_python = self._alpine_slicer_python()
+                    if not slicer_python:
+                        raise AgentError("Le trancheur Alpine n’est pas installé sur ce Worker (Mes Workers → Installations).")
+                    environment["ALPINE_SLICER_PYTHON"] = slicer_python
                 if tool_id == "laser-studio":
                     # Le calcul tourne dans le Python isolé du composant (Pillow), jamais dans celui de l'agent.
                     laser_python = self._laser_engine_python()

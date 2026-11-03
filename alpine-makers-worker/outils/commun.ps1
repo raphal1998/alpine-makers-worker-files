@@ -29,7 +29,8 @@ $script:MoteursWorker = @(
     [pscustomobject]@{ Outil = 'image_generation'; Nom = 'ComfyUI (images)';        Port = 8188;  Http = $false }
     [pscustomobject]@{ Outil = 'ai3d';             Nom = 'Hunyuan3D (3D)';          Port = 8189;  Http = $false }
     [pscustomobject]@{ Outil = 'printguard';       Nom = 'PrintGuard';              Port = 8000;  Http = $false }
-    [pscustomobject]@{ Outil = 'model-studio';     Nom = 'Bridge Orca';             Port = 15064; Http = $true  }
+    # Model Studio (agent 1.54.0) : plus de bridge Orca résident ; le trancheur Alpine (composant alpine-slicer) est un
+    # processus Python du venv par job, reconnu comme « calcul », jamais comme moteur à port.
 )
 
 # ---------------------------------------------------------------------------
@@ -571,7 +572,8 @@ function Get-EntreeSessionWorker {
 # ---------------------------------------------------------------------------
 
 function Test-PortHttpSys {
-    <# Le bridge Orca écoute par HttpListener = HTTP.sys : le port apparaît sous le PID 4 (System). On lit la file HTTP.sys. #>
+    <# Un moteur qui écoute par HttpListener = HTTP.sys : le port apparaît sous le PID 4 (System). On lit la file HTTP.sys.
+       (Plus aucun moteur du Worker n'en a besoin depuis le retrait du bridge Orca, agent 1.54.0 ; gardé pour Http = $true.) #>
     param([int]$Port)
     try { return [bool]((& netsh http show servicestate 2>$null | Select-String -SimpleMatch (':' + $Port + ':')) -ne $null) } catch { return $false }
 }
@@ -587,7 +589,6 @@ function Get-EtatMoteurs {
     $liste = @()
     foreach ($m in $script:MoteursWorker) {
         $port = $m.Port
-        if ($m.Outil -eq 'model-studio') { $port = $config.PortOrca }
         $ecoute = $false; $pidPort = 0
         if ($m.Http) { $ecoute = Test-PortHttpSys -Port $port }
         else {
@@ -811,12 +812,12 @@ function Get-ProcessusDuWorker {
                            noté dans runtime\agent-process.json (même PID ET même date de création) : un agent resté
                            seul après la mort de son superviseur est donc reconnu (agent 1.50.33) ;
           - calcul       : lanceur d'un job ou d'un calcul de worker.exe (python « <Worker>\runners\… »), FreeCAD
-                           qui exécute un script du Worker (conversion, préparation CNC), tranchage OrcaSlicer d'un
-                           moteur du Worker, et tous leurs descendants ;
+                           qui exécute un script du Worker (conversion, préparation CNC), tranchage Alpine Model
+                           Engine (python du composant alpine-slicer), et tous leurs descendants ;
           - installation : installateur du Worker (python « <Worker>\installers\… ») et ses descendants ;
           - moteur       : descendants de l'agent ; ou ORPHELINS reconnus par ce qu'ils EXÉCUTENT : exécutable sous
                            <Worker>\components\, python dont le programme ou le script est sous <Worker>\components\
-                           ou est un script .py du Worker (caméras USB…), powershell -File <Worker>\orca_core_bridge.ps1,
+                           ou est un script .py du Worker (caméras USB…),
                            ou processus noté dans runtime\<moteur>.json (PID ET date de création : moteur installé
                            ailleurs que dans components\).
         Jamais : les outils du menu (outils\, local_control.py), worker.exe, le processus courant et ses ancêtres.
@@ -892,15 +893,13 @@ function Get-ProcessusDuWorker {
             return ''
         }
         if (Test-SousComposants ([string]$p.ExecutablePath)) { return 'moteur' }
-        if ($p.CommandLine -and $nom -match '^(?i:powershell|pwsh)\.exe$' -and [string]$p.CommandLine -match ('-File\s+"?' + $feuille + '\\orca_core_bridge\.ps1')) { return 'moteur' }
         return ''
     }
-    # Rôle d'un descendant : ce qu'il exécute s'il est reconnu, sinon le rôle de son parent (un moteur reste un moteur,
-    # sauf le tranchage OrcaSlicer, qui est un calcul).
+    # Rôle d'un descendant : ce qu'il exécute s'il est reconnu, sinon le rôle de son parent (un moteur reste un moteur ;
+    # le python du composant alpine-slicer lancé par un lanceur de job hérite du rôle « calcul » de son parent).
     function Get-RoleEnfant([object]$enfant, [string]$roleParent) {
         $propre = Get-RoleExecute $enfant
         if ($propre -and $propre -ne 'agent') { return $propre }
-        if ([string]$enfant.Name -match '^(?i:orca-slicer|orcaslicer)\.exe$') { return 'calcul' }
         if ($roleParent -eq 'calcul' -or $roleParent -eq 'installation') { return $roleParent }
         return 'moteur'
     }

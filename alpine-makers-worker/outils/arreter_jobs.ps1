@@ -8,11 +8,11 @@
          préparation CNC FreeCAD, Labo image, tranchage…), puis coupe l'arbre de processus de ceux qui résistent
          (lanceur, FreeCADCmd et leurs enfants : seulement les processus qu'il a lancés, PID ET date de création) ;
       3. cet outil arrête enfin les processus de CALCUL de ce Worker qui vivraient encore (agent muet, calcul
-         orphelin, tranchage OrcaSlicer), reconnus par ce qu'ils exécutent, jamais par leur nom seul.
+         orphelin, tranchage Alpine Model Engine), reconnus par ce qu'ils exécutent, jamais par leur nom seul.
 
     Cet outil ne commande AUCUN équipement : ni graveuse, ni imprimante, ni caméra. Une gravure en cours est nommée,
     jamais arrêtée d'ici : couper son flux laisserait le laser dans son dernier état. Les moteurs (ComfyUI,
-    Hunyuan3D, PrintGuard, bridge Orca) restent allumés : 9 les arrête, 11 éteint tout le Worker.
+    Hunyuan3D, PrintGuard) restent allumés : 9 les arrête, 11 éteint tout le Worker.
     Les seules actions locales déposées sont « status », « jobs-stop » et « relay-status ».
 
     Pilotage sans clavier (essais ; worker.exe ne transmet que -SansPause) :
@@ -235,7 +235,7 @@ function Show-NonArrete {
     elseif ($Gravures.Elements.Count -gt 0) { Write-Alerte ('Gravure ou cadrage en cours sur : ' + (Format-Noms $Gravures.Elements) + $consigne) }
     else { Write-Conseil ('Gravure ou cadrage : aucune gravure en cours' + $consigne) }
     Write-Conseil 'Impression 3D en cours : jamais arrêtée d''ici'
-    Write-Conseil ('Moteurs (ComfyUI, Hunyuan3D, PrintGuard, bridge Orca) : ils restent allumés   (pour les arrêter : ' + (Get-NomEntree 9) + ' ; pour tout éteindre : ' + (Get-NomEntree 11) + ')')
+    Write-Conseil ('Moteurs (ComfyUI, Hunyuan3D, PrintGuard) : ils restent allumés   (pour les arrêter : ' + (Get-NomEntree 9) + ' ; pour tout éteindre : ' + (Get-NomEntree 11) + ')')
     Write-Conseil 'Caméras et surveillance IA : inchangées'
     if ($null -ne $Resultat) { Write-Conseil ('Opérations courtes déjà commencées (désinstallation, démarrage d''un moteur) : ' + (Get-Compteur $Resultat 'commands_finishing') + ' se terminent seules') }
     else { Write-Conseil 'Opérations courtes déjà commencées (désinstallation, démarrage d''un moteur) : elles se terminent seules' }
@@ -275,11 +275,11 @@ try {
     Write-Explication -Titre 'ARRÊTER TOUS LES JOBS' -Fait @(
         'Demande au site l''arrêt de tous les calculs en cours et en attente de CE Worker (images, 3D, conversions), de ses installations en cours et des demandes pas encore transmises.',
         'Arrête aussitôt sur CE PC les calculs des jobs et ceux lancés depuis worker.exe : convertisseur, préparation pour une CNC (FreeCAD), Labo image, tranchage.',
-        'Un calcul qui ne s''arrête pas seul est coupé de force après 20 secondes, avec ses processus (FreeCAD, OrcaSlicer...) : seulement ceux de ce Worker.',
+        'Un calcul qui ne s''arrête pas seul est coupé de force après 20 secondes, avec ses processus (FreeCAD, trancheur Alpine...) : seulement ceux de ce Worker.',
         'Si l''agent ne répond pas, il arrête quand même les processus de calcul de ce Worker encore présents sur ce PC.'
     ) -NeFaitPas @(
         'Il n''arrête JAMAIS une graveuse, une imprimante 3D ni un autre équipement : cela se fait sur la machine elle-même.',
-        ('Il n''éteint ni les moteurs (ComfyUI, Hunyuan3D, PrintGuard, bridge Orca), ni les caméras, ni la surveillance IA : ' + (Get-NomEntree 9) + ' ou ' + (Get-NomEntree 11) + '.'),
+        ('Il n''éteint ni les moteurs (ComfyUI, Hunyuan3D, PrintGuard), ni les caméras, ni la surveillance IA : ' + (Get-NomEntree 9) + ' ou ' + (Get-NomEntree 11) + '.'),
         'Il ne touche pas aux jobs en attente pour tes autres Workers, ni à un programme qui n''est pas de ce Worker.'
     ) -Exige @(
         'Le Worker allumé et associé à ton compte pour prévenir le site. Aucune fenêtre administrateur.'

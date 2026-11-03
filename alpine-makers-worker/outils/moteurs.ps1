@@ -63,7 +63,7 @@ try {
     }
 
     Write-Explication -Titre 'MOTEURS DU WORKER : ÉTAT, ARRÊT PROPRE, RELANCE' -Fait @(
-        'Montre quels moteurs tournent : ComfyUI (images), Hunyuan3D (3D), PrintGuard, bridge Orca.',
+        'Montre quels moteurs tournent : ComfyUI (images), Hunyuan3D (3D), PrintGuard. (Le trancheur Alpine de Model Studio n''a pas de moteur résident : un processus par tranchage.)',
         'Arrêter : demande à l''agent d''éteindre ses moteurs proprement. La mémoire de la carte graphique est rendue.',
         'Démarrer : demande à l''agent de relancer les moteurs arrêtés par « Arrêter », puis suit leur réveil pendant 3 minutes au plus.',
         '   Sans arrêt préalable, l''agent relancerait TOUS les moteurs installés : l''outil prévient et redemande avant.',

@@ -117,7 +117,7 @@ $script:Entrees = @(
     (New-Entree  7 'connexion'  'Récupérer une inscription'     'Retrouve la fiche existante sur le site.'      'ps1' 'recuperer_inscription.ps1')
     (New-Entree  8 'connexion'  'Réassocier le Worker'          'Après suppression de sa fiche sur le site.'    'ps1' 'reassocier_worker.ps1' -Admin)
 
-    (New-Entree  9 'moteurs'    'Moteurs (état, arrêt, départ)' 'ComfyUI, Hunyuan3D, PrintGuard, bridge Orca.'  'ps1' 'moteurs.ps1')
+    (New-Entree  9 'moteurs'    'Moteurs (état, arrêt, départ)' 'ComfyUI, Hunyuan3D, PrintGuard.'  'ps1' 'moteurs.ps1')
     (New-Entree 10 'moteurs'    'Redémarrer l''agent'           'Relance propre quand il ne répond plus.'       'ps1' 'redemarrer_agent.ps1' -Admin)
     (New-Entree 11 'moteurs'    'Éteindre le Worker (lui seul)' 'Agent et moteurs ; le reste du PC continue.'   'ps1' 'eteindre_worker.ps1' -Admin -Arret)
     (New-Entree 12 'moteurs'    'Rallumer le Worker'            'Le remet en marche après une extinction.'      'ps1' 'rallumer_worker.ps1' -Admin)

@@ -1,17 +1,24 @@
 """Alpine Model Studio natif (Alpine Makers Desktop, worker.exe) : outil agent « model-studio » de ``desktop_actions``.
 
 Tout ce qui calcule tourne sur CE Worker, avec les moteurs déjà installés et les MÊMES lanceurs que les jobs du site
-(``runners/orca.py``, ``runners/freecad.py``, ``runners/mesh_repair.py``), dans un dossier de travail du runtime :
+(``runners/alpine-slicer.py``, ``runners/freecad.py``, ``runners/mesh_repair.py``), dans un dossier de travail du runtime.
+Depuis l'agent 1.54.0, le tranchage est fait par Alpine Model Engine (``model_engine/``, composant « alpine-slicer »,
+docs/MODEL_ENGINE_ARCHITECTURE.md) : plus d'OrcaSlicer ni de pont résident, un processus Python isolé par tranchage.
+Les clés ``orca_installed`` / ``bridge`` / ``bridge_version`` restent servies (mêmes valeurs que le trancheur) pour
+worker.exe 1.53.x ; les codes ``ORCA_MISSING`` / ``BRIDGE_*`` deviennent ``ENGINE_MISSING`` / ``ENGINE_*``.
 
-- ``state``          : moteur OrcaSlicer, bridge (en marche, occupé, version), FreeCAD, bibliothèques de maillage ;
-- ``bridge-start``   : démarre le bridge OrcaSlicer par le chemin gardé de « engines-start » (``local_control._start_one``) ;
-- ``profiles``       : imprimantes que l'OrcaSlicer de ce Worker sait trancher (``GET /profiles`` du bridge) ;
-- ``process-schema`` : réglages du profil de processus de référence (chaîne ``inherits`` résolue, comme le site) ;
+- ``state``          : trancheur Alpine (installé, version), FreeCAD, bibliothèques de maillage ;
+- ``bridge-start``   : vérifie que le trancheur est prêt (aucun processus à démarrer : ``already_running`` toujours vrai) ;
+- ``profiles``       : imprimantes que le trancheur sait trancher (``python -m model_engine.cli list_profiles``) ;
+- ``process-schema`` : schéma Alpine des réglages de processus (``model_engine.profiles.process.schema_for_api``) ;
 - ``import``         : STEP / IGES / BREP / FCStd / AMF / PLY / OFF (FreeCAD) et 3MF (lecteur Python) → STL d'aperçu ;
 - ``repair``         : analyse ou réparation / décimation (``mesh_repair_tool``, comme la réparation du site) ;
 - ``build``          : pièce paramétrique · CAO exacte (scène déclarative revalidée, FreeCAD) → STL ;
-- ``slice``          : tranchage local OrcaSlicer, simple ou multi-filaments, avec les réglages de processus ;
+- ``slice``          : tranchage local Alpine Model Engine, simple ou multi-filaments, avec les réglages de processus ;
 - ``export-3mf``     : STL → 3MF ;
+- ``save-amsproj``   : scène du bureau (3MF ou STL déposé) → Projet Alpine Model Studio scellé (.amsproj) par le SITE
+  (route signée ``self/alpine-formats/seal``, ``desktop_library.sealed_seal`` : AUCUNE clé ici), comme ``seal`` du
+  CNC Studio de bureau (agent 1.53.6) ;
 - ``outputs``        : derniers fichiers tranchés du cache local ;
 - ``print`` / ``print-status`` : envoi d'un fichier DÉJÀ dans la bibliothèque du compte à l'imprimante choisie dans
   Mes équipements, par la route signée ``self/model-studio/print`` qui appelle la route d'impression du site
@@ -28,57 +35,63 @@ import os
 import re
 import secrets
 import shutil
-import socket
 import subprocess
 import sys
 import time
-import urllib.error
-import urllib.request
 import xml.etree.ElementTree as ElementTree
 import zipfile
 from pathlib import Path
 
 if __package__:
     from . import desktop_actions as desk
+    from . import desktop_library as library
     from .desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_object, v_session, v_text
     from .desktop_library import inbox_file, v_file_name
     from .job_state import read_json
     from .safety import is_link, validate_freecad_scene
 else:
     import desktop_actions as desk
+    import desktop_library as library
     from desktop_actions import TaskCancelled, TaskError, v_bool, v_choice, v_hex, v_int, v_object, v_session, v_text
     from desktop_library import inbox_file, v_file_name
     from job_state import read_json
     from safety import is_link, validate_freecad_scene
 
 TOOL = "model-studio"
+ENGINE = "alpine-slicer"                                       # composant du trancheur (component_installer.CATALOG)
+RUNNER = "alpine-slicer"                                       # runners/alpine-slicer.py (contrat §8 de l'architecture)
 RUNNERS_DIR = Path(__file__).resolve().with_name("runners")   # remplacé par les tests
+ENGINE_DIR = Path(__file__).resolve().parent                  # dossier du Worker : ``python -m model_engine.cli`` (idem)
+CLI_MODULE = "model_engine.cli"
+CLI_RESULT_MARKER = "RAPHAL_SLICER_RESULT="
+CLI_ERROR_MARKER = "RAPHAL_SLICER_ERROR="
 PRINT_PATH = "/api/worker-protocol/self/model-studio/print"
 PRINT_STATUS_PATH = "/api/worker-protocol/self/model-studio/print-status"
-PROCESS_PROFILE = "0.20mm Standard @BBL X1C.json"        # même profil de référence que le site
-PROCESS_METADATA = {"type", "name", "from", "inherits", "instantiation", "description", "setting_id", "renamed_from",
-                    "compatible_printers", "compatible_printers_condition"}
-BOOLEAN_PROCESS_KEYS = {
-    "adaptive_layer_height", "bridge_no_support", "detect_floating_vertical_shell", "detect_overhang_wall",
-    "detect_thin_wall", "enable_arc_fitting", "enable_circle_compensation", "enable_height_slowdown",
-    "enable_overhang_speed", "enable_prime_tower", "enable_support", "enable_tower_interface_cooldown_during_tower",
-    "enable_tower_interface_features", "enable_wrapping_detection", "infill_combination", "interface_shells",
-    "only_one_wall_top", "override_filament_scarf_seam_setting", "prime_tower_enable_framework",
-    "prime_tower_flat_ironing", "reduce_crossing_wall", "reduce_infill_retraction",
-    "seam_placement_away_from_overhangs", "support_interface_loop_pattern", "support_on_build_plate_only",
-    "symmetric_infill_y_axis", "spiral_mode", "wipe_tower_no_sparse_layers", "z_direction_outwall_speed_continuous"}
 CAD_FORMATS = ("step", "stp", "iges", "igs", "brep", "brp", "fcstd", "amf", "ply", "off")   # FreeCAD → STL
 MESH_FORMATS = ("3mf",)                                                                    # lecteur Python → STL
 SLICE_FORMATS = ("stl", "obj", "3mf", "amf", "step", "stp")                                # comme le site
 BED_TYPES = ("Textured PEI Plate", "Cool Plate", "Engineering Plate", "High Temp Plate")
+NOZZLES = ("0.2", "0.4", "0.6", "0.8")
 PRINTER_PROFILE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._()+\-]{0,119}")
 PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,29}")
 SETTING_KEY = re.compile(r"[A-Za-z0-9_]{1,80}")
 MATERIAL = re.compile(r"[A-Za-z0-9][A-Za-z0-9 +._/\-]{0,39}")
-RUN_LIMIT = 3700                       # un tranchage peut durer (même plafond que le runner Orca : 3600 s)
+RUN_LIMIT = 3700                       # un tranchage peut durer (même plafond que le lanceur alpine-slicer : 3600 s)
+CLI_LIMIT = 300                        # lecture des profils : quelques secondes ; au-delà, le processus est arrêté
 PROFILE_LIMIT = 4000
 INLINE_MAX = 256 * 1024
 FILES_MAX = 16
+# Projet Alpine Model Studio scellé (.amsproj, famille 3d) : fichier principal et outil du manifeste.
+SEALED_MAIN = "model.3mf"
+SEAL_OFFLINE = ("Projet Alpine scellé : le site scelle le fichier, connecte ce Worker au site. Hors ligne, enregistre la "
+                "scène en 3MF ou STL (non scellé).")
+# Codes d'erreur de cet outil (agent 1.54.0). Les anciens codes du pont OrcaSlicer restent connus de worker.exe 1.53.x :
+# ils sont listés ici en alias, jamais émis.
+ERROR_CODES = ("ENGINE_MISSING", "ENGINE_UNREACHABLE", "ENGINE_REFUSED", "ENGINE_SCHEMA", "ENGINE_FAILED", "RUNNER_MISSING",
+               "NO_OUTPUT", "BAD_OUTPUT", "TIMEOUT", "WORKER_BUSY", "INVALID_MESH", "IMPORT_FAILED", "EXPORT_FAILED",
+               "SEALED_OFFLINE", "SITE_MISSING", "TOO_LARGE")
+LEGACY_ERROR_CODES = {"ORCA_MISSING": "ENGINE_MISSING", "BRIDGE_STOPPED": "ENGINE_MISSING", "BRIDGE_OUTDATED": "ENGINE_REFUSED",
+                      "BRIDGE_UNREACHABLE": "ENGINE_UNREACHABLE", "BRIDGE_REFUSED": "ENGINE_REFUSED", "PROFILE_MISSING": "ENGINE_SCHEMA"}
 
 
 # --- Validateurs ----------------------------------------------------------------------------------------------------
@@ -113,7 +126,7 @@ def v_ams_mapping(value):
     return value
 
 
-# Réglages compacts du panneau (mêmes clés que ORCA_SLICE_SETTING_KEYS du site, bornes raisonnables).
+# Réglages compacts du panneau (les 25 clés du contrat client du site, bornes raisonnables ; le trancheur revalide).
 SETTINGS = {
     "layer_height": v_num(0.04, 1.0), "outer_wall_line_width": v_num(0.1, 2.0), "wall_loops": v_int(0, 50),
     "top_shell_layers": v_int(0, 100), "bottom_shell_layers": v_int(0, 100), "sparse_infill_density": v_num(0, 100),
@@ -124,8 +137,8 @@ SETTINGS = {
     "brim_width": v_num(0, 50), "outer_wall_speed": v_num(1, 1000), "sparse_infill_speed": v_num(1, 1000),
     "travel_speed": v_num(1, 1500), "orient": v_bool, "arrange": v_bool, "ironing": v_bool,
     "seam_position": v_choice("aligned", "nearest", "back", "random"), "fuzzy_skin": v_bool, "prime_tower": v_bool,
-    "nozzle": v_choice("0.2", "0.4", "0.6", "0.8"), "bed_type": v_choice(*BED_TYPES),
-    "printer_profile": v_regex(PRINTER_PROFILE, "profil d'imprimante OrcaSlicer"),
+    "nozzle": v_choice(*NOZZLES), "bed_type": v_choice(*BED_TYPES),
+    "printer_profile": v_regex(PRINTER_PROFILE, "profil d'imprimante"),
 }
 
 
@@ -140,7 +153,7 @@ def v_settings(value):
 
 
 def v_process_settings(value):
-    """Réglages avancés OrcaSlicer (clé du profil → valeur simple), comme ``process_settings`` du site."""
+    """Réglages avancés du schéma Alpine (clé → valeur simple), comme ``process_settings`` du site."""
     value = v_object(depth=1, keys=300)(value)
     clean = {}
     for key, item in value.items():
@@ -162,7 +175,7 @@ def v_slice_files(value):
             raise ValueError("Fichier à trancher invalide.")
         name = v_file_name(item["name"])
         if Path(name).suffix.lower().lstrip(".") not in SLICE_FORMATS:
-            raise ValueError("Ce format ne peut pas être tranché par OrcaSlicer : " + name[:60])
+            raise ValueError("Ce format ne peut pas être tranché : " + name[:60])
         clean.append({"staged": v_hex(32)(item["staged"]), "name": name,
                       "material": v_regex(MATERIAL, "matériau")(item.get("material", "PLA"))})
     return clean
@@ -214,12 +227,26 @@ def _maintenance_guard(agent):
                         "WORKER_BUSY")
 
 
-def _orca(agent):
+def _engine_python(agent):
+    """Python isolé du composant alpine-slicer quand le trancheur est prêt (``component_ready``), sinon ""."""
     try:
-        executable = agent._orca_executable()
+        python = agent._alpine_slicer_python()
     except Exception:
-        executable = None
-    return Path(executable) if executable else None
+        python = None
+    return str(python) if python and Path(str(python)).is_file() else ""
+
+
+def _engine_version(agent):
+    """Version du trancheur consignée à l'installation (marqueur), sinon ``model_engine.VERSION`` du paquet livré."""
+    try:
+        if __package__:
+            from .installers.component_installer import installed_version
+        else:
+            from installers.component_installer import installed_version
+        value = installed_version(ENGINE, Path(agent.root) / "components" / ENGINE) or {}
+    except Exception:
+        value = {}
+    return str(value.get("version") or "")[:20]
 
 
 def _freecad(agent):
@@ -230,34 +257,52 @@ def _freecad(agent):
     return str(executable) if executable and Path(str(executable)).is_file() else ""
 
 
-def _port(agent):
+def _require_engine(agent):
+    python = _engine_python(agent)
+    if not python:
+        raise TaskError("Le trancheur Alpine n'est pas installé sur ce Worker : installe Alpine Model Studio "
+                        "(Mes Workers → Installations).", "ENGINE_MISSING")
+    return python
+
+
+def _cli_payload(output):
+    """Résultat JSON d'une action du cli : dernière ligne ``RAPHAL_SLICER_RESULT=`` (ou ``RAPHAL_SLICER_ERROR=``)."""
+    for line in reversed(str(output or "").splitlines()):
+        line = line.strip()
+        if line.startswith(CLI_ERROR_MARKER):
+            try:
+                error = json.loads(line[len(CLI_ERROR_MARKER):])
+            except ValueError:
+                error = {"error": line[len(CLI_ERROR_MARKER):]}
+            raise TaskError(str(error.get("error") or error.get("message") or "Le trancheur a refusé l'action.")[:300],
+                            str(error.get("code") or error.get("error_code") or "ENGINE_REFUSED")[:60])
+        if line.startswith(CLI_RESULT_MARKER):
+            return json.loads(line[len(CLI_RESULT_MARKER):])
+    raise ValueError("aucun résultat du trancheur")
+
+
+def _run_cli(agent, python, action, limit=4 * 1024 * 1024):
+    """``<python> -m model_engine.cli <action>`` depuis le dossier du Worker (processus court, jamais un tranchage)."""
+    environment = _environment(agent, {"PYTHONPATH": str(ENGINE_DIR)})
+    for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"):
+        environment[name] = "1"
     try:
-        port = int(agent._runtime_port("model-studio") or 15064)
-    except (TypeError, ValueError):
-        port = 15064
-    return port if 1024 <= port <= 65535 else 15064
-
-
-def _bridge_open(port, timeout=0.35):
+        completed = subprocess.run([python, "-m", CLI_MODULE, action], cwd=str(ENGINE_DIR), env=environment,
+                                   capture_output=True, timeout=CLI_LIMIT,
+                                   creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+    except subprocess.TimeoutExpired:
+        raise TaskError("Le trancheur n'a pas répondu à temps.", "ENGINE_UNREACHABLE") from None
+    except OSError as error:
+        raise TaskError(f"Le trancheur ne démarre pas ({type(error).__name__}).", "ENGINE_UNREACHABLE") from None
+    output = completed.stdout.decode("utf-8", errors="replace")[-limit:]
     try:
-        with socket.create_connection(("127.0.0.1", port), timeout=timeout):
-            return True
-    except OSError:
-        return False
-
-
-def _bridge_get(port, path, timeout, limit=8 * 1024 * 1024):  # remplacé par les tests
-    with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=timeout) as response:
-        return json.loads(response.read(limit))
-
-
-def _installed_bridge_version(agent):
-    try:
-        text = (Path(agent.root) / "orca_core_bridge.ps1").read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return ""
-    match = re.search(r'^\$BridgeVersion\s*=\s*"([^"]{1,20})"', text, re.M)
-    return match.group(1) if match else ""
+        return _cli_payload(output)
+    except TaskError:
+        raise
+    except ValueError:
+        detail = (completed.stderr.decode("utf-8", errors="replace").strip().splitlines() or [""])[-1][-200:]
+        raise TaskError("Le trancheur s'est arrêté sans résultat" + (f" ({detail})" if detail else "") + ".",
+                        "ENGINE_UNREACHABLE") from None
 
 
 def _environment(agent, extra):
@@ -434,78 +479,48 @@ def _float(value):
 # --- Actions --------------------------------------------------------------------------------------------------------
 
 def _state(agent, params):
-    """Moteurs de ce Worker pour Model Studio, en moins de 2 s (aucun démarrage, aucun tranchage)."""
-    orca = _orca(agent)
-    port = _port(agent)
-    bridge = {"port": port, "running": False, "busy": False, "version": "", "bridge_version": "",
-              "installed_bridge_version": _installed_bridge_version(agent), "outdated": False}
-    if orca and _bridge_open(port):
-        bridge["running"] = True
-        try:
-            info = _bridge_get(port, "/ping", 1.2, 64 * 1024)
-            bridge["version"] = str(info.get("version") or "")[:60]
-            bridge["bridge_version"] = str(info.get("bridge_version") or "")[:20]
-            bridge["outdated"] = bool(bridge["installed_bridge_version"] and bridge["bridge_version"] != bridge["installed_bridge_version"])
-        except (OSError, ValueError, urllib.error.URLError):
-            bridge["busy"] = True   # port ouvert mais pas de réponse : un tranchage occupe le bridge (un à la fois)
-    import importlib.util
-    libraries = {name: importlib.util.find_spec(name) is not None for name in ("numpy", "trimesh", "pymeshlab")}
+    """Moteurs de ce Worker pour Model Studio, en moins de 2 s (aucun démarrage, aucun tranchage).
+
+    Le trancheur Alpine n'a pas de processus résident : ``bridge`` (clé gardée pour worker.exe 1.53.x) répète
+    simplement « installé » et la version du moteur ; ``busy`` = un tranchage du site est en cours sur ce Worker."""
+    installed = bool(_engine_python(agent))
+    version = _engine_version(agent) if installed else ""
     jobs = 0
     try:
         jobs = sum(1 for item in agent.journal.records("jobs").values()
                    if item.get("tool_id") == "model-studio" and agent._job_active(item))
     except Exception:
         jobs = 0
-    return {"orca_installed": bool(orca), "bridge": bridge, "freecad": bool(_freecad(agent)), "libraries": libraries,
+    bridge = {"running": installed, "busy": jobs > 0, "version": version, "bridge_version": version,
+              "installed_bridge_version": version, "outdated": False}
+    import importlib.util
+    libraries = {name: importlib.util.find_spec(name) is not None for name in ("numpy", "trimesh", "pymeshlab")}
+    return {"engine_installed": installed, "engine_version": version, "engine_id": ENGINE,
+            "orca_installed": installed, "bridge": bridge, "freecad": bool(_freecad(agent)), "libraries": libraries,
             "maintenance": bool(getattr(agent, "maintenance_active", False)), "site_slices_active": jobs,
             "formats": {"direct": ["stl", "obj"], "freecad": list(CAD_FORMATS), "mesh": list(MESH_FORMATS),
                         "slice": list(SLICE_FORMATS)}}
 
 
 def _bridge_start(agent, params):
-    if not _orca(agent):
-        raise ValueError("OrcaSlicer n'est pas installé sur ce Worker : installe Alpine Model Studio (Mes Workers → Installations).")
-    if __package__:
-        from . import local_control
-    else:
-        import local_control
+    """« Démarrer le moteur » de worker.exe 1.53.x : plus rien à lancer, on vérifie seulement que le trancheur est prêt."""
+    if not _engine_python(agent):
+        raise ValueError("Le trancheur Alpine n'est pas installé sur ce Worker : installe Alpine Model Studio (Mes Workers → Installations).")
 
     def work(task):
-        task.update(None, "Démarrage du bridge OrcaSlicer…")
-        try:
-            result = local_control._start_one(agent, "model-studio")   # mêmes gardes que « engines-start »
-        except Exception as error:
-            raise TaskError(str(error)[:300] or "Démarrage refusé.", "START_REFUSED") from None
-        return {"started": True, "already_running": bool((result or {}).get("already_running"))}
-    return desk.start_task(agent, TOOL, "Démarrer le bridge OrcaSlicer", work)
-
-
-def _require_bridge(agent):
-    if not _orca(agent):
-        raise TaskError("OrcaSlicer n'est pas installé sur ce Worker.", "ORCA_MISSING")
-    port = _port(agent)
-    if not _bridge_open(port):
-        raise TaskError("Le bridge OrcaSlicer est arrêté : clique « Démarrer le moteur ».", "BRIDGE_STOPPED")
-    return port
+        task.update(None, "Vérification du trancheur Alpine…")
+        _require_engine(agent)
+        return {"started": True, "already_running": True, "on_demand": True, "engine_version": _engine_version(agent)}
+    return desk.start_task(agent, TOOL, "Vérifier le trancheur Alpine", work)
 
 
 def _profiles(agent, params):
     def work(task):
-        port = _require_bridge(agent)
-        task.update(None, "Lecture des profils d'imprimante d'OrcaSlicer…")
-        try:
-            info = _bridge_get(port, "/ping", 15, 64 * 1024)
-            installed = _installed_bridge_version(agent)
-            if installed and str(info.get("bridge_version") or "") != installed:
-                raise TaskError("Le bridge en marche est plus ancien que celui installé : arrête puis relance le moteur.", "BRIDGE_OUTDATED")
-            data = _bridge_get(port, "/profiles", 300)
-        except TaskError:
-            raise
-        except (OSError, ValueError, urllib.error.URLError) as error:
-            raise TaskError(f"Bridge OrcaSlicer injoignable ({type(error).__name__}) : il est peut-être occupé par un tranchage.",
-                            "BRIDGE_UNREACHABLE") from None
-        if not data.get("ok"):
-            raise TaskError(str(data.get("error") or "Le bridge n'a pas listé ses profils.")[:300], "BRIDGE_REFUSED")
+        python = _require_engine(agent)
+        task.update(None, "Lecture des profils d'imprimante du trancheur Alpine…")
+        data = _run_cli(agent, python, "list_profiles")
+        if not isinstance(data, dict) or data.get("kind") not in (None, "printer_profiles"):
+            raise TaskError("Le trancheur n'a pas listé ses profils.", "ENGINE_REFUSED")
         machines = []
         for entry in data.get("machines") or []:
             if isinstance(entry, list) and len(entry) == 4:
@@ -514,50 +529,48 @@ def _profiles(agent, params):
                     machines.append([vendor, name, model, nozzle])
             if len(machines) >= PROFILE_LIMIT:
                 break
-        return _finish(agent, {"bridge_version": str(data.get("bridge_version") or "")[:20], "machines": machines})
-    return desk.start_task(agent, TOOL, "Profils d'imprimante OrcaSlicer", work)
+        version = str(data.get("engine_version") or _engine_version(agent))[:20]
+        return _finish(agent, {"kind": "printer_profiles", "engine_version": version, "bridge_version": version,
+                               "machines": machines})
+    return desk.start_task(agent, TOOL, "Profils d'imprimante du trancheur Alpine", work)
 
 
-def process_schema(orca_dir):
-    """Chaîne du profil de processus de référence (``inherits``), clés simples triées — même règle que le site."""
-    candidates = [path for path in Path(orca_dir).glob("**/resources/profiles/BBL/process") if path.is_dir()][:4]
-    base = next((path for path in candidates if (path / PROCESS_PROFILE).is_file()), None)
-    if base is None:
-        raise TaskError("Profil de processus de référence introuvable dans cet OrcaSlicer.", "PROFILE_MISSING")
-    base = base.resolve()
-    resolved, visited = {}, set()
+def process_schema(nozzle="0.4", material="", bed_type=""):
+    """Schéma Alpine des réglages de processus (``model_engine.profiles.process.schema_for_api``), sans numpy.
 
-    def load(name):
-        name = str(name or "").strip()
-        if not name:
-            return
-        if not name.lower().endswith(".json"):
-            name += ".json"
-        path = (base / name).resolve()
-        if base not in path.parents or path in visited or not path.is_file():
-            return
-        visited.add(path)
-        profile = json.loads(path.read_text(encoding="utf-8"))
-        load(profile.get("inherits"))
-        for key, value in profile.items():
-            if key not in PROCESS_METADATA:
-                resolved[key] = value
-
-    load(PROCESS_PROFILE)
-    return [{"key": key, "value": str(value[0] if isinstance(value, list) and len(value) == 1 else value)[:300],
-             "boolean": key in BOOLEAN_PROCESS_KEYS}
-            for key, value in sorted(resolved.items())
-            if value is not None and not isinstance(value, dict) and not (isinstance(value, list) and len(value) != 1)]
+    ``{profile, nozzle, presets, categories, fields:[{key, value, boolean, label, category, min, max, step, help, …}]}``."""
+    try:
+        if __package__:
+            from .model_engine.profiles.process import schema_for_api
+        else:
+            from model_engine.profiles.process import schema_for_api
+    except ImportError as error:
+        raise TaskError(f"Schéma des réglages indisponible dans ce paquet Worker ({type(error).__name__}) : "
+                        "mets le Worker à jour.", "ENGINE_SCHEMA") from None
+    try:
+        schema = schema_for_api(nozzle=nozzle or "0.4", material=material or None, bed_type=bed_type or None)
+    except Exception as error:
+        raise TaskError(f"Schéma des réglages refusé ({type(error).__name__}) : {str(error)[:200]}", "ENGINE_SCHEMA") from None
+    fields = []
+    for item in (schema.get("fields") if isinstance(schema, dict) else None) or []:
+        if not isinstance(item, dict) or not SETTING_KEY.fullmatch(str(item.get("key") or "")):
+            continue
+        entry = dict(item)
+        entry["key"] = str(item["key"])
+        entry["value"] = str(item.get("value") if item.get("value") is not None else "")[:300]
+        entry["boolean"] = bool(item.get("boolean"))
+        fields.append(entry)
+    return {"profile": str(schema.get("profile") or "Alpine Model Engine")[:120], "nozzle": str(schema.get("nozzle") or nozzle)[:8],
+            "presets": [str(name)[:60] for name in (schema.get("presets") or [])][:32],
+            "categories": [str(name)[:40] for name in (schema.get("categories") or [])][:16], "fields": fields}
 
 
 def _process_schema(agent, params):
+    nozzle, material, bed_type = params.get("nozzle", "0.4"), params.get("material", ""), params.get("bed_type", "")
+
     def work(task):
-        orca = _orca(agent)
-        if not orca:
-            raise TaskError("OrcaSlicer n'est pas installé sur ce Worker.", "ORCA_MISSING")
-        fields = process_schema(orca.parent)
-        return _finish(agent, {"profile": "0,20 mm Standard (profil Bambu de référence)", "fields": fields})
-    return desk.start_task(agent, TOOL, "Réglages de processus OrcaSlicer", work)
+        return _finish(agent, process_schema(nozzle, material, bed_type))
+    return desk.start_task(agent, TOOL, "Réglages de processus du trancheur Alpine", work)
 
 
 def _import(agent, params):
@@ -674,41 +687,158 @@ def _slice(agent, params):
     def work(task):
         try:
             _maintenance_guard(agent)
-            port = _require_bridge(agent)
-            workdir, state = _run_runner(agent, task, "orca", parameters, sources, {"WORKER_ORCA_PORT": str(port)},
-                                         "Tranchage OrcaSlicer")
+            python = _require_engine(agent)
+            workdir, state = _run_runner(agent, task, RUNNER, parameters, sources, {"ALPINE_SLICER_PYTHON": python},
+                                         "Tranchage Alpine Model Engine")
         finally:
             for source in sources:
                 _drop_inbox(source)
-        execution = workdir.name
         try:
             target = _keep(_artifact(workdir, state), cache_folder(agent, "sliced"), output_name)
             result = dict(state.get("result") or {})
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
-            _clean_bridge_workspace(agent, execution)
+        version = str(result.get("engine_version") or result.get("bridge_version") or _engine_version(agent))[:20]
+        plates = _plates(result.get("plates")) or sliced_info(target)
         return {"path": str(target), "name": target.name, "bytes": target.stat().st_size,
                 "printer_profile": str(result.get("printer_profile") or "")[:120],
                 "filament_profiles": [str(item)[:120] for item in (result.get("filament_profiles") or [])][:16],
-                "bed_type": str(result.get("bed_type") or "")[:40], "fallback_used": bool(result.get("fallback_used")),
-                "profile_mode": str(result.get("profile_mode") or "")[:20],
-                "bridge_version": str(result.get("bridge_version") or "")[:20], "plates": sliced_info(target)}
+                "bed_type": str(result.get("bed_type") or "")[:40], "fallback_used": False,
+                "profile_mode": str(result.get("profile_mode") or "alpine")[:20],
+                "engine_version": version, "bridge_version": version, "plates": plates,
+                "warnings": [str(item)[:300] for item in (result.get("warnings") or [])][:32]}
     return desk.start_task(agent, TOOL, "Trancher " + files[0]["name"] + (f" (+{len(files) - 1})" if multi else ""), work,
                            journal=True)
 
 
-def _clean_bridge_workspace(agent, execution):
-    """Copies de CE job dans le dossier du bridge (entrées et sortie) : effacées, rien d'autre."""
-    workspace = Path(agent.root) / "workspace"
-    if not re.fullmatch(r"desktop-[0-9a-f]{24}", execution) or not workspace.is_dir():
-        return
-    for path in workspace.glob(f"worker_{execution}_*"):
+def _plates(value):
+    """Plateaux rendus par le lanceur (contrat §8 : index, prediction_s, weight_g, filaments, layers), bornés."""
+    plates = []
+    for item in (value if isinstance(value, list) else [])[:64]:
+        if not isinstance(item, dict):
+            continue
         try:
-            if path.is_file() and not is_link(path):
-                path.unlink()
-        except OSError:
-            pass
-    shutil.rmtree(workspace / "_worker_jobs" / execution, ignore_errors=True)
+            index = int(item.get("index") or 0)
+        except (TypeError, ValueError):
+            continue
+        plate = {"index": index, "prediction_s": _float(item.get("prediction_s")), "weight_g": _float(item.get("weight_g"))}
+        if isinstance(item.get("layers"), int) and not isinstance(item.get("layers"), bool):
+            plate["layers"] = item["layers"]
+        filaments = [{key: str(entry.get(key, ""))[:60] for key in ("id", "type", "color", "used_g", "used_m")}
+                     for entry in (item.get("filaments") if isinstance(item.get("filaments"), list) else [])
+                     if isinstance(entry, dict)][:32]
+        if filaments:
+            plate["filaments"] = filaments
+        plates.append(plate)
+    return plates
+
+
+# --- Projet Alpine Model Studio scellé (.amsproj) : scellé par le SITE, aucune clé ici --------------------------------
+
+def _positive(value):
+    return type(value) in (int, float) and value == value and value not in (float("inf"), float("-inf")) and value > 0
+
+
+def _short(value, limit):
+    return " ".join(value.split())[:limit] if isinstance(value, str) else ""
+
+
+def model_hints(given=None):
+    """Indications du manifeste d'un .amsproj (famille 3d, jamais des ordres machine), comme Model Studio du site :
+    filaments (emplacement, couleur, matière, nom), hauteur de couche, remplissage, supports. Le site les réduit de
+    nouveau aux champs du contrat (alpine_formats_routes.clean_hints) ; ``notes`` n'en fait pas partie."""
+    given = given if isinstance(given, dict) else {}
+    hints = {}
+    materials = []
+    for item in (given.get("materials") if isinstance(given.get("materials"), list) else [])[:32]:
+        if not isinstance(item, dict):
+            continue
+        entry = {}
+        slot = item.get("slot")
+        if type(slot) is int and 1 <= slot <= 64:
+            entry["slot"] = slot
+        color = _short(item.get("color"), 7)
+        if re.fullmatch(r"#[0-9A-Fa-f]{6}", color):
+            entry["color"] = color.upper()
+        for key, limit in (("material", 24), ("name", 60)):
+            text = _short(item.get(key), limit)
+            if text:
+                entry[key] = text
+        if entry:
+            materials.append(entry)
+    if materials:
+        hints["materials"] = materials
+    layer = given.get("layer_height")
+    if _positive(layer) and 0.01 <= layer <= 2:
+        hints["layer_height"] = layer
+    infill = given.get("infill")
+    if type(infill) in (int, float) and infill == infill and 0 <= infill <= 100:
+        hints["infill"] = infill
+    elif _short(infill, 12):
+        hints["infill"] = _short(infill, 12)
+    if isinstance(given.get("supports"), bool):
+        hints["supports"] = given["supports"]
+    return hints
+
+
+def project_stem(name):
+    """Nom du fichier sans son extension (« vase été.3mf » → « vase été »), accents gardés comme le CNC Studio ;
+    ``desktop_library.write_sealed`` rend ensuite le nom local sûr."""
+    base = os.path.basename(str(name or "")).strip()
+    root, extension = os.path.splitext(base)
+    if extension.lower() in (".3mf", ".stl", ".amsproj"):
+        base = root.strip()
+    return base or "modele"
+
+
+def _save_amsproj(agent, params):
+    """Scène du bureau (3MF ou STL déposé par worker.exe) → Projet Alpine Model Studio scellé (.amsproj) par le site."""
+    session = params.pop("session_token")
+    name, staged = params["name"], params["staged"]
+    extension = Path(name).suffix.lower().lstrip(".")
+    if extension not in ("3mf", "stl"):
+        raise ValueError("Projet Alpine Model Studio : un 3MF ou un STL de la scène est attendu.")
+    source = _consume(agent, staged, name)   # vérifié tout de suite : un refus n'ouvre pas de tâche
+    size = source.stat().st_size
+    if size > library.SEAL_CONTENT_MAX:
+        _drop_inbox(source)
+        raise ValueError(f"Scène trop volumineuse pour un scellement depuis worker.exe ({library.SEAL_CONTENT_MAX // 1024 // 1024} "
+                         "Mo au plus) : enregistre-la en 3MF ou scelle-la depuis le Model Studio du site.")
+    stem = project_stem(name)
+    title = _short(params.get("title"), 120) or stem
+    hints = model_hints(params.get("hints") or {})
+    target = stem + ".amsproj"
+
+    def work(task):
+        try:
+            if extension == "stl":
+                task.update(None, "Conversion de la scène en 3MF")
+                converted = source.with_name(SEALED_MAIN)
+                try:
+                    _stl_to_3mf(source, converted)
+                except TaskError:
+                    raise
+                except Exception as error:
+                    raise TaskError(f"Lecture du STL impossible ({type(error).__name__}).", "INVALID_MESH") from None
+                data = converted.read_bytes()
+            else:
+                data = source.read_bytes()
+        finally:
+            _drop_inbox(source)
+        if library.is_sealed(data):
+            raise TaskError("Ce fichier est déjà un fichier Alpine scellé.", "ALREADY_SEALED")
+        manifest = {"main": SEALED_MAIN, "title": title, "tool": TOOL, "hints": hints}
+        task.update(None, "Scellement du projet par le site")
+        try:
+            sealed = library.sealed_seal(agent, session, "amsproj", manifest, {SEALED_MAIN: data}, target)
+        except TaskError as error:
+            if error.code == "SEALED_OFFLINE":
+                raise TaskError(SEAL_OFFLINE, "SEALED_OFFLINE") from None
+            raise
+        view = library.write_sealed(agent, sealed, target, "amsproj")
+        view.update(title=title, hints=hints, main=SEALED_MAIN)
+        return view
+    return desk.start_task(agent, TOOL, "Enregistrer le projet " + stem, work)
 
 
 def _export_3mf(agent, params):
@@ -793,7 +923,8 @@ DESKTOP_ACTIONS = {
     "state": {"handler": _state, "read": True, "params": {}},
     "bridge-start": {"handler": _bridge_start, "read": False, "params": {}},
     "profiles": {"handler": _profiles, "read": True, "params": {}},
-    "process-schema": {"handler": _process_schema, "read": True, "params": {}},
+    "process-schema": {"handler": _process_schema, "read": True, "params": {
+        "nozzle": v_choice(*NOZZLES), "material": v_regex(MATERIAL, "matériau"), "bed_type": v_choice(*BED_TYPES)}},
     "import": {"handler": _import, "read": True, "params": {"staged": v_hex(32), "name": v_file_name}},
     "repair": {"handler": _repair, "read": True, "params": {
         "staged": v_hex(32), "name": v_file_name, "analyze_only": v_bool, "target_faces": v_int(4, 50_000_000),
@@ -802,6 +933,10 @@ DESKTOP_ACTIONS = {
     "slice": {"handler": _slice, "read": True, "params": {
         "files": v_slice_files, "settings": v_settings, "process_settings": v_process_settings}},
     "export-3mf": {"handler": _export_3mf, "read": True, "params": {"staged": v_hex(32), "name": v_file_name}},
+    # Agent 1.54.0 : Projet Alpine Model Studio scellé (.amsproj) par le site (aucune clé ici), comme « seal » du CNC Studio.
+    "save-amsproj": {"handler": _save_amsproj, "read": True, "params": {
+        "session_token": v_session, "staged": v_hex(32), "name": v_file_name, "title": v_text(120),
+        "hints": v_object(depth=3, keys=40)}},
     "outputs": {"handler": _outputs, "read": True, "params": {}},
     "print": {"handler": _print, "read": False, "params": {
         "session_token": v_session, "name": v_file_name, "plate": v_int(1, 64), "confirm": v_true,
@@ -810,8 +945,8 @@ DESKTOP_ACTIONS = {
     "print-status": {"handler": _print_status, "read": True, "params": {"session_token": v_session, "launch_id": v_hex(32)}},
 }
 REQUIRED = {"import": ("staged", "name"), "repair": ("staged", "name"), "build": ("scene",), "slice": ("files",),
-            "export-3mf": ("staged", "name"), "print": ("session_token", "name", "confirm"),
-            "print-status": ("session_token", "launch_id")}
+            "export-3mf": ("staged", "name"), "save-amsproj": ("session_token", "staged", "name"),
+            "print": ("session_token", "name", "confirm"), "print-status": ("session_token", "launch_id")}
 
 
 def _required(name, handler):

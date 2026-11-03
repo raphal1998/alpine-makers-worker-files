@@ -6,7 +6,8 @@ import socket
 import urllib.parse
 from pathlib import Path
 
-PORTS = {"image_generation": 28188, "ai3d": 28189, "model-studio": 25064, "printguard": 28000}
+# Model Studio (agent 1.54.0) : plus de pont OrcaSlicer ni de port ; le trancheur Alpine est un processus par job.
+PORTS = {"image_generation": 28188, "ai3d": 28189, "printguard": 28000}
 PRINTGUARD_MEDIA_PORTS = {"api": 29997, "rtsp": 28554, "rtmp": 21935, "hls": 28888}
 
 
@@ -60,9 +61,9 @@ def environment(root, base):
     for variable in ("COMFYUI_ROOT", "HUNYUAN3D_ROOT", "PRINTGUARD_EXE", "FREECAD_CMD", "FREECAD_ROOT", "ORCA_DIR",
                      "PRINTER_IP", "ACCESS_CODE", "BAMBU_ACCESS_CODE", "BAMBU_SERIAL"):
         env.pop(variable, None)
+    env.pop("WORKER_ORCA_PORT", None)
     env.update({"COMFYUI_PORT": str(PORTS["image_generation"]),
                 "HUNYUAN_WORKER_URL": f"http://127.0.0.1:{PORTS['ai3d']}",
-                "WORKER_ORCA_PORT": str(PORTS["model-studio"]),
                 "DATA_DIR": str(Path(root) / "data" / "printguard")})
     # FreeCAD supports these application-specific locations. Do not redirect
     # USERPROFILE/HOME globally: winget and system dependency installs use them.

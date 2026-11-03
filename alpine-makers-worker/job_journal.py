@@ -644,8 +644,8 @@ def site_identity(tool_id, parameters, capability=""):
         return tool, "Conversion 3D (FreeCAD)"
     if tool == "model-studio":
         if parameters.get("action") == "list_profiles":
-            return tool, "Lecture des profils OrcaSlicer"
-        return tool, "Tranchage multi-plateaux (OrcaSlicer)" if parameters.get("multi") else "Tranchage (OrcaSlicer)"
+            return tool, "Lecture des profils d'imprimante (Alpine Model Engine)"
+        return tool, "Tranchage multi-plateaux (Alpine Model Engine)" if parameters.get("multi") else "Tranchage (Alpine Model Engine)"
     if tool == "laser-studio":
         return tool, LASER_OPERATIONS.get(str(parameters.get("op") or ""), TOOL_NAMES[tool])
     if tool == "cnc-studio":

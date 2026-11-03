@@ -56,7 +56,7 @@ def inspect_sources(root):
         {"id": "external-engine-assets", "severity": "release-gate",
          "remedy": "Keep engines, models, venvs, caches, data and licenses outside the executable; retain the existing root/manifest and user-installed resources."},
         {"id": "server-injected-adapters", "severity": "release-gate",
-         "remedy": "The server package builder adds hunyuan_worker.py, freecad_converter.py, freecad_builder.py, freecad_cam.py and orca_core_bridge.ps1 from project sources. Validate the final manifest, not worker_agent alone."},
+         "remedy": "The server package builder adds hunyuan_worker.py, freecad_converter.py, freecad_builder.py and freecad_cam.py from project sources (the Alpine Model Engine slicer ships inside worker_agent/model_engine). Validate the final manifest, not worker_agent alone."},
         {"id": "publisher-signature", "severity": "release-gate",
          "remedy": "Use the real publisher's code-signing certificate, timestamp and independent signature verification; no certificate is created or claimed by this preflight."},
         {"id": "native-platform-validation", "severity": "release-gate",

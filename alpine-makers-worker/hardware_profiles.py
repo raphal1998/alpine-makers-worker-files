@@ -23,11 +23,12 @@ CAPABILITY = "hardware_profiles_v1"
 MIN_AGENT_VERSION = "1.15.0"
 ENGINE_PYTHON = "3.12"
 GPU_TOOLS = frozenset({"image_generation", "ai3d"})
-CPU_LABELS = {"converter": "FreeCAD · CPU", "model-studio": "OrcaSlicer · CPU", "printguard": "PrintGuard · LiteRT CPU",
+CPU_LABELS = {"converter": "FreeCAD · CPU", "model-studio": "Trancheur Alpine · CPU", "printguard": "PrintGuard · LiteRT CPU",
               "laser-studio": "Moteur laser · CPU", "cnc-studio": "Moteur CNC · CPU",
               "toile-studio": "Alpine Toile Creator · CPU", "alpine-guard": "Alpine Guard · vision CPU"}
-# Paquets distribués uniquement sous Windows ; les autres outils (FreeCAD, moteur laser, GPU) vont aussi sur Linux.
-WINDOWS_ONLY_TOOLS = frozenset({"model-studio", "printguard"})
+# Paquets distribués uniquement sous Windows ; les autres outils (FreeCAD, moteur laser, trancheur Alpine, GPU) vont
+# aussi sur Linux (Model Studio n'est plus Windows seulement depuis l'agent 1.54.0 : plus d'OrcaSlicer).
+WINDOWS_ONLY_TOOLS = frozenset({"printguard"})
 DRIVER_MINIMUMS = {
     "12.6": {"windows": "560.76", "linux": "560.28.03"},
     "12.8": {"windows": "570.65", "linux": "570.26"},

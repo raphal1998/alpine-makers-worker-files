@@ -8,7 +8,7 @@
 
 $script:TableauOutils = @{
     'image_generation' = 'Images (ComfyUI)'; 'ai3d' = 'IA 3D (Hunyuan3D)'; 'converter' = 'Convertisseur (FreeCAD)'
-    'printguard' = 'PrintGuard'; 'model-studio' = 'Model Studio (Orca)'; 'laser-studio' = 'Laser Studio'; 'cnc-studio' = 'CNC Studio'
+    'printguard' = 'PrintGuard'; 'model-studio' = 'Model Studio (trancheur Alpine)'; 'laser-studio' = 'Laser Studio'; 'cnc-studio' = 'CNC Studio'
 }
 
 function Get-TableauWorker {

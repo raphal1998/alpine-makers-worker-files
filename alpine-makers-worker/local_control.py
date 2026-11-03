@@ -28,18 +28,20 @@ else:
     from safety import is_link
     from installers.model_catalog import COMFYUI_CATALOG
 
-ENGINES = ("comfyui", "hunyuan3d", "orca", "orca-bridge", "freecad", "cuda-toolkit", "printguard")
+# orca / orca-bridge (retirés en 1.54.0) restent listés : le nettoyage local doit encore pouvoir les retirer du disque.
+ENGINES = ("comfyui", "hunyuan3d", "alpine-slicer", "orca", "orca-bridge", "freecad", "cuda-toolkit", "printguard")
 TOOLS = ("image_generation", "ai3d", "model-studio", "converter", "printguard")
 KEEP = {"input", "output", "user", ".cache", "custom_nodes"}
 CHECKPOINTS = {spec[0] for spec in COMFYUI_CATALOG.values()}
 
 # Moteurs a processus permanent pilotes par status / engines-stop / engines-start.
-# "converter" (FreeCAD) n'a pas de processus : il n'est jamais touche ici.
+# "converter" (FreeCAD) et "model-studio" (trancheur Alpine, agent 1.54.0 : un processus par job) n'ont pas de
+# processus permanent : ils ne sont jamais touches ici.
 # Valeur = cle du verrou par moteur de l'agent (TOOL_HANDLERS, verifie par les tests).
-ENGINE_LOCK_KEYS = {"image_generation": "comfyui", "ai3d": "hunyuan3d", "model-studio": "orca", "printguard": "printguard"}
+ENGINE_LOCK_KEYS = {"image_generation": "comfyui", "ai3d": "hunyuan3d", "printguard": "printguard"}
 # PrintGuard lit le relais camera de l'agent : arrete en premier, demarre en dernier.
-ENGINE_STOP_ORDER = ("printguard", "model-studio", "ai3d", "image_generation")
-ENGINE_START_ORDER = ("image_generation", "ai3d", "model-studio", "printguard")
+ENGINE_STOP_ORDER = ("printguard", "ai3d", "image_generation")
+ENGINE_START_ORDER = ("image_generation", "ai3d", "printguard")
 ENGINE_ACTIONS = ("status", "engines-stop", "engines-start")
 # Lectures seules sans parametre, traitees comme status (requete a echeance, aucun heartbeat force).
 READ_ACTIONS = ("status", "fire-watch")

@@ -69,7 +69,7 @@ $script:ActionInstall = 'Aucun outil du menu : relance install_windows.bat (dans
 # Mise à jour : l'entrée 23 du menu. Elle a besoin d'un agent assez récent : sinon, le bouton du site reste le seul chemin.
 $script:ActionMiseAJour = (Get-NomEntree 23 -Nu) + ' ; si elle répond que l''agent est trop ancien : depuis le site, Mes Workers > ce Worker > « Mettre à jour »'
 # Moteur (tool_id) -> clé du journal dans l'outil Journaux.
-$script:CleJournalMoteur = @{ 'image_generation' = 'images'; 'ai3d' = '3d'; 'printguard' = 'printguard'; 'model-studio' = 'orca' }
+$script:CleJournalMoteur = @{ 'image_generation' = 'images'; 'ai3d' = '3d'; 'printguard' = 'printguard' }
 
 $problemes = New-Object System.Collections.ArrayList
 function Add-Probleme {
@@ -345,8 +345,7 @@ foreach ($m in $moteurs) {
     $libelle = $m.Nom + ' :' + $m.Port
     if ($m.EnEcoute) {
         $detail = 'en écoute'
-        if ($m.Outil -eq 'model-studio') { $detail = 'en écoute (servi par Windows HTTP.sys, sous le PID 4 : normal)' }
-        elseif ($m.PidPort -gt 0) { $detail = 'en écoute (port tenu par le PID ' + $m.PidPort + ')' }
+        if ($m.PidPort -gt 0) { $detail = 'en écoute (port tenu par le PID ' + $m.PidPort + ')' }
         if ($workerEteint) { $orphelins += $m.Nom; Write-Etat $libelle ($detail + ' ALORS QUE le Worker est éteint : orphelin') 'alerte' }
         else { Write-Etat $libelle $detail 'ok' }
     } elseif ($m.FichePresente) {

@@ -1,5 +1,25 @@
 # Historique des mises à jour
 
+## Version 1.54.0 — 2026-11-03
+
+**Alpine Model Engine : Alpine Model Studio tranche sans OrcaSlicer, sur Windows et Linux**
+
+### Ajouté
+- Alpine Model Engine, le trancheur écrit par Alpine Makers (worker_agent/model_engine, Python isolé numpy + Pillow, un processus par job comme les Alpine Tools) : préparation, supports et tranchage des modèles pour la Bambu Lab P1S (P1P, X1C, X1E aussi), fichier .gcode.3mf lisible par le site, la bibliothèque et « Lancer l'impression » sans rien changer aux écrans.
+- Composant « alpine-slicer » dans Mes Workers → Installations (≈ 150 Mo au lieu de 650 Mo), moteur de Model Studio, fiche juridique « Alpine Makers / dépendances tierces » (numpy BSD-3-Clause, Pillow MIT-CMU) ; capacité model_engine_v1.
+- Linux : Alpine Model Studio s'installe et tranche aussi sur un Worker Linux (plus de paquet Windows seulement).
+- /api/model-studio/process-schema sert le schéma Alpine des réglages (libellés, catégories, bornes, unités, aide en français ; buse et matériau facultatifs) ; le résultat d'un tranchage porte engine_version et les plateaux (temps, poids, filaments, couches).
+
+### Modifié
+- Plus d'OrcaSlicer ni de pont « orca-bridge » : le pont n'est plus livré ni distribué, l'ancien module reste listé uniquement sur les Workers où il est encore installé, pour le désinstaller (650 Mo libérés). Plus de profils AGPL dans le dépôt (model_studio_profiles/ retiré) : chaque réglage, préréglage et séquence G-code est écrit par Alpine Makers.
+- worker.exe : le catalogue embarqué de Model Studio (réglages et matériaux) vient du schéma Alpine Model Engine ; les matériaux sans fiche de tranchage (PPS, PE, EVA, PHA, POM) ne sont plus proposés.
+
+### Corrigé
+- Les réglages avancés de tranchage (process_settings) étaient ignorés en tranchage simple : ils sont désormais acceptés et contrôlés comme en multi-matériaux.
+
+### Technique
+- Empreinte du paquet publié : `b56c0fe34b157eb7…` (dossier du paquet).
+
 ## Version 1.53.6 — 2026-11-03
 
 ### Technique

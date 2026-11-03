@@ -45,8 +45,9 @@ TOP_CATEGORIES = {"cache": "cache", "outputs": "outputs", "workspace": "outputs"
                   "logs": "logs", "temp": "temp"}
 TOOL_LABELS = {"image_generation": "Génération d'images (ComfyUI)", "ai3d": "IA 3D (Hunyuan3D)",
                "converter": "Convertisseur / CNC (FreeCAD)", "printguard": "PrintGuard (surveillance d'impression)",
-               "model-studio": "Model Studio (OrcaSlicer)", "laser-studio": "Laser Studio", "cnc-studio": "CNC Studio"}
-ENGINE_TOOLS = ("image_generation", "ai3d", "model-studio", "printguard")
+               "model-studio": "Model Studio (trancheur Alpine)", "laser-studio": "Laser Studio", "cnc-studio": "CNC Studio"}
+# Moteurs à processus résident (agent 1.54.0 : plus de bridge Orca, le trancheur Alpine est un processus par job).
+ENGINE_TOOLS = ("image_generation", "ai3d", "printguard")
 SHARING_LABELS = {"prive": "Privé", "comptes": "Comptes choisis", "public": "Public"}
 AUDIENCE_LABELS = {"team": "équipe", "contributors": "contributeurs", "everyone": "tous les comptes"}
 COMPONENT_ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,47}")

@@ -363,7 +363,7 @@ function Stop-CalculsDuWorker {
     <#
         « Arrêter tous les jobs », dernier recours (agent 1.50.33) : arrête les processus de CALCUL de ce Worker qui
         vivent encore (rôle « calcul » de Get-ProcessusDuWorker : lanceurs de jobs ou de worker.exe, FreeCAD qui
-        exécute un script du Worker, tranchage OrcaSlicer d'un moteur du Worker, et leurs descendants), par PID
+        exécute un script du Worker, tranchage Alpine Model Engine d'un job, et leurs descendants), par PID
         revérifié, les plus profonds d'abord. -AvecInstallations : aussi les installateurs du Worker (agent muet).
         Jamais un moteur, l'agent, le superviseur, ni un programme étranger au Worker. Deux passes au plus.
         Renvoie : Vus (processus visés), Arretes, Survivants, Illisibles.
@@ -581,8 +581,7 @@ function Get-VerificationArret {
     $lignes = @()
     foreach ($m in @(Get-EtatMoteurs -Racine $Racine)) {
         $ou = 'port ' + $m.Port
-        if ($m.Outil -eq 'model-studio') { $ou = 'port ' + $m.Port + ' dans HTTP.sys' }
-        $lignes += [pscustomobject]@{ Libelle = ($m.Nom + ' (' + $ou + ')'); Ferme = (-not $m.EnEcoute) }
+        $lignes +=[pscustomobject]@{ Libelle = ($m.Nom + ' (' + $ou + ')'); Ferme = (-not $m.EnEcoute) }
     }
     $lignes += [pscustomobject]@{ Libelle = ('Relais caméra de l''agent (port ' + $script:PortRelaisCamera + ')'); Ferme = (-not (Test-AgentVivant)) }
     return $lignes
